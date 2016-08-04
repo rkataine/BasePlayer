@@ -1,0 +1,9 @@
+#Config file for BasePlayer
+
+MemoryLimit=1200m
+DefaultDir=X:\cg8\projects\CRC\analysis\SomaticCharacterization\callsets\SNVs_indels\20160615\POLE
+DefaultControlDir=X:\cg8\Controls\wgs
+DefaultGenome=hs37d5
+DefaultGenes=Ensembl_genes_37_84.bed.gz
+DefaultTrackDir=X:\cg8\public\SELEX_2015\hits
+DefaultProjectDir=\\ATKK\home\r\rkataine\Documents
