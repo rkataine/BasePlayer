@@ -177,7 +177,7 @@ super(new GridBagLayout());
 public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
 	//throw new UnsupportedOperationException("Not supported yet.");
 	Component comp = getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-	String s = table.getModel().getValueAt(row, column).toString();
+	
 	if (table.getValueAt(row, column).toString().contains("Running")) {
 		comp.setForeground(Color.red);
 	} else {
@@ -221,19 +221,17 @@ public static class runner extends SwingWorker<String, Object> {
 static void calcAverage() {
 	
 	try {		
-		 java.util.List<int[]> mergeVector = Average.mergeVector;
-	//  java.util.List<String[]> targetVector = Main.drawVector.get(0).splitMatrix.get(1);	  
-	  TreeSet<Segment> data = new TreeSet<Segment>();
-	  int previousEnd = 0, zeros = 0;
+	  java.util.List<int[]> mergeVector = Average.mergeVector;
+	 
+	  int zeros = 0;
 	  long result = 0, qualities = 0, cliplengths = 0, readlengths = 0, reads =0;
-	  String line;
-	  String[] split;
-	  int totalLength = 0, currentLength = 0, mass =0;
-	  int limit = 0, start = 0, end = 0, chrom = 1;
+	
+	  int currentLength = 0;
+	  int start = 0, end = 0;
 	 		
-	  int[] res;
-	  int targetTemp = 0, pointer = 0, stat = 0;
-	  int coverLength =0;
+	 
+	  int pointer = 0, stat = 0;
+	  
 	  String status = "";
 	  String percent = "";
 	  int[] coverageWidth = new int[10];
@@ -251,13 +249,11 @@ static void calcAverage() {
 		  SamReader inputSam = SamReaderFactory.make().open(Main.drawCanvas.sampleList.get(s).samFile);
 		  pointer = 0;
 		  qualities = 0;
-		  targetTemp = 0;
-		  previousEnd = 0;
+	
 		  currentLength = 0;
 		  result = 0;
 		  zeros = 0;
 		  reads = 0;
-		  coverLength =0;
 		  cliplengths = 0;
 		  readlengths = 0;
 		  coverageWidth = new int[10];
