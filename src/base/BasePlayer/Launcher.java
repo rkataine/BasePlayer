@@ -20,13 +20,13 @@ import javax.swing.JOptionPane;
 
 public class Launcher  {	
 	static String maindir;
-	static boolean fromMain = false;
+	static boolean fromMain = false, firstStart = false;
 	private static long timer;	
 	static String memlimit = "1200m", defaultDir = "demo", line, ctrldir = "demo", defaultAnnotation ="", defaultGenome = "";
 	static String gerpfile;	
 	static ArrayList<String> config = new ArrayList<String>();
 	public static String trackDir = "";
-	public static String projectDir= "";
+	public static String projectDir= "", downloadDir = "";
 	
 	public static void main(String[] args) {
 		try {
@@ -69,6 +69,14 @@ public class Launcher  {
 				  }
 				  else if(line.startsWith("DefaultTrack")) {
 					  trackDir = line.substring(line.indexOf("=")+1).replace(" ", "");
+				  }
+				  else if(line.startsWith("DownloadDir")) {
+					  downloadDir = line.substring(line.indexOf("=")+1).replace(" ", "");
+				  }
+				  else if(line.startsWith("FirstStart")) {
+					  if(line.substring(line.indexOf("=")+1).replace(" ", "").contains("true")) {
+						  firstStart = true;
+					  }					 
 				  }
 			  }
 			  if(!new File(defaultDir).exists()) {

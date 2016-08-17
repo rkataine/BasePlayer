@@ -41,7 +41,7 @@ public class Sample implements Serializable{
 	double callrates = 0.0;
 	double[] mutationTypes;
 	short phred = 33;
-	public boolean MD = false;
+	public boolean MD = false, CRAM = false;
 	public int sitioRate = 0, versioRate = 0;
 	
 	Sample(String sampleName, short index, String tabixfile) {		

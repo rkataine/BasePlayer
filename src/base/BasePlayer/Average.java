@@ -11,9 +11,10 @@
  */
 package base.BasePlayer;
 
+import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
-import htsjdk.samtools.SamReaderFactory;
+
 import htsjdk.tribble.readers.TabixReader;
 
 import java.awt.Component;
@@ -221,7 +222,7 @@ public static class runner extends SwingWorker<String, Object> {
 static void calcAverage() {
 	
 	try {		
-	  java.util.List<int[]> mergeVector = Average.mergeVector;
+		 java.util.List<int[]> mergeVector = Average.mergeVector;
 	 
 	  int zeros = 0;
 	  long result = 0, qualities = 0, cliplengths = 0, readlengths = 0, reads =0;
@@ -246,7 +247,8 @@ static void calcAverage() {
 		  if(Main.drawCanvas.sampleList.get(s).samFile == null) {
 			 continue; 
 		  }
-		  SamReader inputSam = SamReaderFactory.make().open(Main.drawCanvas.sampleList.get(s).samFile);
+		  //SamReader inputSam = SamReaderFactory.make().open(Main.drawCanvas.sampleList.get(s).samFile);
+		  SAMFileReader inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
 		  pointer = 0;
 		  qualities = 0;
 	

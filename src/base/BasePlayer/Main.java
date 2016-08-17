@@ -37,7 +37,6 @@ import java.awt.event.MouseWheelListener;
 
 import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.seekablestream.SeekableStreamFactory;
-import htsjdk.samtools.util.BlockCompressedInputStream;
 import htsjdk.tribble.readers.TabixReader;
 
 import java.util.ArrayList;
@@ -45,6 +44,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.awt.Color;
 import java.beans.PropertyChangeEvent;
@@ -67,6 +67,9 @@ import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
+
+import java.net.URLConnection;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
@@ -97,6 +100,9 @@ import javax.swing.event.DocumentListener;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.net.ftp.FTPClient;
+
 	public class Main extends JPanel implements ActionListener, ChangeListener, ComponentListener, MouseListener, PropertyChangeListener, KeyListener, MouseMotionListener {
 		private static final long serialVersionUID = 1L;
 		
@@ -105,9 +111,8 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 	    static String version = "1.0.0";
 	    static int sidebarWidth = 200;
 	    static String[] argsit = {}, args;
-	    static GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice(); 
-	    
-	    //testqeqwqwr
+	    static GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();   
+	 
 	    static int width = gd.getDisplayMode().getWidth();
 	    static int height = gd.getDisplayMode().getHeight();
 	    static int loadTextWidth = 200;
@@ -120,6 +125,7 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 	    public static String gerp;
 	    static int searchStart=-1, searchEnd=-1;
 		//Labels	
+	    static HashMap<String, String> factorNames = new HashMap<String, String>();
 	    static boolean configChanged = false;
 	    static int trackdivider = 0;
 	    static java.util.List<String> chromnamevector = Collections.synchronizedList(new ArrayList<String>());
@@ -135,6 +141,7 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 	    static Loader loading; 
 	    static Hashtable<String, Long[]> chromIndex = new Hashtable<String, Long[]>();
 	    static Hashtable<String, ArrayList<File>> genomehash = new Hashtable<String, ArrayList<File>>();
+	    static Hashtable<String, File> fastahash = new Hashtable<String, File>();
 	    static String[] chromnames;
 	    static String path;
 	    static boolean cancelhover = false, cancel = false;
@@ -150,10 +157,12 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 	    static Hashtable<String, String> bases;
 		//Buttons etc.
 	    static String defaultGenome = "";
+	    static String downloadDir = "";
 	    static JSplitPane splitPane, trackPane, varpane, drawpane;
 	    public static boolean nothread;	
 	    static Hashtable<String, String[]> searchTable = new Hashtable<String, String[]>();
-	    
+	    JMenuItem addGenome = new JMenuItem("Add new genome...");
+	   
 	    JButton zoomout = new JButton("Zoom out");
 	    JButton dosomething = new JButton("Do stuff!");
 	    JButton back = new JButton("<"), forward = new JButton(">");
@@ -174,7 +183,7 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 		JMenuItem update = new JMenuItem("Update");
 		JMenuItem errorlog = new JMenuItem("View log");
 		JLabel helpLabel = new JLabel("This is pre-release version of BasePlayer\nContact: help@baseplayer.fi\n\nUniversity of Helsinki");
-		JMenu genome = new JMenu("Change genome");
+		static JMenu genome = new JMenu("Change/add genome");
 		static boolean updatelauncher = false;
 		static JMenuItem opensamples = new JMenuItem("Open samples");
 		static JMenuItem addtracks = new JMenuItem("Add tracks");
@@ -184,17 +193,18 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 		static JMenuItem openProject = new JMenuItem("Open project");
 		JMenuItem clear = new JMenuItem("Clear data");
 		JMenuItem clearMemory = new JMenuItem("Clean memory");
+		JMenuItem welcome = new JMenuItem("Welcome screen");
 		static RandomAccessFile referenceFile;    
 	    static JComboBox<String> chromosomeDropdown;		
 		//UI		
-	    
-	    DefaultComboBoxModel<String> chromModel;
+	    static MouseListener thisMainListener;
+	    static DefaultComboBoxModel<String> chromModel;
 	    static Hashtable<String, int[][]> SELEXhash = new Hashtable<String, int[][]>();
 		static JScrollPane drawScroll;
 		static JScrollPane chromScroll;
 		static JScrollPane bedScroll;
 		static JScrollPane controlScroll;
-		
+		static String hoverGenome = "", hoverAnnotation = "";
 		ActionListener ChromoDropActionListener = new ActionListener() {
 			
 	    	public void actionPerformed(ActionEvent actionEvent) {
@@ -264,7 +274,7 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 	    };
 
 //		private String searchString;
-		private Dimension fieldDimension;
+		static Dimension fieldDimension;
 		private File[] annofiles;
 
 		private int keyCode;
@@ -424,6 +434,8 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 	public Main() {	
 		
 	super(new GridBagLayout());	
+	
+	thisMainListener = this;
 	try {
 		htsjdk.samtools.util.Log.setGlobalLogLevel(htsjdk.samtools.util.Log.LogLevel.ERROR);
 		for(int i=0;i<snow.length; i++) {
@@ -496,6 +508,7 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 		controlDir = Launcher.ctrldir;
 		trackDir = Launcher.trackDir;
 		projectDir = Launcher.projectDir;
+		downloadDir = Launcher.downloadDir;
 		 drawDimensions = new Dimension(drawWidth,drawHeight-200);
 		 drawCanvas = new Draw((int)drawDimensions.getWidth(),(int)drawDimensions.getHeight());
 		 iconImage = Toolkit.getDefaultToolkit().getImage(getClass().getResource("icon.png"));
@@ -551,8 +564,7 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 					}
 			  }
 
-			  public void warn(String searchtext) {
-				 
+			  public void warn(String searchtext) {				 
 				
 				  	if(searchTable.containsKey(searchtext.toUpperCase())) {
 				  		if(searchTable.get(searchtext.toUpperCase())[0].equals(Main.chromosomeDropdown.getSelectedItem())) {
@@ -641,11 +653,14 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 										
 					}
 				}	
+				factorNames.put(factor, factor);
 				Main.SELEXhash.put(factor, selexmatrix);
 			}				
 			selexReader.close();
 			selexReader = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream("SELEX/oldSELEX.txt")));
-			
+			String id;
+			boolean first = true;
+			int linepointer = 0;
 			while((line = selexReader.readLine()) != null) {
 				split = line.split("\\t");
 				factor = split[0];
@@ -661,10 +676,47 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 										
 					}
 				}	
+				factorNames.put(factor, factor);
 				Main.SELEXhash.put(factor, selexmatrix);
 			}				
 			selexReader.close();
+			selexReader = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream("SELEX/jaspar_pfm_all.txt")));
 			
+			while((line = selexReader.readLine()) != null) {
+				if(line.startsWith(" ")) {
+					continue;
+				}
+				if(line.startsWith(">")) {
+					first = true;
+					split = line.split("\\s+");
+					id = split[0].substring(1);					
+					factor = split[1];
+					
+					factorNames.put(id, factor);
+				
+					linepointer = 0;
+					line = selexReader.readLine();
+					selexmatrix = null;
+				
+					while(line.length() > 1 && !line.startsWith(" ")) {
+						
+						split = line.substring(line.indexOf("[") +1, line.indexOf("]")).trim().split("\\s+");
+						
+						if (first) {
+							first = false;
+							selexmatrix = new int[4][split.length];							
+						}
+						
+						for(int j = 0; j< split.length; j++) {						
+							selexmatrix[linepointer][j] =  Integer.parseInt(split[j]);												
+						}
+						linepointer++;
+						line = selexReader.readLine();
+					}
+					Main.SELEXhash.put(id, selexmatrix);
+				}				
+			}				
+			selexReader.close();
 			
 			
 			A=Toolkit.getDefaultToolkit().getImage(getClass().getResource("SELEX/A.png"));
@@ -757,19 +809,46 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 	    drawCanvas.loading("note");
 		try {
 			File genomedir = new File(userDir +"/genomes/"), annodir;
-			File[] genomes = genomedir.listFiles(), annotations;
+			File[] genomes = genomedir.listFiles(), annotations;			
+			addGenome.addMouseListener(this);
+			
+			
+			genome.setName("genomeMenu");
+			genome.add(addGenome);
+			genome.addComponentListener(this);
+			File[] fastadir;
 		if(genomes != null) {	
 			for(int i = 0; i<genomes.length; i++) {
 				annodir = new File(genomes[i].getAbsolutePath() +"/annotation/");
+				if(genomes[i].isDirectory()) {
+					fastadir = genomes[i].listFiles();
+					for(int f = 0; f<fastadir.length; f++) {
+						if(fastadir[f].isDirectory()) {
+							continue;
+						}
+						if(fastadir[f].getName().contains(".fai")) {
+							continue;
+						}
+						else if(fastadir[f].getName().contains(".fa")) {
+							fastahash.put(genomes[i].getName(), fastadir[f]);			
+						}
+					}
+				}
+			
 				annotations = annodir.listFiles();
 				genomehash.put(genomes[i].getName(), new ArrayList<File>());
 			//	System.out.println(genomes[i].getName());
 				JMenu addMenu = new JMenu(genomes[i].getName());
 				addMenu.addMouseListener(this);
 				addMenu.setName(genomes[i].getName());
+				JMenuItem addAnnotation = new JMenuItem("Add new annotation file...");
+				addAnnotation.addMouseListener(this);
+				addAnnotation.setName("add_annotation");
+				addMenu.add(addAnnotation);
 				addMenu.add(new JLabel("  Select annotation: "));
 				addMenu.add(new JSeparator());
 				genome.add(addMenu);
+				addMenu.addComponentListener(this);
 				if(annotations != null) {
 					for(int j = 0; j<annotations.length; j++) {
 						annofiles = annotations[j].listFiles();
@@ -780,35 +859,26 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 								additem.setName(annofiles[f].getName().substring(0,annofiles[f].getName().indexOf(".bed.gz")));
 								additem.addMouseListener(this);
 								addMenu.add(additem);
+								additem.addComponentListener(this);
 								break;
 							}
-							else if (annofiles[f].getName().contains(".gff")) {
-								if(!new File(annofiles[f].getCanonicalPath().substring(0,annofiles[f].getCanonicalPath().indexOf(".gff")) +".bed.gz").isFile()) {
-								//	drawCanvas.loading("Converting " +annofiles[f].getName());
-									FileRead.readGFF(annofiles[f].getCanonicalFile(), annofiles[f].getCanonicalPath().substring(0,annofiles[f].getCanonicalPath().indexOf(".gff")) +".bed.gz");
-							//	    drawCanvas.ready("Converting " +annofiles[f].getName());
-									genomehash.get(genomes[i].getName()).add(new File(annofiles[f].getCanonicalPath().substring(0,annofiles[f].getCanonicalPath().indexOf(".gff")) +".bed.gz"));	
-									JMenuItem additem = new JMenuItem(annofiles[f].getName().substring(0,annofiles[f].getName().indexOf(".gff")));
-									additem.setName(annofiles[f].getName().substring(0,annofiles[f].getName().indexOf(".gff")));
-									additem.addMouseListener(this);
-									addMenu.add(additem);
-									
-									break;
-								}
-								else {
-									genomehash.get(genomes[i].getName()).add(new File(annofiles[f].getCanonicalPath().substring(0,annofiles[f].getCanonicalPath().indexOf(".gff")) +".bed.gz"));	
-									JMenuItem additem = new JMenuItem(annofiles[f].getName().substring(0,annofiles[f].getName().indexOf(".gff")));
-									additem.setName(annofiles[f].getName().substring(0,annofiles[f].getName().indexOf(".gff")));
-									additem.addMouseListener(this);
-									addMenu.add(additem);
-									break;
-								}
-							}
+							
 						}					
 					}	
 				}
 			}
-			if(!genomehash.containsKey(defaultGenome)) {
+			
+			if(genomes.length == 0 || Launcher.firstStart) {
+				if(Launcher.firstStart) {
+					writeToConfig("FirstStart=false");
+				}
+				WelcomeScreen.main(args);
+				WelcomeScreen.frame.setLocation(drawWidth/2-200, 40);
+				WelcomeScreen.frame.setVisible(true);
+			}
+			else {
+				if(!genomehash.containsKey(defaultGenome)) {
+			
 				
 				setChromDrop(genomes[0].getName());
 				defaultGenome = genomes[0].getName();
@@ -817,10 +887,12 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 				
 				setChromDrop(defaultGenome);
 			}
+				getBands();			
+			    getExons();	
+			}
+			
 		}
-			getBands();			
-		    getExons();			
-				
+		
 		    Draw.image=Toolkit.getDefaultToolkit().getImage(getClass().getResource("background.jpg"));
 	
 			setButtons();
@@ -839,7 +911,7 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 		JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 	}
 		}
-	void getExons() {
+	static void getExons() {
 		try {
 		String s;
 		String[] exonSplit;
@@ -869,15 +941,29 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 		if(ChromDraw.exonReader == null) {
 			return;
 		}
-		
+		searchTable.clear();
 		while((s = ChromDraw.exonReader.readLine()) != null) {
 			exonSplit = s.split("\t");
 			
-			if(exonSplit[9].equals("1")) {		
+			if(!searchTable.containsKey(exonSplit[3].toUpperCase())) {		
 				
 				String[] adder = {exonSplit[0], exonSplit[1], exonSplit[2]};
 				searchTable.put(exonSplit[3].toUpperCase(), adder);					
-			}						
+			}	
+			else {
+				try {
+					if(Integer.parseInt(searchTable.get(exonSplit[3].toUpperCase())[1]) > Integer.parseInt(exonSplit[1])) {
+						searchTable.get(exonSplit[3].toUpperCase())[1] = exonSplit[1];
+					}
+					if(Integer.parseInt(searchTable.get(exonSplit[3].toUpperCase())[2]) < Integer.parseInt(exonSplit[2])) {
+						searchTable.get(exonSplit[3].toUpperCase())[2] = exonSplit[2];
+					}
+				}
+				catch(Exception e) {
+					
+					System.out.println("error: " +searchTable.get(exonSplit[3].toUpperCase())[1]);
+				}
+			}
 		}	
 		ChromDraw.exonReader.close();
 		}
@@ -924,6 +1010,8 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 	//	help.addActionListener(this);
 		
 		JMenu about = new JMenu("About");
+		
+		welcome.addActionListener(this);
 	//	JMenuItem infotable = new JMenuItem(" <html> Line1 <br/> Line2 <br/> Line3 </html> ");
 		
 	//	JLabel aboutText = new JLabel();
@@ -953,6 +1041,7 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 		about.add(area);
 		about.addMouseListener(this);
 		help.add(about);
+		help.add(welcome);
 		
 		menubar.add(help);
 	}
@@ -2139,7 +2228,12 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 				Serializer ser = new Serializer();
 				ser.serialize(drawCanvas.drawVariables.projectFile);
 			}
-		}		
+		}
+		else if(e.getSource() == welcome) {
+			WelcomeScreen.main(args);
+			WelcomeScreen.frame.setLocation(frame.getLocationOnScreen().x+frame.getWidth()/2-200, frame.getLocationOnScreen().y+10);
+			WelcomeScreen.frame.setVisible(true);
+		}
 }
 	
 	public void getText(Component[] comp)  {
@@ -2360,7 +2454,7 @@ void clearData() {
 
 	public void componentResized(ComponentEvent e) {
 		
-		if(e.getComponent().getName().contains("frame0")) {
+		if(e.getComponent().getName() != null && e.getComponent().getName().contains("frame0")) {
 		
 		if(drawScroll.getViewport().getWidth() > 0) {		
 			drawDimensions.setSize(drawScroll.getViewport().getWidth(),drawScroll.getViewport().getSize().height );	
@@ -2528,12 +2622,10 @@ void clearData() {
 		   
 	}
 	
-	public void writeToConfig(String attribute) {
+	public static void writeToConfig(String attribute) {
 		Main.configChanged = true;
 		Boolean found = false;
-		if(Launcher.config.get(0).contains("Riku")) {
-			Launcher.config.set(0, "#Config file for BasePlayer");
-		}
+		
 		for(int i = 0 ; i<Launcher.config.size(); i++) {
 			
 			if(Launcher.config.get(i).contains(attribute.subSequence(0, attribute.indexOf("=")))) {
@@ -2554,8 +2646,7 @@ void clearData() {
 	   if(cancelhover && drawCanvas.loading) {
 		 cancel();
 	   }
-	    
-	   if(event.getComponent().getName() != null && genomehash.containsKey(event.getComponent().getName())) {
+	  if(event.getComponent().getName() != null && genomehash.containsKey(event.getComponent().getName())) {
 		   System.out.println("Genome changed to: " +event.getComponent().getName());
 		   writeToConfig("DefaultGenome=" +event.getComponent().getName());
 		   
@@ -2572,11 +2663,20 @@ void clearData() {
 					searchTable.clear();
 					while((s = ChromDraw.exonReader.readLine()) != null) {
 						exonSplit = s.split("\t");
-						if(exonSplit[9].equals("1")) {		
+						if(!searchTable.containsKey(exonSplit[3].toUpperCase())) {		
 							
 							String[] adder = {exonSplit[0], exonSplit[1], exonSplit[2]};
 							searchTable.put(exonSplit[3].toUpperCase(), adder);					
-						}						
+						}	
+						else {
+							
+							if(Integer.parseInt(searchTable.get(exonSplit[3].toUpperCase())[1]) > Integer.parseInt(exonSplit[1])) {
+								searchTable.get(exonSplit[3].toUpperCase())[1] = exonSplit[1];
+							}
+							if(Integer.parseInt(searchTable.get(exonSplit[3].toUpperCase())[2]) < Integer.parseInt(exonSplit[2])) {
+								searchTable.get(exonSplit[3].toUpperCase())[2] = exonSplit[2];
+							}
+						}					
 					}
 				
 			   }
@@ -2638,6 +2738,41 @@ void clearData() {
 			drawCanvas.gotoPos(returnlist[0], Integer.parseInt(returnlist[1]), Integer.parseInt(returnlist[2]));
 			
 		}
+		
+	}
+	
+	static void addGenomeFile(String genomeName) {
+		Main.genomehash.put(genomeName, new ArrayList<File>());				
+		JMenu addMenu = new JMenu(genomeName);
+		addMenu.addMouseListener(thisMainListener);
+		addMenu.setName(genomeName);		
+		genome.add(addMenu);
+		genome.revalidate();
+	}
+	static void addAnnotationFile(String genomeName, File annotationFile) {
+		if(genomehash.get(genomeName) == null) {
+			genomehash.put(genomeName, new ArrayList<File>());
+						
+		}
+		
+		
+		genomehash.get(genomeName).add(annotationFile);	
+		JMenuItem additem = new JMenuItem(annotationFile.getName().substring(0,annotationFile.getName().indexOf(".bed.gz")));
+		additem.setName(annotationFile.getName().substring(0,annotationFile.getName().indexOf(".bed.gz")));
+		additem.addMouseListener(Main.thisMainListener);
+		
+		for(int i = 1 ; i<genome.getItemCount(); i++) {
+			
+			if(genome.getItem(i).getName().equals(genomeName)) {
+				
+				JMenu addMenu = (JMenu)genome.getItem(i);
+				addMenu.add(additem);
+				addMenu.revalidate();
+				genome.revalidate();
+				break;
+			}
+		}
+		
 		
 	}
 	public class CheckUpdates extends SwingWorker<String, Object> {
@@ -2711,6 +2846,99 @@ void clearData() {
 	             ex.printStackTrace();
 	         }	  
 	}
+	
+	static void downloadGenome(String urls) {
+		try {
+			String[] urlsplit = urls.split(":");
+			URL fastafile= WelcomeScreen.genomeHash.get(urls)[0];
+			String targetDir = Main.userDir +"/genomes/" +urlsplit[0] +"/";
+				File fasta = new File(targetDir +FilenameUtils.getName(fastafile.getFile()));
+			//		new File(targetDir).mkdir();
+			/*if(!fasta.exists()) {
+				downloadFile(fastafile, targetDir);				
+			}*/
+			
+			URL gfffile= WelcomeScreen.genomeHash.get(urls)[1];
+			targetDir = Main.userDir +"/genomes/" +urlsplit[0] +"/annotation/" +urlsplit[1] +"/";
+			File gff = new File(targetDir +FilenameUtils.getName(gfffile.getFile()));
+		//	new File(targetDir).mkdirs();
+		/*	if(!gff.exists()) {
+				downloadFile(gfffile, targetDir);				
+			}
+			*/
+			AddGenome.OutputRunner genomeadd = new AddGenome.OutputRunner(urlsplit[0], fasta, gff, urls);
+			genomeadd.execute();
+			
+			
+			
+			
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+	}
+	public static void downloadFile(URL url, String saveDir, int size) throws IOException {
+		
+		URLConnection httpConn = (URLConnection) url.openConnection();
+		String fileURL = url.getPath();
+		
+		
+		int BUFFER_SIZE = 4096;
+		// always check HTTP response code first
+		
+			String fileName = "";
+			
+			String disposition = httpConn.getHeaderField("Content-Disposition");
+			
+			
+			
+			if (disposition != null) {
+				// extracts file name from header field
+				int index = disposition.indexOf("filename=");
+				if (index > 0) {
+					fileName = disposition.substring(index + 10,
+							disposition.length() - 1);
+				}
+			} else {
+				// extracts file name from URL
+				fileName = fileURL.substring(fileURL.lastIndexOf("/") + 1);
+			}
+
+			
+			// opens input stream from the HTTP connection
+			InputStream inputStream = httpConn.getInputStream();
+			String saveFilePath = saveDir + File.separator + fileName;
+			
+			// opens an output stream to save into file
+			FileOutputStream outputStream = new FileOutputStream(saveFilePath);
+			long downloaded = 0;
+			int bytesRead = -1, counter=0;
+			byte[] buffer = new byte[BUFFER_SIZE];
+			String loading = drawCanvas.loadingtext;
+			Main.drawCanvas.loadingtext = loading + " 0MB";
+			while ((bytesRead = inputStream.read(buffer)) != -1) {
+				outputStream.write(buffer, 0, bytesRead);
+				downloaded +=buffer.length;
+				counter++;
+				if(counter == 100) {
+					Main.drawCanvas.loadingtext = loading + " " +(downloaded/1048576) +"/~" +size +"MB";
+					Main.drawCanvas.loadBarSample = (int)(downloaded/1048576/(double)size*100);
+					Main.drawCanvas.loadbarAll = (int)(downloaded/1048576/(double)size*100);
+					if(Main.drawCanvas.loadBarSample > 100) {
+						Main.drawCanvas.loadBarSample = 100;
+						Main.drawCanvas.loadbarAll = 100;
+					}
+					counter = 0;
+				}
+			}
+			Main.drawCanvas.loadBarSample = 0;
+			Main.drawCanvas.loadbarAll = 0;
+			outputStream.close();
+			inputStream.close();
+	
+	}
+
 	public class Updater extends SwingWorker<String, Object> {
 		
 		
@@ -2846,6 +3074,23 @@ void clearData() {
 	}
 	@Override
 	public void mouseEntered(MouseEvent event) {
+		
+		
+		if(event.getComponent().getName() != null) {
+			
+			if(event.getComponent() instanceof JMenu) {
+				hoverGenome = event.getComponent().getName();
+				hoverAnnotation = "";
+				
+			}
+			else if(event.getComponent() instanceof JMenuItem) {
+				
+				hoverAnnotation = event.getComponent().getName();
+			}
+				
+			
+			
+		}
 		if(event.getSource() == filemenu) {
 			filemenu.doClick();
 		}
@@ -2878,15 +3123,14 @@ void clearData() {
 	@Override
 	public void mousePressed(MouseEvent event) {
 		Logo.frame.setVisible(false);
+	
 		if(event.getSource() == splitPaneDivider) {
 			Main.vardivider = bedCanvas.nodeImage.getHeight()/(double)varPaneDivider.getY();
 			Main.bedCanvas.resize = true;
 		}
 		if(event.getSource() == varPaneDivider) {
-			Main.bedCanvas.resize = true;
-			
-			Main.vardivider = bedCanvas.nodeImage.getHeight()/(double)varPaneDivider.getY();
-			
+			Main.bedCanvas.resize = true;			
+			Main.vardivider = bedCanvas.nodeImage.getHeight()/(double)varPaneDivider.getY();			
 		}
 		if(event.getSource() == filemenu) {			
 			if(!filemenu.isSelected()){				
@@ -2930,31 +3174,89 @@ void clearData() {
 				searchField.setText("");
 			}
 		}
+		else if(event.getSource() == addGenome) {
+				AddGenome.frame.setTitle("Add new genome");
+				AddGenome.annotation = false;
+			   AddGenome.main(args);
+			   AddGenome.frame.setLocation(frame.getLocationOnScreen().x+10, frame.getLocationOnScreen().y+10);
+			   AddGenome.frame.setState(JFrame.NORMAL);
+		}		   
 		else if(event.getComponent().getName() != null) {
+			if(event.getComponent().getName().equals("frame0")) {
+				return;
+			}
+			
+			try {
+			if(event.getComponent().getName().equals("add_annotation")) {
+				AddGenome.annotation = true;
+				AddGenome.frame.setTitle("Add new annotation file for " +hoverGenome);
+				AddGenome.main(args);
+				AddGenome.genomeName.setText(hoverGenome);				
+				return;
+			}
 				
-			   for(int i = 0; i<genome.getItemCount(); i++) {
+			if(hoverAnnotation.length() > 0) {
+				for(int j = 0; j<genomehash.get(hoverGenome).size(); j++) {
+					if(genomehash.get(hoverGenome).get(j).getName().contains(hoverAnnotation)) {
+						annotationfile = genomehash.get(hoverGenome).get(j).getName();
+						 Main.annotation = j;
+						 break;
+					}
+				}
+			}
+			defaultGenome = hoverGenome;
+			writeToConfig("DefaultGenome=" +defaultGenome);
+		     writeToConfig("DefaultGenes=" +annotationfile);
+		     setChromDrop(defaultGenome); 		
+		     getBands();
+		     ChromDraw.exonReader = new TabixReader(genomehash.get(defaultGenome).get(annotation).getCanonicalPath());
+			    
+				String s;
+				String[] exonSplit;
+				searchTable.clear();
+				while((s = ChromDraw.exonReader.readLine()) != null) {
+				
+					exonSplit = s.split("\t");
+					if(!searchTable.containsKey(exonSplit[3].toUpperCase())) {		
+						
+						String[] adder = {exonSplit[0], exonSplit[1], exonSplit[2]};
+						searchTable.put(exonSplit[3].toUpperCase(), adder);					
+					}	
+					else {
+						
+						if(Integer.parseInt(searchTable.get(exonSplit[3].toUpperCase())[1]) > Integer.parseInt(exonSplit[1])) {
+							searchTable.get(exonSplit[3].toUpperCase())[1] = exonSplit[1];
+						}
+						if(Integer.parseInt(searchTable.get(exonSplit[3].toUpperCase())[2]) < Integer.parseInt(exonSplit[2])) {
+							searchTable.get(exonSplit[3].toUpperCase())[2] = exonSplit[2];
+						}
+					}
+				}
+				 ChromDraw.exonReader.close();
+				 drawCanvas.chrom = chromosomeDropdown.getItemAt(0);
+				   chromosomeDropdown.setSelectedIndex(0);
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
+			/*   for(int i = 1; i<genome.getItemCount(); i++) {
 				   for(int j = 0; j<genomehash.get(genome.getItem(i).getName()).size(); j++) {
 					  
 					   if(genomehash.get(genome.getItem(i).getName()).get(j).getName().contains(event.getComponent().getName())) {
 						 
 						     
 						   	 System.out.println("Annotation for " +genome.getItem(i).getName() +" changed to " +genomehash.get(genome.getItem(i).getName()).get(j).getName());
-						     annotationfile = genomehash.get(genome.getItem(i).getName()).get(j).getName();
-						     defaultGenome = genome.getItem(i).getName();
 						     
-						     Main.annotation = j;
-						     writeToConfig("DefaultGenome=" +defaultGenome);
-						     writeToConfig("DefaultGenes=" +annotationfile);
-						     setChromDrop(genome.getItem(i).getName()); 		
-						     getBands();
+						     
+						     
+						    
+						     
 						     try {
 								  
 						    	 if(genomehash.get(genome.getItem(i).getName()).get(j).getName().endsWith(".bed.gz")) {
 						    		 	
 									    ChromDraw.exonReader = new TabixReader(genomehash.get(defaultGenome).get(j).getCanonicalPath());
 									    
-										String s;
-										String[] exonSplit;
 									
 										while((s = ChromDraw.exonReader.readLine()) != null) {
 										
@@ -2968,13 +3270,7 @@ void clearData() {
 										 ChromDraw.exonReader.close();
 										 
 						    	 }
-						    /*	 else if(genomehash.get(genome.getItem(i).getName()).get(j).getName().contains(".gff")) {
-						    		
-								    FileRead.readGFF(genomehash.get(genome.getItem(i).getName()).get(j), genomehash.get(genome.getItem(i).getName()).get(j).getCanonicalPath().substring(0,genomehash.get(genome.getItem(i).getName()).get(j).getCanonicalPath().indexOf(".gff")) +".bed.gz");
-								    	 
-								     
-						    	 }
-								*/   
+						   
 								   }
 								   catch(Exception e) {
 									   e.printStackTrace();
@@ -2986,7 +3282,7 @@ void clearData() {
 					   }
 				   }
 				  
-			   }
+			   }*/
 			//   System.out.println("Genome changed to: " +event.getComponent().getName());
 			    
 			   
@@ -3192,7 +3488,9 @@ void clearData() {
 		*/
 	}
 
-	void setChromDrop(String dir) {
+	
+	
+	static void setChromDrop(String dir) {
 		try {
 			File chromindex = null;
 			selectedGenome = dir;
@@ -3205,7 +3503,10 @@ void clearData() {
 				if(files[i].isDirectory()) {
 					continue;
 				}
-				if(files[i].getName().contains(".fai")) {
+				if(files[i].getName().contains(".gz")) {
+					continue;
+				}
+				else if(files[i].getName().contains(".fai")) {
 					chromindex = new File(defdir.getCanonicalPath() +"/" +files[i].getName());
 					faifound = true;
 				}
@@ -3213,15 +3514,11 @@ void clearData() {
 					chromtemp = defdir.getCanonicalPath() +"/" +files[i].getName();					
 				}
 			}
-			if(chromtemp.equals("")) {
-				
+			if(chromtemp.equals("")) {				
 				return;
 			}
-			if(!faifound) {
-				
-				//TODO
-				
-			}
+		
+			
 		    referenceFile = new RandomAccessFile(chromtemp, "r");
 		    ref = new File(chromtemp);
 			
@@ -3244,7 +3541,8 @@ void clearData() {
 				ChromDraw.chromPos.put(split[0], Integer.parseInt(split[1]));
 				
 			}
-			
+			MethodLibrary.ChromSorter sorter = new MethodLibrary.ChromSorter();
+			Collections.sort(chromnamevector, sorter);
 			chromnames = new String[chromnamevector.size()];
 			if(chromnamevector.get(0).contains("chr")) {
 				
@@ -3271,10 +3569,10 @@ void clearData() {
 	}
 	
 
-	void getBands() {
+	static void getBands() {
 		try {
 			File bandfile = new File(userDir +"/genomes/" +selectedGenome +"/bands.txt");
-			System.out.println(userDir +"/genomes/" +selectedGenome);
+			
 			if(bandfile.exists()) {
 				ChromDraw.bandVector.clear();	
 				BufferedReader in = new BufferedReader(new FileReader(bandfile));

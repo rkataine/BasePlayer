@@ -18,7 +18,7 @@ public class Gene {
 	
 	private boolean strand = false, showIsoforms = false;
 	private String description = "-", name, ID, chrom;
-	private Transcript canonical;
+	private Transcript canonical, longest;
 	private int start, end;
 	private ArrayList<Transcript> transcripts = new ArrayList<Transcript>();
 	
@@ -43,6 +43,7 @@ public class Gene {
 		}
 		
 		this.name = FileRead.getInfoValue(gffhash,"name");
+		
 		if(gffhash.containsKey("dbxref")) {
 			this.ID = gffhash.get("dbxref");
 		}
@@ -76,6 +77,8 @@ public class Gene {
 	public String getName() {return this.name;}
 	public String getID() {return this.ID;}
 	public Transcript getCanonical() {return this.canonical;}
+	public Transcript getLongest() {return this.longest;}
+	public void setLongest(Transcript trans) { this.longest = trans; }
 	public ArrayList<Transcript> getTranscripts() {	return this.transcripts;}
 	public void addTranscript(Transcript trans) {
 		this.transcripts.add(trans);

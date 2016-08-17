@@ -423,8 +423,8 @@ void drawZoom() {
 
 void drawLogo(BedTrack track, BedNode node, int trackstart) {	
 	
-	if(Main.SELEXhash.containsKey(node.name)) {	
-		matrix = Main.SELEXhash.get(node.name);
+	if(Main.SELEXhash.containsKey(node.id)) {	
+		matrix = Main.SELEXhash.get(node.id);
 		
 		if((trackstart +this.trackheight) - (trackstart+15+((node.level-1)*(selexheight+15))+(track.mouseWheel*((selexheight+15)*2))) < selexheight) {
 			selexheight = (trackstart +this.trackheight) - (trackstart+15+((node.level-1)*(selexheight+15))+(track.mouseWheel*((selexheight+15)*2)));
@@ -1081,7 +1081,7 @@ void iterateBED(TabixReader.Iterator iterator, BedTrack track) {
 				addNode = addNode.getNext();
 				
 				if(features.getName() != null) {
-					addNode.name = features.getName();
+					
 					/*
 					if(!track.getNames().contains(features.getName())) {
 						track.getNames().put(features.getName(), features.getName());
@@ -1090,12 +1090,21 @@ void iterateBED(TabixReader.Iterator iterator, BedTrack track) {
 					else {
 						addNode.name = track.getNames().get(features.getName());		
 					}*/
-					if(first) {
-						if(addNode.name != null) {
-							if(Main.SELEXhash.containsKey(addNode.name)) {
-								track.selex = true;
-							}
+					if(first) {						
+						
+						if(Main.SELEXhash.containsKey(features.getName())) {
+						
+							track.selex = true;
 						}
+						
+					}
+					if(track.selex) {
+						addNode.id = features.getName();
+						addNode.name = Main.factorNames.get(addNode.id);
+						
+					}
+					else {
+						addNode.name = features.getName();
 					}
 				}
 				if(bedgraph) {
@@ -1117,7 +1126,8 @@ void iterateBED(TabixReader.Iterator iterator, BedTrack track) {
 					}
 				}
 				if(features.getStrand() != null) {
-					addNode.forward = features.getStrand().equals(Strand.POSITIVE) ? true : false;
+					
+					addNode.forward = features.getStrand().equals(Strand.NEGATIVE) ? false : true;
 				}
 				
 				if(features.getColor() != null) {				
@@ -1133,7 +1143,6 @@ void iterateBED(TabixReader.Iterator iterator, BedTrack track) {
 			
 	    	}
 	    	catch(Exception ex) {
-	  //  		tabixReader.close();
 	    		ex.printStackTrace();
 	    	}
 	    	first = false;
@@ -1197,7 +1206,7 @@ void iterateBigBed(BigBedIterator iterator, BedTrack track) {
 							}
 						}
 						if(allfields.length > 2) {
-							addNode.forward = allfields[2].equals("+") ? true : false;
+							addNode.forward = allfields[2].contains("-") ? false : true;
 							if(allfields.length > 5) {
 								if(allfields[4].contains(",")) {
 									colorsplit = allfields[4].split(",");
@@ -1272,23 +1281,21 @@ void iterateGFF(TabixReader.Iterator iterator, BedTrack track) {
 					addNode.putNext(new BedNode(split[0],(Integer.parseInt(split[3])),Integer.parseInt(split[4])-(Integer.parseInt(split[3]))+1, track));
 					addNode.getNext().putPrev(addNode);
 					addNode = addNode.getNext();
-					addNode.name = split[2];
-				/*	if(!track.getNames().contains(split[2])) {
-						track.getNames().put(split[2], split[2]);
-						addNode.name = track.getNames().get(split[2]);
+			
+					if(first) {				
+						
+						if(Main.SELEXhash.containsKey(split[2])) {						
+							track.selex = true;
+						}						
+					}
+					if(track.selex) {
+						addNode.id = split[2];
+						addNode.name = Main.factorNames.get(addNode.id);
+						
 					}
 					else {
-						addNode.name = track.getNames().get(split[2]);		
-					}*/
-					if(first) {
-						if(addNode.name != null) {
-							
-							if(Main.SELEXhash.containsKey(addNode.name)) {
-								track.selex = true;
-							}
-						}
-					}					
-					
+						addNode.name = split[2];
+					}
 					if(split.length > 5) {						
 						try {
 							addNode.value = Double.parseDouble(split[5]);
@@ -1307,7 +1314,7 @@ void iterateGFF(TabixReader.Iterator iterator, BedTrack track) {
 						}
 						
 						if(split.length > 6) {						
-							addNode.forward = split[6].equals("+") ? true : false;	
+							addNode.forward = split[6].contains("-") ? false : true;	
 							
 							if(split.length > 8) {
 								addNode.info = split[8];

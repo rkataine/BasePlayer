@@ -18,7 +18,7 @@ public class Transcript {
 	private boolean canonical = true;
 	private final String biotype,uniprot,ID;
 
-	private int start, end, codingStart, codingEnd, exonstart, exonend;
+	private int start, end, codingStart, codingEnd, exonstart, exonend, length;
 	private Exon[] exons;
 	ArrayList<Exon> exonArray;
 	private String[] exonstarts, exonends, exonphases;
@@ -42,6 +42,7 @@ public class Transcript {
 		public Exon(int start, int end, short startphase, short endphase, short nro, int firstAmino, Transcript transcript) {
 			this.start = start;
 			this.end = end;
+			
 			this.startPhase = startphase;
 			this.endPhase = endphase;
 			this.rectangle = new Rectangle();
@@ -99,6 +100,7 @@ public class Transcript {
 		}
 		this.start = Integer.parseInt(line[1]);
 		this.end = Integer.parseInt(line[2]);
+		this.length = this.end-this.start;
 		this.codingStart = Integer.parseInt(line[11]);
 		this.codingEnd = Integer.parseInt(line[12]);
 		
@@ -217,8 +219,10 @@ public class Transcript {
 		else {
 			this.ID = FileRead.getInfoValue(gffLine, "id");
 		}
+		
 		this.start = Integer.parseInt(FileRead.getInfoValue(gffLine, "start"));
 		this.end = Integer.parseInt(FileRead.getInfoValue(gffLine, "end"));
+		this.length = this.end -this.start;
 		this.gene = gene;
 		this.gene.addTranscript(this);
 		this.codingStart = this.end;
@@ -229,6 +233,8 @@ public class Transcript {
 		//ADDAA exoneita arrayhyn... älä heti luo uuutta... kato jos overlappaa edellisten kanssa ja jos löytyy CDS
 		if(exonArray.size() == 0) {
 			Exon addExon = new Exon(Integer.parseInt(gffHash.get("start")),Integer.parseInt(gffHash.get("end")), (short)(exonArray.size()+1), trans );
+			
+
 			exonArray.add(addExon);
 			if(!gffHash.get("phase").equals(".")) {
 				if(trans.getStrand()) {
@@ -254,6 +260,7 @@ public class Transcript {
 		else if(exonArray.get(0).getStart() > Integer.parseInt(gffHash.get("end"))) {
 			Exon addExon = new Exon(Integer.parseInt(gffHash.get("start")),Integer.parseInt(gffHash.get("end")), (short)(exonArray.size()+1), trans );
 			exonArray.add(0,addExon);
+			
 			if(!gffHash.get("phase").equals(".")) {
 				if(trans.getStrand()) {
 					if(trans.codingStart > Integer.parseInt(gffHash.get("start"))) {
@@ -277,6 +284,7 @@ public class Transcript {
 		else if(exonArray.get(exonArray.size()-1).getEnd() < Integer.parseInt(gffHash.get("start"))) {
 			Exon addExon = new Exon(Integer.parseInt(gffHash.get("start")),Integer.parseInt(gffHash.get("end")), (short)(exonArray.size()+1), trans );
 			exonArray.add(addExon);
+			
 			if(!gffHash.get("phase").equals(".")) {
 				
 					if(trans.getStrand()) {
@@ -300,6 +308,7 @@ public class Transcript {
 			}
 		}
 		else {
+			
 			int start = Integer.parseInt(gffHash.get("start"));
 			for(int i = 0; i<exonArray.size(); i++) {
 				if(start >= exonArray.get(i).getStart() && start <exonArray.get(i).getEnd()) {
@@ -324,8 +333,14 @@ public class Transcript {
 						}					
 					
 						exonArray.get(i).startPhase = Short.parseShort(gffHash.get("phase"));
-				}
+						
+					}
 					
+					if(Integer.parseInt(gffHash.get("end")) > exonArray.get(i).getEnd()) {
+						
+						exonArray.get(i).end = Integer.parseInt(gffHash.get("end"));
+						
+					}
 					break;
 				}
 			}
@@ -347,6 +362,9 @@ public class Transcript {
 	}
 	public int getEnd() {
 		return end;
+	}
+	public int getLength() {
+		return this.length;
 	}
 	public Integer getCodingStart() {
 		return codingStart;

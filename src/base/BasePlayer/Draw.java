@@ -71,6 +71,7 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	int varStringLen = 0;
 	int clusterId = 1;
 	int readInfoWidth = 200, varCalc = 0, hoverInfoWidth = 200;	
+	
 	int width=0, height=0, drawWidth=0;
 	SAread saReads = null;
 	final Color chr1color = new Color(153,102,0), chr2color = new Color(102,102,0),
@@ -2915,6 +2916,8 @@ void drawTriangles(ReadNode read, Sample sample, SplitClass split, Color color) 
 
 void drawReads(SplitClass split) {
 	
+		
+	
 	try {		
 		if(scrollbar) {
 		
@@ -2937,11 +2940,19 @@ void drawReads(SplitClass split) {
 			updateReads = false;			
 			clearReads(split);
 		}
+	
 		
 		if(split.viewLength >= Settings.readDrawDistance || drawVariables.sampleHeight <= 100) {	
 			
 			updateReads = false;
 			
+		}
+		if(split.viewLength > Settings.coverageDrawDistance) {
+			if(!split.getReadBuffer().getColor().equals(Color.lightGray)) {
+				split.getReadBuffer().setColor(Color.lightGray);
+				split.getReadBuffer().drawString("Zoom in closer than " +Settings.coverageDrawDistance +" to see reads and coverages", 20, 20);
+				
+			}					
 		}
 		if(split.viewLength < Settings.coverageDrawDistance && drawVariables.sampleHeight > 100) {
 			
@@ -3315,7 +3326,7 @@ void drawReads(SplitClass split) {
 	
 		
 	}
-	
+		
 /*	if(Main.chromDraw.split && clickedRead != null && clickedRead.getRect().x < (this.getDrawWidth()-Draw.Main.sidebarWidth)/2) {
 		if(clickedRead.isDiscordant() && Main.chromDraw.splitClass.getreadHash().readNames.containsKey(clickedRead.getName())) {			
 			rectnode = clickedRead.getRect();

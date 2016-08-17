@@ -25,6 +25,7 @@ public class BedNode {
 	private final String chrom;
 	private BedNode next, prev;
 	String name;
+	String id;
 	String info;
 	int color;
 	private final BedTrack track;

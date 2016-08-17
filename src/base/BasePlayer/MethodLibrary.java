@@ -11,33 +11,39 @@
  */
 package base.BasePlayer;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 import htsjdk.tribble.Feature;
-import htsjdk.tribble.bed.BEDCodec;
-import htsjdk.tribble.bed.BEDFeature;
+
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.index.tabix.TabixIndexCreator;
-import htsjdk.tribble.readers.LineIterator;
+
 import htsjdk.tribble.util.TabixUtils;
-import htsjdk.variant.vcf.VCFCodec;
+
 
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsEnvironment;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
-import base.BBfile.BedFeature;
+
 
 public class MethodLibrary {
 
@@ -62,6 +68,56 @@ public class MethodLibrary {
 	        	return 0;
 	        }        
 	       
+	}  
+	}
+	public static class ChromSorter implements Comparator<String> {
+
+		public int compare(String o1, String o2) {  
+			Integer n1= null, n2=null;
+			if(o1.matches("^-?\\d+$")) { n1 = Integer.parseInt(o1); }
+			else if(o1.equals("X")) { n1 = 23; }			
+			else if(o1.equals("Y")) { n1 = 24; }			
+			else if(o1.equals("M")) { n1 = 25; }			
+			else if(o1.equals("MT")) { n1 = 25; }		
+			
+			if(o2.matches("^-?\\d+$")) { n2 = Integer.parseInt(o2); }
+			else if(o2.equals("X")) { n2 = 23; }
+			else if(o2.equals("Y")) { n2 = 24; }
+			else if(o2.equals("M")) { n2 = 25; }
+			else if(o2.equals("MT")) { n2 = 25; }
+			
+			if(n1 != null && n2 != null) {
+			
+		        if ( n1 < n2 ) {  
+		                return -1;  
+		        } 
+		        else if(n1 > n2) {  
+		        		return 1;  
+		        }
+		        else {
+		        	return 0;
+		        }        
+			}
+			else if (n1 == null && n2 == null) {
+				if ( o1.compareTo(o2) < 0 ) {  
+	                return -1;  
+	        } 
+	        else if(o1.compareTo(o2) > 0 ) {  
+	        		return 1;  
+	        }
+	        else {
+	        	return 0;
+	        }   
+				
+			}
+			else {
+				if(n1 != null) {
+					return -1;
+				}
+				else {
+					return 1;
+				}
+			}
 	}  
 	}
 	public static class mateListSorter implements Comparator<ReadNode> {
@@ -168,13 +224,42 @@ public class MethodLibrary {
 		}
 		
 	}
-	static void blockCompressAndIndex(ArrayList<String[]> in, String bgzfOut, boolean deleteOnExit) throws IOException {
+	static void unzip(File infile, File outfile) {
+		
+			try {
+				GZIPInputStream gzip = new GZIPInputStream(new FileInputStream(infile));
+				BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));
+			    BufferedWriter fastaWriter = new BufferedWriter(new FileWriter(outfile));				
+				String line;
+				
+				while((line = reader.readLine()) != null) {
+					if(fastaWriter != null) {
+						fastaWriter.write(line +"\n");
+					}
+				}
+				reader.close();
+				fastaWriter.close();
+			}
+			catch(Exception e ) {
+				e.printStackTrace();
+			}
+		
+	}
+	
+	static void blockCompressAndIndex(ArrayList<String[]> in, String bgzfOut, boolean deleteOnExit,SAMSequenceDictionary dict) throws IOException {
 
 	 
 	    
 	    File outFile= new File(bgzfOut);
-	    TabixIndexCreator indexCreator = new TabixIndexCreator(TabixFormat.BED);
-	   
+	    TabixIndexCreator indexCreator =null;
+	   if(dict.getSequences().size() > 100) {
+		   System.out.println(dict.getSequences().size());
+		  indexCreator = new TabixIndexCreator(dict,TabixFormat.BED);	  
+	   }
+	   else {
+		  indexCreator = new TabixIndexCreator(TabixFormat.BED);
+	   }
+	    
 	    BlockCompressedOutputStream writer = new BlockCompressedOutputStream(outFile);
 	    String header = "#Chrom\tGeneStart\tGeneEnd\tName\tExonCount\tStrand\tENSG\tENST\tUniProt\tCanonical\tBiotype\tCodingStart\tCodingEnd\tExonStarts\tExonEnds\tStartPhases\tDescription\n";
 		writer.write(header.getBytes());
@@ -198,7 +283,9 @@ public class MethodLibrary {
 	    	if(i < in.size()-1) {
 	    		writer.write('\n');
 	    	}
+	    	
 	        indexCreator.addFeature(bed, filePosition);
+	    	
 	        filePosition = writer.getFilePointer();
 	    }
 	 
@@ -213,6 +300,7 @@ public class MethodLibrary {
 	    }
 	    Index index = indexCreator.finalizeIndex(writer.getFilePointer());
 	    index.writeBasedOnFeatureFile(outFile);
+	    
 	    writer.close();
 
 	    System.err.println("Done");

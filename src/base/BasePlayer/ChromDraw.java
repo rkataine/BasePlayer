@@ -18,8 +18,6 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -50,7 +48,7 @@ private static final long serialVersionUID = 1L;
 	Color[] colorPalette = new Color[11];
 	VarNode varnode = null, vardraw;
 	String s, startPhaseCodon, endPhaseCodon;
-//	StringBuffer sequence;
+
 	int cytoHeight = 15, exonInfoWidth, aminoNro, codonStartPos, lastAmino;
 	Runtime instance = Runtime.getRuntime();
 	int mouseY=0, pressY=0, maxGeneLevel = 0;
@@ -58,17 +56,16 @@ private static final long serialVersionUID = 1L;
 	int middle = 0, baselevel, toMegabytes = 1048576;
 	int exonFetchStart =0, exonFetchEnd = 0;
 	static final Font middleFont = new Font("SansSerif", Font.BOLD, 20), seqFont=new Font("SansSerif", Font.BOLD, 12);
-//	ArrayList<Transcript> transcripts = new ArrayList<Transcript>();
-//	ArrayList<Transcript> isoforms = new ArrayList<Transcript>();
+
 	int transIndex = 0, isoformIndex = 0;
-//	Hashtable<String, Integer> baseTemp = new Hashtable<String, Integer>();
+
 	byte[] seqresult;
 	int startPixel = 0, areaWidth = 0;
 	static ArrayList<String[]> bandVector = new ArrayList<String[]>();
 	ArrayList<String[]> chromBands = new ArrayList<String[]>();
 	String resString, zoomtext;
 	Transcript.Exon selectedExon = null;
-//	public static int chromEnd = 0;
+
 	static HashMap<String, Integer> chromPos;
 	ArrayList<Double> gerpList = new ArrayList<Double>();
 	
@@ -825,7 +822,28 @@ public void paint(Graphics g) {
 		e.printStackTrace();
 	}
 }
+public byte[] getSeq(String chrom, int start, int end, RandomAccessFile seqchrom, boolean cram) {
+	try {
+	seqresult = new byte[(end+1-start)+((end-start)/(Main.chromIndex.get(Main.refchrom +chrom)[2].intValue()-1))];
 	
+	
+		chromo.seek((Main.chromIndex.get(Main.refchrom +chrom)[0]+(start)+((start)/Main.chromIndex.get(Main.refchrom +chrom)[2].intValue())));
+	
+	chromo.readFully(seqresult);
+	
+	if(seqresult[0] == 10) {			
+		chromo.seek((Main.chromIndex.get(Main.refchrom +chrom)[0]+(start-1)+((start)/Main.chromIndex.get(Main.refchrom +chrom)[2].intValue())));
+		seqchrom.readFully(seqresult);			
+	}	
+	
+	return seqresult;
+	}
+	catch(Exception e) {
+		
+		e.printStackTrace();
+	}
+	return null;
+}
 public StringBuffer getSeq(String chrom, int start, int end, RandomAccessFile seqchrom) {
 	
 	try {
@@ -833,12 +851,10 @@ public StringBuffer getSeq(String chrom, int start, int end, RandomAccessFile se
 			return null;
 		}
 		if(start < 0) {
-			start = 0;
-			
+			start = 0;			
 			if(end > Main.chromIndex.get(Main.refchrom + chrom)[1]) {
 				end = Main.chromIndex.get(Main.refchrom +chrom)[1].intValue();
-			}
-			
+			}			
 		}
 		
 		seqresult = new byte[(end+1-start)+((end-start)/(Main.chromIndex.get(Main.refchrom +chrom)[2].intValue()-1))];
@@ -867,11 +883,9 @@ public StringBuffer getSeq(String chrom, int start, int end, RandomAccessFile se
 		}
 		chromo.readFully(seqresult);
 		
-		if(seqresult[0] == 10) {
-			
+		if(seqresult[0] == 10) {			
 			chromo.seek((Main.chromIndex.get(Main.refchrom +chrom)[0]+(start-1)+((start)/Main.chromIndex.get(Main.refchrom +chrom)[2].intValue())));
-			seqchrom.readFully(seqresult);
-			
+			seqchrom.readFully(seqresult);			
 		}			
 				
 		for(int i= 0; i< seqresult.length; i++){
@@ -962,7 +976,7 @@ void drawExons(SplitClass split) {
 			
 			transcript = split.getGenes().get(g).getTranscripts().get(i);
 		
-			if(!transcript.isCanonical() && !transcript.getGene().showIsoforms() && transcript.getGene().getCanonical() != null) {
+			if(!transcript.getGene().showIsoforms() && !transcript.equals(split.getGenes().get(g).getLongest())) {
 				
 				continue;
 			}
@@ -1421,7 +1435,7 @@ void drawClickedExon(SplitClass split) {
 		transcript.ypos = (int)clickedExon.getRectangle().getY();
 		exonString[0] = "Exon "+clickedExon.getNro();
 		exonString[1] = clickedExon.transcript.getGenename();
-		if(clickedExon.transcript.getENSG().contains("ENSG")) {
+		if(clickedExon.transcript.getENSG().contains("ENS")) {
 			exonString[2] = clickedExon.transcript.getENSG() +" (view in Ensembl)";
 		}
 		else if(clickedExon.transcript.getENSG().startsWith("GeneID")) {
@@ -1762,7 +1776,7 @@ void drawMutations(int ylevel) {
 								
 							}
 							else {
-								if(vardraw.getExons().get(i).getTranscript().isCanonical()) {
+								if(vardraw.getExons().get(i).getTranscript().equals(vardraw.getExons().get(i).getTranscript().getGene().getLongest())) {
 									
 										Main.drawCanvas.splits.get(0).getExonImageBuffer().drawString(mutcount +" " +getChange(vardraw,base,vardraw.getExons().get(i)), mutScreenPos, vardraw.getExons().get(i).getTranscript().ypos+27*baselevel);
 									
@@ -2536,16 +2550,16 @@ public void mouseClicked(MouseEvent event) {
 					Main.drawCanvas.gotoPos(clickedExon.transcript.getStart()+1, clickedExon.transcript.getEnd()+1);
 				}
 				else if(foundcursor == 2) {
-					if(exonString[2].contains("ENSG")) {
-						Main.gotoURL("http://grch37.ensembl.org/Homo_sapiens/Gene/Summary?g=" +exonString[2].substring(exonString[2].indexOf("ENSG")).split(" ")[0]);
+					if(exonString[2].contains("ENS")) {
+						Main.gotoURL("http://ensembl.org/Multi/Search/Results?q=" +exonString[2].substring(exonString[2].indexOf("ENS")).split(" ")[0]);
 					}
 					else {
 						Main.gotoURL("http://www.ncbi.nlm.nih.gov/gene/?term=" +exonString[2].split(":")[1].split(",")[0].split(" ")[0]);
 					}
 				}
 				else if(foundcursor == 3) {
-					if(exonString[3].contains("ENST")) {
-						Main.gotoURL("http://grch37.ensembl.org/Homo_sapiens/Transcript/Summary?t=" +exonString[3].substring(exonString[2].indexOf("ENST")).split(" ")[0]);
+					if(exonString[3].contains("ENS")) {
+						Main.gotoURL("http://ensembl.org/Multi/Search/Results?q=" +exonString[3].substring(exonString[2].indexOf("ENS")).split(" ")[0]);
 					}
 				}
 				else if(foundcursor == 5) {
@@ -2703,6 +2717,12 @@ String[] getGposColor(String gpos) {
 		
 		return color;		
 	}
+	else if(gpos.equals("gpos50")) {
+		color[0] = "200";
+		color[1] = "200";
+		color[2] = "200";
+		return color;
+	}
 	else if(gpos.equals("gpos100")) {
 		color[0] = "0";
 		color[1] = "0";
@@ -2727,6 +2747,18 @@ String[] getGposColor(String gpos) {
 		color[2] = "210";
 		return color;
 	}
+	else if(gpos.equals("gpos25")) {
+		color[0] = "200";
+		color[1] = "200";
+		color[2] = "200";
+		return color;
+	}
+	else if(gpos.equals("gvar")) {
+		color[0] = "220";
+		color[1] = "220";
+		color[2] = "220";
+		return color;
+	}
 	else if(gpos.equals("acen")) {
 		color[0] = "217";
 		color[1] = "47";
@@ -2737,6 +2769,12 @@ String[] getGposColor(String gpos) {
 		color[0] = "100";
 		color[1] = "127";
 		color[2] = "164";
+		return color;
+	}
+	else if(gpos.equals("gpos")) {
+		color[0] = "0";
+		color[1] = "0";
+		color[2] = "0";
 		return color;
 	}
 	
