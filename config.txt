@@ -1,11 +1,11 @@
 #Config file for BasePlayer
 
 MemoryLimit=4G
-DefaultDir=X:\cg8\transfer\P4116\P4116_103\wgspipeline
-DefaultControlDir=X:\cg8\Controls\wgs
-DefaultGenome=Homo_sapiens_GRCh37
-DefaultGenes=Homo_sapiens.GRCh37.82.bed.gz
+DefaultDir=
+DefaultControlDir=
+DefaultGenome=
+DefaultGenes=
 DefaultTrackDir=
-DefaultProjectDir=\\ATKK\home\r\rkataine\Documents
-DownloadDir=C:\HY-Data\RKATAINE
-FirstStart=false
+DefaultProjectDir=
+DownloadDir=
+FirstStart=true
