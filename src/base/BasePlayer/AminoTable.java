@@ -207,13 +207,7 @@ void drawScreen(Graphics g) {
 	
 	buf.fillRect(0, 0, this.getWidth(), tablescroll.getViewport().getHeight());	
 	
-	//if(width != this.getWidth()) {
-		
-	//	width = this.getWidth();
-		
-		
-	//	resizeTable();
-	//}
+	
 	if( VariantHandler.writetofile.isSelected()) {
 		buf.setColor(Color.white);
 		if(FileRead.output !=null && Main.drawCanvas.loading && Draw.variantcalculator) {
@@ -1462,7 +1456,7 @@ void getAminos(Transcript transcript) {
 						addrow[0] = varnode.getTranscripts().get(i).getGenename();						
 						addrow[1] = ""+mutcount;
 						addrow[2] = transcript.getChrom() +":"+MethodLibrary.formatNumber((varnode.getPosition()+1));						
-						addrow[3] = base +" (intronic)";							
+						addrow[3] = Main.getBase.get(varnode.getRefBase()) +"->" +base +" (intronic)";							
 						
 						if(varnode.isRscode() != null) {
 							addrow[4] = varnode.rscode;

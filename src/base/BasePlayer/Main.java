@@ -44,7 +44,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
+
 import java.util.Map;
 import java.awt.Color;
 import java.beans.PropertyChangeEvent;
@@ -101,7 +101,7 @@ import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.net.ftp.FTPClient;
+
 
 	public class Main extends JPanel implements ActionListener, ChangeListener, ComponentListener, MouseListener, PropertyChangeListener, KeyListener, MouseMotionListener {
 		private static final long serialVersionUID = 1L;
@@ -112,7 +112,7 @@ import org.apache.commons.net.ftp.FTPClient;
 	    static int sidebarWidth = 200;
 	    static String[] argsit = {}, args;
 	    static GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();   
-	 
+	    static HashMap<Byte, String> getBase = new HashMap<Byte,String>();
 	    static int width = gd.getDisplayMode().getWidth();
 	    static int height = gd.getDisplayMode().getHeight();
 	    static int loadTextWidth = 200;
@@ -230,8 +230,8 @@ import org.apache.commons.net.ftp.FTPClient;
 	    		  drawCanvas.splits.get(0).chrom = drawCanvas.chrom;
 	    		  drawCanvas.splits.get(0).transStart = 0;
 	    		  drawCanvas.splits.get(0).chromEnd = chromIndex.get(Main.refchrom + Main.chromosomeDropdown.getSelectedItem().toString())[1].intValue();
-	    		  drawCanvas.splits.get(0).readSeqStart = 0;
-	    		  drawCanvas.splits.get(0).readSequence = null;					
+	    		  //drawCanvas.splits.get(0).reference = null;
+	    			
 	    		  FileRead filereader = new FileRead();
 	    		  filereader.chrom = Main.chromosomeDropdown.getSelectedItem().toString();	    		  
 	    		  drawCanvas.setStartEnd(1.0,(double)drawCanvas.splits.get(0).chromEnd);
@@ -486,6 +486,16 @@ import org.apache.commons.net.ftp.FTPClient;
 		mutTypes.put("GC", 4);
 		mutTypes.put("CT", 5);
 		mutTypes.put("GA", 5);
+		getBase.put((byte)'A', "A");
+		getBase.put((byte)'C', "C");
+		getBase.put((byte)'G', "G");
+		getBase.put((byte)'T', "T");
+		getBase.put((byte)'N', "N");
+		getBase.put((byte)'a', "A");
+		getBase.put((byte)'c', "C");
+		getBase.put((byte)'g', "G");
+		getBase.put((byte)'t', "T");
+		getBase.put((byte)'n', "N");
 		final Image glass = Toolkit.getDefaultToolkit().getImage(getClass().getResource("glass.jpg"));
 	    searchField = new JTextField("Search by position or gene") {
 	        protected void paintComponent(Graphics g) {
@@ -943,6 +953,9 @@ import org.apache.commons.net.ftp.FTPClient;
 		}
 		searchTable.clear();
 		while((s = ChromDraw.exonReader.readLine()) != null) {
+			if(s.startsWith("#")) {
+				continue;
+			}
 			exonSplit = s.split("\t");
 			
 			if(!searchTable.containsKey(exonSplit[3].toUpperCase())) {		
@@ -1399,7 +1412,7 @@ import org.apache.commons.net.ftp.FTPClient;
 	  */  
 	    zoomout.addActionListener(this);
 	     
-	    FileRead.head = new VarNode(0, "N", "N", (short)0, (short)0, false,(short)0,null, null, null, null);     
+	    FileRead.head = new VarNode(0,  (byte)0,"N", (short)0, (short)0, false,(short)0,null, null, null, null);     
 	    drawCanvas.current = FileRead.head;
 	  
 	//  splitPane.addComponentListener(this);

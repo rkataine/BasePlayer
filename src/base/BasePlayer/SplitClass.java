@@ -16,9 +16,6 @@ import java.awt.image.BufferedImage;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-//import java.awt.image.BufferedImage;
-//import java.util.ArrayList;
-
 public class SplitClass implements Serializable {
 	
 	
@@ -28,10 +25,11 @@ public class SplitClass implements Serializable {
 	String chrom;	
 //	private transient ArrayList<Transcript> transcripts = new ArrayList<Transcript>();
 	private transient ArrayList<Gene> genes = new ArrayList<Gene>();
-	StringBuffer sequence = null;
-	int seqStartPos = 0, readSeqStart = 0;	
+	//StringBuffer sequence = null;
+	//int seqStartPos = 0;	
 	boolean updateReads = false, removed = false, clearedReads = true, clearedCoverages = true;	
-	public StringBuffer readSequence = null;
+	//public StringBuffer readSequence = null;
+	ReferenceSeq drawReference;
 	private transient Double divider = 4.0;
 	public boolean splitRead = false;
 	private transient SplitDraw splitDraw; 

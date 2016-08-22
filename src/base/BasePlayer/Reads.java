@@ -25,8 +25,7 @@ public class Reads implements Serializable{
 	private transient double[][] coverages; // = new int[(int)Main.screenSize.getWidth()];
 	private transient ArrayList<ReadNode> reads = new ArrayList<ReadNode>();
 	private transient ArrayList<ReadNode[]> headAndTail = new ArrayList<ReadNode[]>();
-//	private transient ArrayList<int[]> helpArray = new ArrayList<int[]>();
-//	private transient HashMap<Integer, Integer> helpHash = new HashMap<Integer, Integer>();
+
 	private transient ReadNode firstRead, lastRead;
 	private transient int maxReadSize = 0;
 	int startpos, endpos;
@@ -37,6 +36,7 @@ public class Reads implements Serializable{
 	public boolean complete = false, loading = false, nodraw = false;
 	Font readfont =new Font("SansSerif", Font.BOLD, 10);
 	int readHeight = 10;
+	public ReferenceSeq reference;
 	
 	Rectangle getScrollBar() {
 		return this.scrollbar;

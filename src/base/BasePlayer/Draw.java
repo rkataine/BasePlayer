@@ -24,13 +24,11 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
-
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -116,7 +114,7 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	static boolean updatevars = false;
 	boolean loading = false;
 	boolean first = true;
-	static Font loadingFont = new Font("SansSerif", Font.BOLD, 40), defaultFont = new Font("SansSerif", Font.BOLD, 10), biggerFont = new Font("SansSerif", Font.BOLD, 12);	
+	static Font loadingFont = new Font("SansSerif", Font.BOLD, 20), defaultFont = new Font("SansSerif", Font.BOLD, 10), biggerFont = new Font("SansSerif", Font.BOLD, 12);	
 	VarNode current, currentDraw;
 	Iterator<Map.Entry<Short, SampleNode>> varIterator;	
 	final static double defaultSampleHeight = 15;
@@ -152,7 +150,7 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	private Color readColor;
 	private ReadNode read;
 	private ReadNode selectedRead;	
-	ArrayList<Entry<Integer, String>> mismatches;
+	ArrayList<Entry<Integer, Byte>> mismatches;
 	private CigarElement element;
 	private int readpos;
 	private Color tempColor;
@@ -189,7 +187,7 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	public DrawVariables drawVariables = new DrawVariables();
 	private int remindex;
 	public int ctrlpressed = 5;
-	private Entry<Integer, String> mismatchentry;
+	private Entry<Integer, Byte> mismatchentry;
 	private Composite backupside;
 	private Reads readHash;	
 	private int coveragevariant;
@@ -936,7 +934,7 @@ public void drawVars(int offset) {
 												//	sidebuf.drawString("hom: "+sidebarSample.homozygotes, 4, (int)(drawVariables.sampleHeight*i)-Main.drawScroll.getVerticalScrollBar().getValue()+60);
 													if(drawVariables.sampleHeight > 75) {
 														if(!currentDraw.indel || entry.getKey().length() < 2) {
-															if((currentDraw.getRefBase().equals("A") && entry.getKey().equals("G")) || (currentDraw.getRefBase().equals("G") && entry.getKey().equals("A")) || (currentDraw.getRefBase().equals("C") && entry.getKey().equals("T")) || (currentDraw.getRefBase().equals("T") && entry.getKey().equals("C"))) {
+															if(((char)currentDraw.getRefBase() == ('A') && entry.getKey().equals("G")) || ((char)currentDraw.getRefBase() == 'G' && entry.getKey().equals("A")) || ((char)currentDraw.getRefBase() == 'C' && entry.getKey().equals("T")) || ((char)currentDraw.getRefBase() == 'T' && entry.getKey().equals("C"))) {
 																sample.sitioRate++;
 															}
 															else {
@@ -2586,8 +2584,7 @@ void clearReads(SplitClass split) {
 		split.getSelectbuf().setComposite( composite);		
 		split.getSelectbuf().fillRect(0,0,(int)Main.screenSize.getWidth(), Main.drawScroll.getViewport().getHeight());	
 		split.getSelectbuf().setComposite(split.getBackups());		
-		split.readSequence = null;
-		split.readSeqStart = -1;	
+		
 		Reads reads;
 	
 	for(int i = 0 ; i< this.sampleList.size(); i++) {
@@ -2646,8 +2643,7 @@ void clearReads() {
 		splits.get(i).getSelectbuf().fillRect(0,0,(int)Main.screenSize.getWidth(), Main.drawScroll.getViewport().getHeight());	
 		splits.get(i).getSelectbuf().setComposite(splits.get(i).getBackups());
 		
-		splits.get(i).readSequence = null;
-		splits.get(i).readSeqStart = -1;
+		
 	}
 	
 	//removeSplits();
@@ -2753,7 +2749,7 @@ void clearReads(Sample sample) {
 		reads.setReadStart(Integer.MAX_VALUE);
 		reads.setFirstRead(null);
 		reads.setLastRead(null);
-        
+        reads.reference = null;
         it.remove(); // avoids a ConcurrentModificationException
     }
     selectedRead = null;
@@ -3043,17 +3039,18 @@ void drawReads(SplitClass split) {
 					
 					split.clearedReads = false;					
 					
-				if(!sampleZoomer && !readsample.getreadHash().get(split).loading && !scrollbar) {					
+				if(!sampleZoomer && !readsample.getreadHash().get(split).loading && !scrollbar) {
+					
 					if(!readsample.MD) {
 					
-						if(split.viewLength < 10000) {
+					/*	if(split.viewLength < 10000) {
 							searchwindow = 10000;
 						}
 						else {
 							searchwindow = split.viewLength;
 						}					
 						
-						if(split.readSequence == null) {	
+						if(split.reference == null) {	
 							
 							if( (int)(split.start-searchwindow-1) < 0){
 								split.readSequence = Main.chromDraw.getSeq(split.chrom,0, (int)(split.end+searchwindow+200), Main.referenceFile);
@@ -3077,7 +3074,7 @@ void drawReads(SplitClass split) {
 								split.readSequence.append(Main.chromDraw.getSeq(split.chrom, split.readSeqStart+split.readSequence.length(), (int)(split.end+searchwindow+200), Main.referenceFile));
 						
 							}						
-						}	
+						}	*/
 					}
 	
 					
@@ -3517,11 +3514,11 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 			}
 		}	
 		if(read.isForward()) {
-	//joo		read.setRectBounds((int)((read.getPosition()-read.split.start)*read.split.pixel), read.getRect().y, (int)((readpos-read.getPosition())*read.split.pixel)-5, reads.readHeight);
+			read.setRectBounds((int)((read.getPosition()-read.split.start)*read.split.pixel), read.getRect().y, (int)((readpos-read.getPosition())*read.split.pixel)-5, reads.readHeight);
 		}
 		else {
 			
-	//joo		read.setRectBounds((int)((read.getPosition()-read.split.start)*read.split.pixel)+5, read.getRect().y, (int)((readpos-read.getPosition())*read.split.pixel)-5, reads.readHeight);
+		read.setRectBounds((int)((read.getPosition()-read.split.start)*read.split.pixel)+5, read.getRect().y, (int)((readpos-read.getPosition())*read.split.pixel)-5, reads.readHeight);
 		}
 	}
 		
@@ -3535,10 +3532,10 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 		
 		mismatches = read.getMismatches();
 		
-		for(Entry<Integer, String> entry : mismatches) {
+		for(Entry<Integer, Byte> entry : mismatches) {
 			
 			if(!read.isForward()) {
-				if(Character.isLowerCase(entry.getValue().toCharArray()[0])) {								
+				if(Character.isLowerCase((char)(byte)entry.getValue())) {								
 					read.split.getReadBuffer().setColor(reverseTextLow);	
 				}
 				else {								
@@ -3547,7 +3544,7 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 			}
 			else {
 				
-				if(Character.isLowerCase(entry.getValue().toCharArray()[0])) {							
+				if(Character.isLowerCase((char)(byte)entry.getValue())) {							
 					read.split.getReadBuffer().setColor(forwardTextLow);	
 				}
 				else {
@@ -3555,14 +3552,14 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 				}
 			}
 			
-			if(entry.getValue().contains("D") || entry.getValue().contains("I")) {
+			if(!Main.getBase.containsKey(entry.getValue())) {
 				read.split.getReadBuffer().setColor(Color.black);	
-				read.split.getReadBuffer().drawString(entry.getValue().toUpperCase(), (int)((((read.getPosition()+entry.getKey())-read.split.start)*read.split.pixel)), ypos+reads.readHeight);
+				read.split.getReadBuffer().drawString(""+(char)(byte)entry.getValue(), (int)((((read.getPosition()+entry.getKey())-read.split.start)*read.split.pixel)), ypos+reads.readHeight);
 				
 			}
 			else {
 			
-				read.split.getReadBuffer().drawString(entry.getValue().toUpperCase(), (int)((((read.getPosition()+entry.getKey())-read.split.start)*read.split.pixel)+read.split.pixel/3),ypos+reads.readHeight);
+				read.split.getReadBuffer().drawString(Main.getBase.get(entry.getValue()), (int)((((read.getPosition()+entry.getKey())-read.split.start)*read.split.pixel)+read.split.pixel/3),ypos+reads.readHeight);
 					
 										
 			}	
@@ -3580,7 +3577,7 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 			for(int m= 0; m< mismatches.size(); m++) {
 				mismatchentry = mismatches.get(m);
 				if(!read.isForward()) {
-					if(Character.isLowerCase(mismatchentry.getValue().toCharArray()[0])) {		
+					if(Character.isLowerCase((char)(byte)mismatchentry.getValue())) {		
 						
 						read.split.getReadBuffer().setColor(reverseTextLow);	
 					}
@@ -3590,7 +3587,7 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 				}
 				else {
 					
-					if(Character.isLowerCase(mismatchentry.getValue().toCharArray()[0])) {							
+					if(Character.isLowerCase((char)(byte)mismatchentry.getValue())) {							
 						read.split.getReadBuffer().setColor(forwardTextLow);	
 					}
 					else {
@@ -3598,7 +3595,7 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 					}
 				}
 				
-				if(mismatchentry.getValue().contains("I")) {
+				if((char)(byte)mismatchentry.getValue() == ('I')) {
 					read.split.getReadBuffer().setColor(Color.black);	
 				}					
 										
@@ -5091,10 +5088,9 @@ public void gotoPos(String chrom, double start, double end) {
 		
 		clearReads();
 		removeSplits();
-		splits.get(0).sequence = null;
-		splits.get(0).seqStartPos = -1;
-		splits.get(0).readSeqStart = -1;
-		splits.get(0).readSequence = null;
+		splits.get(0).drawReference = null;
+		
+		
 		
 		if(current != null && current.getPosition()+2 < start && current.getNext() != null) {
 			if(current.getNext().getPosition()+2 < start) {
@@ -5456,7 +5452,7 @@ public void mouseReleased(MouseEvent event) {
 		resizeSidebar = false;	
 	}
 	if(tempViewLength > Settings.readDrawDistance && selectedSplit.viewLength < Settings.readDrawDistance && drawVariables.sampleHeight > 100) {
-		selectedSplit.readSequence = null;
+		
 		
 		for(int i = drawVariables.visiblestart; i<= drawVariables.visiblestart+drawVariables.visiblesamples; i++) {
 			

@@ -14,14 +14,10 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 import htsjdk.tribble.Feature;
-
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.index.tabix.TabixIndexCreator;
-
 import htsjdk.tribble.util.TabixUtils;
-
-
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsEnvironment;
@@ -37,13 +33,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
-
-
 
 public class MethodLibrary {
 
@@ -252,8 +245,8 @@ public class MethodLibrary {
 	    
 	    File outFile= new File(bgzfOut);
 	    TabixIndexCreator indexCreator =null;
-	   if(dict.getSequences().size() > 100) {
-		   System.out.println(dict.getSequences().size());
+	   if(dict.getSequences().size() > 300) {
+		
 		  indexCreator = new TabixIndexCreator(dict,TabixFormat.BED);	  
 	   }
 	   else {
@@ -296,7 +289,7 @@ public class MethodLibrary {
 	    File tbi= new File(bgzfOut + TabixUtils.STANDARD_INDEX_EXTENSION);
 	    if(tbi.exists() && tbi.isFile()){
 	        System.err.println("Index file exists: " + tbi);
-	        System.exit(1);
+	        tbi.delete();
 	    }
 	    Index index = indexCreator.finalizeIndex(writer.getFilePointer());
 	    index.writeBasedOnFeatureFile(outFile);
@@ -522,5 +515,5 @@ public static String getSpliceAmino(String chrom, Transcript.Exon exon, boolean 
 static String getAminoAcid(String codon) {
 	return ChromDraw.aminoacids.get(codon);
 }
-	
+
 }

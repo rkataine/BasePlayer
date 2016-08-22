@@ -26,7 +26,12 @@ public class Gene {
 	public Gene(String[] line) {
 		this.chrom = line[0];
 		this.name = line[3];
-		this.ID = line[6];
+		if(line[6].contains(":")) {
+			this.ID = line[6].split(":")[1];
+		}
+		else {
+			this.ID = line[6];
+		}
 		this.start = Integer.parseInt(line[1]);
 		this.end = Integer.parseInt(line[2]);
 		this.description = line[16];

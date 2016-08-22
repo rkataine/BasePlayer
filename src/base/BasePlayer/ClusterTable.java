@@ -1191,7 +1191,7 @@ void getAminos(ClusterNode transcript) {
 					addrow[1] = ""+mutcount;
 					addrow[2] = chrom +":"+MethodLibrary.formatNumber((varnode.getPosition()+1));
 					if(base.length() == 1) {
-						addrow[3] = "" +varnode.getRefBase() +"->" +base;							
+						addrow[3] = "" +Main.getBase.get(varnode.getRefBase()) +"->" +base;							
 					}
 					else {
 						addrow[3] = base;	

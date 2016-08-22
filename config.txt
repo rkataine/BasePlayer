@@ -1,9 +1,11 @@
 #Config file for BasePlayer
 
-MemoryLimit=1200m
-DefaultDir=X:\cg8\projects\CRC\analysis\SomaticCharacterization\callsets\SNVs_indels\20160615\POLE
+MemoryLimit=4G
+DefaultDir=X:\cg8\transfer\P4116\P4116_103\wgspipeline
 DefaultControlDir=X:\cg8\Controls\wgs
-DefaultGenome=hs37d5
-DefaultGenes=Ensembl_genes_37_84.bed.gz
-DefaultTrackDir=X:\cg8\public\SELEX_2015\hits
+DefaultGenome=Homo_sapiens_GRCh37
+DefaultGenes=Homo_sapiens.GRCh37.82.bed.gz
+DefaultTrackDir=
 DefaultProjectDir=\\ATKK\home\r\rkataine\Documents
+DownloadDir=C:\HY-Data\RKATAINE
+FirstStart=false

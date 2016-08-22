@@ -92,12 +92,14 @@ public class Transcript {
 		if(line[9].equals("-")) {
 			this.canonical = false;			
 		}	
-		if(this.canonical) {
-			this.ID = line[7] +" canonical";
+		if(line[7].contains(":")) {
+			this.ID = line[7].split(":")[1];
 		}
 		else {
 			this.ID = line[7];
 		}
+		
+		
 		this.start = Integer.parseInt(line[1]);
 		this.end = Integer.parseInt(line[2]);
 		this.length = this.end-this.start;

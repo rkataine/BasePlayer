@@ -617,10 +617,13 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		if(event.getSource() == writetofile) {
 			
 			if(writetofile.isSelected()) {
+				intergenic.setEnabled(true);
 				tabs.setEnabled(false);
 				tabs.revalidate();
 			}
 			else {
+				intergenic.setSelected(false);
+				intergenic.setEnabled(false);
 				tabs.setEnabled(true);
 				tabs.revalidate();
 			}
@@ -902,7 +905,9 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
    	  StringBuffer controls = new StringBuffer("\t");	 
 
 	 if(Control.controlData.controlsOn) {
+		 controlarray.clear();
 		 for(int i = 0;i<Control.controlData.fileArray.size(); i++) {
+			
 			 if(!Control.controlData.fileArray.get(i).controlOn) {
 				 continue;
 			 }
@@ -944,8 +949,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
     	
     	
     	 for(int trans = 0; trans < table.transarray.size(); trans++) {
-    		 	writeTranscriptToFile(table.transarray.get(trans), output);  		
-	    		
+    		 	writeTranscriptToFile(table.transarray.get(trans), output);  	    		
     	 }
     	
    	
@@ -966,7 +970,159 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		}
 		
 	}
+static void	writeVariantToFile(VarNode node, BufferedWriter output) {
+	 try {
+		 if(Main.drawCanvas.hideNode(node)) {
+			 return;
+		 }
+		 Entry<String, ArrayList<SampleNode>> entry;
+		String genes = "", geneIDs = "", transIDs = "";
+		 SampleNode varnode;
+		  int mutcount = 0;
+    	 String rscode, uniprot, strand, aminochange;
+    	 Transcript.Exon exon;
+    	 int casefreq = 0;
+    	 String genotype = "", biotype = ".";
+    	 StringBuffer controls = new StringBuffer("\t");
+    	
+    	 HashMap<ControlFile, SampleNode> temphash = new HashMap<ControlFile, SampleNode>();
+		    	    		
+    		 if(node.isRscode() != null) {
+    			 rscode = node.isRscode();
+    		 }
+    		 else {
+    			 rscode = "N/A";
+    		 }
+    		 strand = "+";
+    		 exon = null;    		
+    		 strand = "N/A";    		     		
+    		 uniprot = "N/A";							    		
+    		 biotype = "N/A";
+    		 if(node.getTranscripts() == null || node.getTranscripts().size() < 2) {
+    			 System.out.println(Main.chromosomeDropdown.getSelectedItem() +":" +node.getPosition());
+    		 }
+    		 if(node.getTranscripts().get(0).equals(node.getTranscripts().get(1))) {
+    			 if(node.getPosition() < node.getTranscripts().get(0).getStart()) {
+    				 genes = "..." +node.getTranscripts().get(0).getGenename();
+    				 geneIDs =   "..." +node.getTranscripts().get(0).getENSG();
+        			 transIDs = "..." +node.getTranscripts().get(0).getENST() ;
+    			 }
+    			 else {
+    				 genes = node.getTranscripts().get(0).getGenename() +"...";
+    				 geneIDs =  node.getTranscripts().get(0).getENSG() +"...";
+        			 transIDs = node.getTranscripts().get(0).getENST() +"...";
+    			 }
+    		 }
+    		 else {
+    			 genes = node.getTranscripts().get(0).getGenename() +"..." +node.getTranscripts().get(1).getGenename();
+    			 geneIDs =  node.getTranscripts().get(0).getENSG() +"..." +node.getTranscripts().get(1).getENSG();
+    			 transIDs = node.getTranscripts().get(0).getENST() +"..." +node.getTranscripts().get(1).getENST();
+    		 }
+    		 for(int var = 0; var < node.vars.size(); var++) {
+    			 
+    			 entry = node.vars.get(var);   
+    			 if(Main.drawCanvas.hideNodeVar(node, entry)) {
+						continue;
+				 }	
+    			 aminochange = "N/A";
+    			 mutcount = 0;    				    			
+    			 
+    			 if(Control.controlData.controlsOn && entry.getValue().size() > 0) {
+				
+						casefreq = 0;
+						controls = new StringBuffer("\t");
+						temphash.clear();
+						for(int e = entry.getValue().size()-1; e> -1;e-- ) {
+							
+							if(entry.getValue().get(e).alleles == null) {
+								if(entry.getValue().get(e).isHomozygous()) {
+									casefreq+=2;
+								}
+								else {
+									casefreq++;
+								}										
+							}
+							else {
+								if(!entry.getValue().get(e).getControlSample().controlOn) {
+									continue;
+								}
+								temphash.put(entry.getValue().get(e).getControlSample(), entry.getValue().get(e));
+						
+							}									
+						}		
+					
+						for(int i = 0 ; i<controlarray.size(); i++) {
+							if(temphash.containsKey(controlarray.get(i))) {
+								//AF
+								controls.append(MethodLibrary.round(temphash.get(controlarray.get(i)).alleles/(double)temphash.get(controlarray.get(i)).allelenumber,5) +"\t");
+								//OR
+								controls.append(MethodLibrary.round((casefreq/(double)(Main.varsamples*2))/(temphash.get(controlarray.get(i)).alleles/(double)temphash.get(controlarray.get(i)).allelenumber),5)+" (p=" +MethodLibrary.round(VariantHandler.table.fe.getRightTailedP(casefreq, Main.varsamples*2-casefreq, temphash.get(controlarray.get(i)).alleles, temphash.get(controlarray.get(i)).allelenumber-temphash.get(controlarray.get(i)).alleles) ,12) +")\t");
+							}
+							else {
+								controls.append("N/A\tN/A\t");
+							}
+						}
+						
+			
+    			 }
+    	
+    			 for(int i = 0; i<entry.getValue().size(); i++) {
+    				
+    				 if(Main.drawCanvas.hideVar(entry.getValue().get(i))) {
+							continue;
+					 }
+    				 mutcount++;
+    			 }
+    			 if(mutcount > 0) {
+    			 for(int i = 0; i<entry.getValue().size(); i++) {
+    				 varnode = entry.getValue().get(i);
+    				 if(Main.drawCanvas.hideVar(varnode)) {
+							continue;
+					 }
+    				 if(varnode.isHomozygous()) {
+    					 genotype = "Hom(" +varnode.getCalls() +"/" +varnode.getCoverage() +")";
+    				 }
+    				 else {
+    					 genotype = "Het(" +varnode.getCalls() +"/" +varnode.getCoverage() +")";
+    				 } 				 
+    				
+    			
+    				 try {
+    					 if(output != null) {	    				
+		    					 if(entry.getKey().length() > 1) {
+		    						 output.write(varnode.getSample().getName() +"\t" +
+		 		    						genes +"\t" +mutcount +"\t" +"N/A" +"\t" +uniprot +"\t" +geneIDs +"\t" +transIDs +"\t" +"N/A" +"\t"+
+		 		    						node.getTranscripts().get(0).getChrom() +":" +MethodLibrary.formatNumber((node.getPosition()+1)) +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +entry.getKey() +"\t" +genotype +"\t" +rscode  +controls +"N/A" +"\n");	    
+		 		    					
+		    					 }
+		    					 else {
+    						 		output.write(varnode.getSample().getName() +"\t" +
+		    						genes +"\t" +mutcount +"\t" +"N/A" +"\t" +uniprot +"\t" +geneIDs +"\t" +transIDs +"\t" +"N/A" +"\t"+
+		    						node.getTranscripts().get(0).getChrom() +":" +MethodLibrary.formatNumber((node.getPosition()+1)) +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode  +controls +"N/A" +"\n");	    
+		    					 }
+    					 }
+    					
+    				 }
+    				 catch(Exception ex) {
+    					 ex.printStackTrace();
+    					 ErrorLog.addError(ex.getStackTrace());
+    				 }
+    			 }
+    			 }
+    		 }
+	 
+    		    	
+    	 Main.drawCanvas.loadBarSample = (int)((node.getPosition()/(double)Main.drawCanvas.splits.get(0).chromEnd)*100);     
+    	 varnode = null;
+		 node = null;
+    	 
+ 	}
+ catch(Exception exc) {
+	 exc.printStackTrace();
+	 ErrorLog.addError(exc.getStackTrace());
+ }	
 	
+}
 static void	writeTranscriptToFile(Transcript transcript, BufferedWriter output) {
 		 try {
 			 Entry<String, ArrayList<SampleNode>> entry;
@@ -1091,24 +1247,24 @@ static void	writeTranscriptToFile(Transcript transcript, BufferedWriter output) 
 			    					 if(!aminochange.equals("N/A")) {
 				    				  output.write(varnode.getSample().getName() +"\t" +
 							  		  row[0] +"\t" +row[1] +"\t" +transcript.samples.size() +"\t" +uniprot +"\t" +transcript.getENSG() +"\t" +transcript.getENST() +"\t" +biotype +"\t"+
-							  		  "chr" +row[2] +"\t" +strand	+"\t" +"Exon " +exon.getNro()+"\t" +aminochange +"\t" +node.getRefBase() +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode +controls +transcript.getDescription() +"\n");
+							  		  row[2] +"\t" +strand	+"\t" +"Exon " +exon.getNro()+"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode +controls +transcript.getDescription() +"\n");
 			    					 }
 			    					 else {
 			    						 output.write(varnode.getSample().getName() +"\t" +
 			    						  		  row[0] +"\t" +row[1] +"\t" +transcript.samples.size() +"\t" +uniprot +"\t" +transcript.getENSG() +"\t" +transcript.getENST() +"\t" +biotype +"\t"+
-			    						  		"chr" +row[2] +"\t" +strand	+"\t" +"UTR" +"\t" +aminochange +"\t" +node.getRefBase() +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode +controls +transcript.getDescription() +"\n");
+			    						  		row[2] +"\t" +strand	+"\t" +"UTR" +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode +controls +transcript.getDescription() +"\n");
 			    					 }
 			    				 }
 			    				 else {
 			    					 if(node.getTranscripts() != null && node.isInGene()) {
 			    						 output.write(varnode.getSample().getName() +"\t" +
 			    						  		  row[0] +"\t" +row[1] +"\t" +transcript.samples.size() +"\t" +uniprot +"\t" +transcript.getENSG() +"\t" +transcript.getENST() +"\t" +biotype +"\t"+
-			    						  		"chr" +row[2] +"\t" +strand	+"\t" +"Intronic"+"\t" +"N/A" +"\t" +node.getRefBase() +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode +controls +transcript.getDescription() +"\n");	    						 
+			    						  		row[2] +"\t" +strand	+"\t" +"Intronic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode +controls +transcript.getDescription() +"\n");	    						 
 			    					 }
 			    					 else {
 			    						 output.write(varnode.getSample().getName() +"\t" +
 			    						  		  row[0] +"\t" +row[1] +"\t" +transcript.samples.size() +"\t" +uniprot +"\t" +transcript.getENSG() +"\t" +transcript.getENST() +"\t" +biotype +"\t"+
-			    						  		"chr" +row[2] +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +node.getRefBase() +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode  +controls +transcript.getDescription() +"\n");	    
+			    						  		row[2] +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode  +controls +transcript.getDescription() +"\n");	    
 			    					 }
 			    				 }
 	    					 }

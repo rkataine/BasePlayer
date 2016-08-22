@@ -37,7 +37,7 @@ public class ReadNode {
 		ArrayList<ReadNode> mates; //  = new ArrayList<ReadNode>();
 		final String SA;
 //		private CigarElement element;
-		private final java.util.ArrayList<java.util.Map.Entry<Integer,String>> mismatches;
+		private final java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> mismatches;
 		private final Cigar cigar;
 //		private boolean foundsame;
 //		private int mispos;
@@ -62,7 +62,7 @@ public class ReadNode {
 	/*	public ReadNode(int pos, boolean forward, Cigar cigar, String readname, StringBuffer sequence, int seqStartPos) {
 		}
 		*/
-		public ReadNode(SAMRecord record, boolean cg, String chrom, StringBuffer sequence, int seqStartPos, Sample sample, SplitClass split, Reads readClass,java.util.ArrayList<java.util.Map.Entry<Integer,String>> mismatches) {
+		public ReadNode(SAMRecord record, boolean cg, String chrom, Sample sample, SplitClass split, Reads readClass,java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> mismatches) {
 			
 			this.rect = new java.awt.Rectangle();
 			
@@ -219,7 +219,7 @@ public class ReadNode {
 		Cigar getCigar() {
 			return this.cigar;
 		}
-		java.util.ArrayList<java.util.Map.Entry<Integer,String>> getMismatches() {
+		java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches() {
 			return this.mismatches;
 		}
 		Short getMappingQuality() {

@@ -11,7 +11,6 @@
  */
 package base.BasePlayer;
 import htsjdk.samtools.CRAMFileReader;
-
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.QueryInterval;
@@ -35,6 +34,7 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -859,7 +859,7 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 	
 private void readVCF(File[] files) {
 		try {	 
-	  
+	  boolean cram = false;
   	  String line;
   	  String[] split;  	  
   	  Main.drawCanvas.loading("Loading variants...");
@@ -912,27 +912,36 @@ private void readVCF(File[] files) {
   	    		File[] bamfiles = files[fi].listFiles(new FilenameFilter() {
   	    		 
   	    	     public boolean accept(File dir, String name) {
-  	    	        return name.toLowerCase().endsWith(".bam");
+  	    	        return name.toLowerCase().endsWith(".bam") || name.toLowerCase().endsWith(".cram");
   	    	     }
   	    	   	 });
-  	    		File[] cramfiles = files[fi].listFiles(new FilenameFilter() {
+  	    		/*File[] cramfiles = files[fi].listFiles(new FilenameFilter() {
   	  	    		 
   	  	    	     public boolean accept(File dir, String name) {
   	  	    	        return name.toLowerCase().endsWith(".cram");
   	  	    	     }
   	  	    	  });
-  	    		
+  	    		*/
   	    	  	 if(bamfiles.length > 0) {
   	    	  		
   	    	  		int index = -1, sampleindex;
   	    	  		 for(int i = 0; i<bamfiles.length; i++) {
+  	    	  			cram = false;
   	    		  		 sampleindex = 0;
+  	    		  		 if(bamfiles[i].getName().indexOf(".bam") < 0) {
+  	    		  			index = sampleString.indexOf(bamfiles[i].getName().substring(0,bamfiles[i].getName().indexOf(".cram")));
+  	    		  			cram = true;
+  	    		  		 }
+  	    		  		 else {
   	    		  		 index = sampleString.indexOf(bamfiles[i].getName().substring(0,bamfiles[i].getName().indexOf(".bam")));
+  	    		  		 }
   	    		  	 	 if (index < 0) continue; 
   	    		  	 	 
   	    		  	 	 for(char letter : sampleString.substring(0, index).toString().toCharArray()) {
   	    		  	 		 if(letter == ';') sampleindex++;
   	    		  	 	 }
+  	    		  	 	
+  	    		  	 	Main.drawCanvas.sampleList.get(sampleindex+sampletemp).CRAM = true;
   	    		  	 	 Main.drawCanvas.sampleList.get(sampleindex+sampletemp).resetreadHash();
   	    		  	 	 Main.drawCanvas.sampleList.get(sampleindex+sampletemp).samFile = new File(bamfiles[i].getAbsolutePath());	 
  	    			  	  //samFileReader = SamReaderFactory.makeDefault().open(Main.drawCanvas.sampleList.get(sampleindex+sampletemp).samFile);
@@ -942,7 +951,7 @@ private void readVCF(File[] files) {
   	    		      	  }  	    		      	 
   	    		  	 }  	
   	    	  	 }
-  	    	  	 else if(cramfiles.length > 0) {
+  	    	  	/* else if(cramfiles.length > 0) {
   	    	  		int index = -1, sampleindex;
  	    	  		 for(int i = 0; i<bamfiles.length; i++) {
  	    		  		 sampleindex = 0;
@@ -961,7 +970,7 @@ private void readVCF(File[] files) {
  	    		      		Main.drawCanvas.sampleList.get(sampleindex+sampletemp).chr = "chr";
  	    		      	  }  	    		      	 
  	    		  	 }  	
-  	    	  	 }
+  	    	  	 }*/
   	    	  	 else {
   	    		  	 File[] listfiles = files[fi].listFiles(new FilenameFilter() {
   	    		  	    public boolean accept(File dir, String name) {
@@ -1043,26 +1052,34 @@ private void readVCF(File[] files) {
   	 if(fileindex > -1) {
      File[] bamfiles = files[fileindex].getParentFile().listFiles(new FilenameFilter() {
      public boolean accept(File dir, String name) {
-        return name.toLowerCase().endsWith(".bam");
+        return name.toLowerCase().endsWith(".bam") || name.toLowerCase().endsWith(".cram");
      }
    	 });
-     File[] cramfiles = files[fileindex].getParentFile().listFiles(new FilenameFilter() {
+    /* File[] cramfiles = files[fileindex].getParentFile().listFiles(new FilenameFilter() {
          public boolean accept(File dir, String name) {
             return name.toLowerCase().endsWith(".cram");
          }
-       	 });
+       	 });*/
   	 if(bamfiles.length > 0) {
   		
   		int index = -1, sampleindex;
   		 for(int i = 0; i<bamfiles.length; i++) {
+  			 cram = false;
 	  		 sampleindex = 0;
-	  		 index = sampleString.indexOf(bamfiles[i].getName().substring(0,bamfiles[i].getName().indexOf(".bam")));
+	  		 if(bamfiles[i].getName().indexOf(".bam") < 0) {
+	  			index = sampleString.indexOf(bamfiles[i].getName().substring(0,bamfiles[i].getName().indexOf(".cram")));
+	  			cram = true;
+	  			
+	  		 }
+	  		 else {
+	  			 index = sampleString.indexOf(bamfiles[i].getName().substring(0,bamfiles[i].getName().indexOf(".bam")));
+	  		 }
 	  	 	 if (index < 0) continue; 
 	  	 	 
 	  	 	 for(char letter : sampleString.substring(0, index).toString().toCharArray()) {
 	  	 		 if(letter == ';') sampleindex++;
 	  	 	 }
-	  	 	
+	  	 	Main.drawCanvas.sampleList.get(sampleindex+sampletemp).CRAM = cram;
 	  	 	Main.drawCanvas.sampleList.get(sampleindex+sampletemp).samFile = new File(bamfiles[i].getAbsolutePath());	 
 	  	 	Main.drawCanvas.sampleList.get(sampleindex+sampletemp).resetreadHash();
 	  	 	//samFileReader = SamReaderFactory.makeDefault().open(Main.drawCanvas.sampleList.get(sampleindex+sampletemp).samFile);
@@ -1073,7 +1090,7 @@ private void readVCF(File[] files) {
 	      	samFileReader.close();
 	  	 }  	
   	 }
-  	 else if(cramfiles.length > 0) {
+  	/* else if(cramfiles.length > 0) {
   		int index = -1, sampleindex;
  		 for(int i = 0; i<bamfiles.length; i++) {
 	  		 sampleindex = 0;
@@ -1093,7 +1110,7 @@ private void readVCF(File[] files) {
      	    }
 	      	samFileReader.close();
 	  	 }  	
-  	 }
+  	 }*/
   	 else {
   	
   		 
@@ -1359,7 +1376,7 @@ static void annotate() {
 			for(int g=0; g<Main.drawCanvas.splits.get(0).getGenes().size(); g++ ) {
 				gene = Main.drawCanvas.splits.get(0).getGenes().get(g);				
 				
-				while(current != null && current.getPosition() < gene.getStart()) {
+			/*	while(current != null && current.getPosition() < gene.getStart()) {
 					if(!current.isInGene()) {
 						if(current.getTranscripts() == null) {
 							current.setTranscripts();
@@ -1368,10 +1385,8 @@ static void annotate() {
 						current.getTranscripts().add(gene.getTranscripts().get(0));
 					}
 					current = current.getNext();
-				}
-				if(gene.getEnd() > prevGene.getEnd()) {
-					prevGene = gene;
-				}
+				}*/
+				
 				if(current == null) {
 					break;
 				}
@@ -1431,6 +1446,13 @@ static void annotate() {
 						
 								}
 						}					
+						if(!current.isInGene()) {
+							if(current.getTranscripts() == null) {
+								current.setTranscripts();
+							}					
+							current.getTranscripts().add(prevGene.getTranscripts().get(0));
+							current.getTranscripts().add(gene.getTranscripts().get(0));
+						}
 						
 						if(current.getNext() != null) {
 							current = current.getNext();	
@@ -1448,6 +1470,11 @@ static void annotate() {
 					}
 					}			
 				}	
+				
+				if(gene.getEnd() > prevGene.getEnd()) {
+					prevGene = gene;
+				}
+				
 			}						
 			while(current != null) {
 				if(!current.isInGene()) {
@@ -1636,10 +1663,10 @@ static void annotate() {
 					if(first && current.getNext() == null) {							
 									
 							if(!split[2].equals(".")) {
-								current.putNext(new VarNode(pos, ""+split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, split[2], currentSample, current, null));		
+								current.putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, split[2], currentSample, current, null));		
 							}
 							else {
-								current.putNext(new VarNode(pos, ""+split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, null, currentSample, current, null));		
+								current.putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, null, currentSample, current, null));		
 							}
 							if(noref ) {
 								current.getNext().addSample(altbase2, (short)(refcalls+altcalls), refcalls, genotype, quality, currentSample);
@@ -1664,10 +1691,10 @@ static void annotate() {
 				
 					else if(current.getPosition() > pos) {
 							if(!split[2].equals(".")) {
-								current.getPrev().putNext(new VarNode(pos, ""+split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, split[2], currentSample, current.getPrev(), current));
+								current.getPrev().putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, split[2], currentSample, current.getPrev(), current));
 							}
 							else {
-								current.getPrev().putNext(new VarNode(pos, ""+split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, null, currentSample, current.getPrev(), current));
+								current.getPrev().putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, null, currentSample, current.getPrev(), current));
 								
 							}
 							if(noref ) {
@@ -1959,10 +1986,10 @@ static void annotate() {
 			
 			try {				
 				if(!split[2].equals(".")) {
-					current.putNext(new VarNode(pos, ""+split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, split[2], sample, current, null));		
+					current.putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, split[2], sample, current, null));		
 				}
 				else {
-					current.putNext(new VarNode(pos, ""+split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, null, sample, current, null));		
+					current.putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, null, sample, current, null));		
 					
 				}
 				if(noref ) {
@@ -1995,10 +2022,10 @@ static void annotate() {
 		else if(current.getPosition() > pos) {
 			
 				if(!split[2].equals(".")) {
-					current.getPrev().putNext(new VarNode(pos, ""+split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, split[2], sample, current.getPrev(), current));
+					current.getPrev().putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, split[2], sample, current.getPrev(), current));
 				}
 				else {
-					current.getPrev().putNext(new VarNode(pos, ""+split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, null, sample, current.getPrev(), current));
+					current.getPrev().putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase, (short)(refcalls+altcalls), altcalls, genotype, quality, null, sample, current.getPrev(), current));
 					
 				}
 				
@@ -2156,7 +2183,7 @@ static void annotate() {
 			else {
 				if(readClass.sample.CRAM) {					
 					
-					 CRAMReader = new CRAMFileReader(readClass.sample.samFile, new File(readClass.sample.samFile.getCanonicalFile() +".crai"),new ReferenceSource(Main.ref),ValidationStringency.SILENT);
+					 CRAMReader = new CRAMFileReader(readClass.sample.samFile, new File(readClass.sample.samFile.getCanonicalFile() +".crai"),new ReferenceSource(Main.ref),Main.referenceFile, ValidationStringency.SILENT);
 					
 				}
 				else {
@@ -2239,10 +2266,10 @@ static void annotate() {
 	//	ReadAdder readrunner = null;
 		try {		
 		
+		
+			
 		if(Main.drawCanvas.drawVariables.sampleHeight > 100) {
-			if(viewLength > Settings.readDrawDistance) {
-				
-				splitIndex.readSequence = null;
+			if(viewLength > Settings.readDrawDistance) {				
 				
 				if(firstCov || readClass.getCoverageStart() == 0 || (readClass.getCoverageStart() < startpos && readClass.getCoverageEnd()  > endpos) || (readClass.getCoverageStart() > startpos && readClass.getCoverageEnd() < endpos) ) {
 					
@@ -2316,7 +2343,7 @@ static void annotate() {
 						
 						searchwindow = 0;
 					}
-					
+					readClass.reference = new ReferenceSeq(chrom, startpos-searchwindow, endpos+searchwindow+1, Main.referenceFile);
 					try {
 						bamIterator = getBamIterator(readClass,readClass.sample.chr + chrom,startpos-searchwindow,  endpos+searchwindow  );
 						
@@ -2376,6 +2403,8 @@ static void annotate() {
 					searchwindow = 0;					
 				
 				}
+				readClass.reference.append( endpos+searchwindow+1);
+				
 				right = true;
 				left = false;
 			
@@ -2431,7 +2460,7 @@ static void annotate() {
 					searchwindow = 0;
 				}
 	
-				
+				readClass.reference.appendToStart(startpos-searchwindow-1);
 				bamIterator = getBamIterator(readClass,readClass.sample.chr + chrom,startpos-searchwindow,  endpos+searchwindow  );
 				endpos = readClass.getReadStart();
 				
@@ -2521,11 +2550,18 @@ static void annotate() {
 				}
 				
 			if(viewLength < Settings.readDrawDistance) {
-				 if(splitIndex.readSequence != null && samRecord.getUnclippedEnd() > splitIndex.readSeqStart+splitIndex.readSequence.length()-1) {
-					splitIndex.readSequence.append(Main.chromDraw.getSeq(chrom, splitIndex.readSeqStart+splitIndex.readSequence.length(), samRecord.getUnclippedEnd()+(int)splitIndex.viewLength, Main.referenceFile));
-				 
-				 }
-				
+				/*
+					if(splitIndex.reference == null) {
+						splitIndex.reference = new ReferenceSeq(chrom, samRecord.getUnclippedStart()-2000, end+1000, Main.referenceFile);
+						
+					}
+					else if(samRecord.getUnclippedStart()-1 < splitIndex.reference.getStartPos()) {
+						splitIndex.reference.appendToStart(samRecord.getUnclippedStart()-1);
+					}
+					else if(samRecord.getUnclippedEnd() > splitIndex.reference.getEndPos()) {
+						splitIndex.reference.append(samRecord.getUnclippedEnd());
+					}
+				*/
 				if(samRecord.getUnclippedEnd() > readClass.getCoverageEnd()-1) {
 				
 					double[][] coverages = new double[(int)(readClass.getCoverages().length +(samRecord.getUnclippedEnd()-samRecord.getUnclippedStart() + (int)splitIndex.viewLength))][8];
@@ -2578,9 +2614,10 @@ static void annotate() {
 					*/
 				}
 			}
+			
 
 			 if(((viewLength < Settings.readDrawDistance && samRecord.getUnclippedStart() >= startpos) || (viewLength >= Settings.readDrawDistance && samRecord.getUnclippedEnd() >= startpos)) && samRecord.getUnclippedStart() <= endpos) {					
-					java.util.ArrayList<java.util.Map.Entry<Integer,String>> mismatches = null;
+					java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> mismatches = null;
 					
 					if(samRecord.getMappingQuality() > Settings.getMappingQuality()) {
 						
@@ -2646,7 +2683,7 @@ static void annotate() {
 						
 							if(readClass.getFirstRead().getPosition() > samRecord.getUnclippedStart()) {							
 								
-								ReadNode addNode = new ReadNode(samRecord, readClass.complete, chrom, splitIndex.readSequence, splitIndex.readSeqStart, readClass.sample, splitIndex,readClass, mismatches);
+								ReadNode addNode = new ReadNode(samRecord, readClass.complete, chrom, readClass.sample, splitIndex,readClass, mismatches);
 								readClass.setFirstRead(addNode);
 								startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-(readClass.readHeight+2)));					
 						//		addNode.setRectBounds((int)((addNode.getPosition()-start)*pixel), startY, (int)(samRecord.getReadLength()*pixel), Main.drawCanvas.readHeight);
@@ -2659,7 +2696,7 @@ static void annotate() {
 							}
 							else {
 								
-								ReadNode addNode = new ReadNode(samRecord, readClass.complete, chrom, splitIndex.readSequence, splitIndex.readSeqStart, readClass.sample, splitIndex,readClass, mismatches);
+								ReadNode addNode = new ReadNode(samRecord, readClass.complete, chrom, readClass.sample, splitIndex,readClass, mismatches);
 								startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-(readClass.readHeight+2)));					
 								addNode.setPrev(lastAdded);
 								addNode.setNext(lastAdded.getNext());
@@ -2680,7 +2717,6 @@ static void annotate() {
 							catch(Exception e) {
 								System.out.println(samRecord +" " +currentread);
 								e.printStackTrace();
-			//					readrunner.end = true;
 								
 								break;
 							}
@@ -2751,10 +2787,10 @@ static void annotate() {
 }
 	
 	
-java.util.ArrayList<java.util.Map.Entry<Integer,String>> getMismatches(SAMRecord samRecord, Reads readClass, double[][] coverageArray) {
+java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord samRecord, Reads readClass, double[][] coverageArray) {
 	
 	
-	java.util.ArrayList<java.util.Map.Entry<Integer,String>> mismatches = null;
+	java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> mismatches = null;
 	String MD = samRecord.getStringAttribute("MD");	
 	String SA = samRecord.getStringAttribute("SA");
 	
@@ -2766,11 +2802,12 @@ java.util.ArrayList<java.util.Map.Entry<Integer,String>> getMismatches(SAMRecord
 			readClass.sample.MD = false;
 		}
 	}
-	if(readClass.sample.CRAM || (readClass.sample.MD || MD!=null) && ((!samRecord.getCigarString().contains("S") && SA ==null) || SA !=null)) {		
+	if(readClass.sample.CRAM ||(readClass.sample.MD || MD!=null) && ((!samRecord.getCigarString().contains("S") && SA ==null) || SA !=null)) {		
 		
 		if(!readClass.sample.MD) {
 			readClass.sample.MD = true;
 		}
+	
 		java.util.ArrayList<java.util.Map.Entry<Integer,Integer>> insertions = null;
 		int softstart = 0;
 		if(samRecord.getCigarLength() > 1) {
@@ -2838,10 +2875,7 @@ java.util.ArrayList<java.util.Map.Entry<Integer,String>> getMismatches(SAMRecord
 							
 								mispos+=element.getLength();
 							}
-						}
-						
-						
-														
+						}													
 					
 				}
 				else if (element.getOperator().compareTo(CigarOperator.HARD_CLIP)== 0) {
@@ -2898,6 +2932,7 @@ java.util.ArrayList<java.util.Map.Entry<Integer,String>> getMismatches(SAMRecord
 				int add =0;				
 				int digitpointer = 0, insertionpointer = 0;
 				boolean first = true;
+				
 				for(int i = 0; i<chars.length; i++) {
 					try {
 					if(insertions != null) {
@@ -2942,19 +2977,19 @@ java.util.ArrayList<java.util.Map.Entry<Integer,String>> getMismatches(SAMRecord
 					else if(chars[i] != '^') {
 						
 						if(mismatches == null) {
-							mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,String>>();
+							mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,Byte>>();
 						}
 						
 						readClass.getCoverages()[(readstart+readpos)- readClass.getCoverageStart()][Main.baseMap.get(""+bases.charAt(mispos))]++;
 						
 							if(samRecord.getBaseQualityString().length() != 1 && (int)qualities.charAt(mispos)-readClass.sample.phred < Settings.getBaseQuality() ) {
 								
-								java.util.Map.Entry<Integer, String> mismatch = new java.util.AbstractMap.SimpleEntry<>(readpos, ""+Character.toLowerCase(bases.charAt(mispos)));
+								java.util.Map.Entry<Integer, Byte> mismatch = new java.util.AbstractMap.SimpleEntry<>(readpos, (byte)Character.toLowerCase(bases.charAt(mispos)));
 								mismatches.add(mismatch);
 							}
 							else {
 								
-								java.util.Map.Entry<Integer, String> mismatch = new java.util.AbstractMap.SimpleEntry<>(readpos, ""+bases.charAt(mispos));
+								java.util.Map.Entry<Integer, Byte> mismatch = new java.util.AbstractMap.SimpleEntry<>(readpos, (byte)bases.charAt(mispos));
 								mismatches.add(mismatch);
 							}
 						mispos++;
@@ -2989,10 +3024,7 @@ java.util.ArrayList<java.util.Map.Entry<Integer,String>> getMismatches(SAMRecord
 		}
 	}
 	else {
-		if(splitIndex.readSequence == null) {
-			splitIndex.readSequence = Main.chromDraw.getSeq(splitIndex.chrom, (int)(splitIndex.start-searchwindow-1), (int)(splitIndex.end+splitIndex.viewLength+200), Main.referenceFile);
-			splitIndex.readSeqStart = (int)(splitIndex.start-searchwindow-1);	
-		}
+		
 		if(samRecord.getCigarLength() > 1) {			
 			readstart = samRecord.getUnclippedStart();			
 			readpos= 0;
@@ -3001,30 +3033,29 @@ java.util.ArrayList<java.util.Map.Entry<Integer,String>> getMismatches(SAMRecord
 				return null;
 			}
 			if(mismatches == null) {
-				mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,String>>();
+				mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,Byte>>();
 			}
 			for(int i = 0; i<samRecord.getCigarLength(); i++) {
 				element = samRecord.getCigar().getCigarElement(i);
 				if(element.getOperator().compareTo(CigarOperator.MATCH_OR_MISMATCH)== 0) {
 					for(int r = readpos; r<readpos+element.getLength(); r++) {																	
-						if((readstart+r)- splitIndex.readSeqStart-1 < 0) {
-							while((readstart+r)- splitIndex.readSeqStart-1 < 0) {
-								splitIndex.readSequence.insert(0, Main.chromDraw.getSeq(splitIndex.chrom, (int)(splitIndex.readSeqStart-1000), splitIndex.readSeqStart, Main.referenceFile));
-								splitIndex.readSeqStart =  (int)(splitIndex.readSeqStart-1000);				
-							}
+						if(((readstart+r)-readClass.reference.getStartPos()-1) > readClass.reference.getSeq().length-1) {
+							readClass.reference.append(samRecord.getUnclippedEnd()+1000);
 						}
-					
-						if(samRecord.getReadString().charAt(mispos) !=  splitIndex.readSequence.charAt((readstart+r)-splitIndex.readSeqStart-1)) {	
-							readClass.getCoverages()[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get(""+samRecord.getReadString().charAt(mispos))]++;
+						if(((readstart+r)-readClass.reference.getStartPos()-1) < 0) {
+							continue;
+						}
+						if(samRecord.getReadBases()[mispos] !=  readClass.reference.getSeq()[((readstart+r)-readClass.reference.getStartPos()-1)]) {	
+							readClass.getCoverages()[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get(Main.getBase.get(samRecord.getReadBases()[mispos]))]++;
 							
 							if(samRecord.getBaseQualityString().length() != 1 && (int)samRecord.getBaseQualityString().charAt(mispos)-readClass.sample.phred < Settings.getBaseQuality() ) {
 								
-								java.util.Map.Entry<Integer, String> mismatch = new java.util.AbstractMap.SimpleEntry<>(r, ""+Character.toLowerCase(samRecord.getReadString().charAt(mispos)));
+								java.util.Map.Entry<Integer, Byte> mismatch = new java.util.AbstractMap.SimpleEntry<>(r, (byte)Character.toLowerCase((char)samRecord.getReadBases()[mispos]));
 								mismatches.add(mismatch);
 							}
 							else {
 								
-								java.util.Map.Entry<Integer, String> mismatch = new java.util.AbstractMap.SimpleEntry<>(r, ""+samRecord.getReadString().charAt(mispos));
+								java.util.Map.Entry<Integer, Byte> mismatch = new java.util.AbstractMap.SimpleEntry<>(r, samRecord.getReadBases()[mispos]);
 								mismatches.add(mismatch);
 							}
 						}
@@ -3064,13 +3095,18 @@ java.util.ArrayList<java.util.Map.Entry<Integer,String>> getMismatches(SAMRecord
 				else if(element.getOperator().compareTo(CigarOperator.SOFT_CLIP)== 0 ) {
 						if(Settings.softClips) {
 							for(int r = readpos; r<readpos+element.getLength(); r++) {
-								
-								if(samRecord.getReadString().charAt(mispos) !=  splitIndex.readSequence.charAt((readstart+r)- splitIndex.readSeqStart-1)) {													
+								if(((readstart+r)-readClass.reference.getStartPos()-1) > readClass.reference.getSeq().length-1) {
+									readClass.reference.append(samRecord.getUnclippedEnd()+1000);
+								}
+								if(((readstart+r)-readClass.reference.getStartPos()-1) < 0) {
+									continue;
+								}
+								if(samRecord.getReadBases()[mispos] != readClass.reference.getSeq()[((readstart+r)-readClass.reference.getStartPos()-1)]) {													
 	
 									if(mismatches == null) {
-										mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,String>>();
+										mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,Byte>>();
 									}
-									java.util.Map.Entry<Integer, String> mismatch = new java.util.AbstractMap.SimpleEntry<>(r, ""+samRecord.getReadString().charAt(mispos));													
+									java.util.Map.Entry<Integer, Byte> mismatch = new java.util.AbstractMap.SimpleEntry<>(r, samRecord.getReadBases()[mispos]);													
 									mismatches.add(mismatch);												
 								}
 								if(SA == null) {
@@ -3109,48 +3145,41 @@ java.util.ArrayList<java.util.Map.Entry<Integer,String>> getMismatches(SAMRecord
 			if(readClass.getCoverageStart()>readstart) {
 				return null;
 			}
-			for(int i = 0; i<samRecord.getReadLength(); i++) {
+			for(int r = 0; r<samRecord.getReadLength(); r++) {
 				try {									
-					if((readstart+i)- splitIndex.readSeqStart-1 < 0) {
-						while((readstart+i)- splitIndex.readSeqStart-1 < 0) {
-							splitIndex.readSequence.insert(0, Main.chromDraw.getSeq(splitIndex.chrom, (int)(splitIndex.readSeqStart-1000), splitIndex.readSeqStart, Main.referenceFile));
-							splitIndex.readSeqStart =  (int)(splitIndex.readSeqStart-1000);	
-						
-						}
+					
+					if(((readstart+r)-readClass.reference.getStartPos()-1) > readClass.reference.getSeq().length-1) {
+						readClass.reference.append(samRecord.getUnclippedEnd()+1000);
 					}
-					if((readstart+i)- splitIndex.readSeqStart-1 > splitIndex.readSequence.length()-1) {
-						while((readstart+i)- splitIndex.readSeqStart-1 > splitIndex.readSequence.length()-1) {
-							splitIndex.readSequence.append(Main.chromDraw.getSeq(splitIndex.chrom, splitIndex.readSeqStart+splitIndex.readSequence.length(), splitIndex.readSeqStart+splitIndex.readSequence.length()+1000, Main.referenceFile));
-							
-						
-						}
+					if(((readstart+r)-readClass.reference.getStartPos()-1) < 0) {
+						continue;
 					}
-					if(samRecord.getReadString().charAt(i) != splitIndex.readSequence.charAt((readstart+i)- splitIndex.readSeqStart-1)) {									
-						if((readstart+i)-readClass.getCoverageStart() < readClass.getCoverages().length-1) {
-							readClass.getCoverages()[(readstart+i)- readClass.getCoverageStart()][Main.baseMap.get(""+samRecord.getReadString().charAt(i))]++;
+					if(samRecord.getReadString().charAt(r) != readClass.reference.getSeq()[((readstart+r)-readClass.reference.getStartPos()-1)]) {									
+						if((readstart+r)-readClass.getCoverageStart() < readClass.getCoverages().length-1) {
+							readClass.getCoverages()[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get(""+samRecord.getReadString().charAt(r))]++;
 							if(mismatches == null) {
-								mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,String>>();
+								mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,Byte>>();
 							}
-							java.util.Map.Entry<Integer, String> mismatch = new java.util.AbstractMap.SimpleEntry<>(i, ""+samRecord.getReadString().charAt(i));												
+							java.util.Map.Entry<Integer, Byte> mismatch = new java.util.AbstractMap.SimpleEntry<>(r, samRecord.getReadBases()[r]);												
 							mismatches.add(mismatch);
 						}									
 					}										
 					try {
-						coverageArray[(readstart+i)-readClass.getCoverageStart()][0]++; 
+						coverageArray[(readstart+r)-readClass.getCoverageStart()][0]++; 
 					}
 					catch(Exception e) {
 					//	System.out.println(readClass.getCoverageStart());
 						e.printStackTrace();
 					}
-					if(coverageArray[(samRecord.getUnclippedStart()-readClass.getCoverageStart())+i][0] > readClass.getMaxcoverage()) {
-						readClass.setMaxcoverage(coverageArray[(samRecord.getUnclippedStart()-readClass.getCoverageStart())+i][0]);
+					if(coverageArray[(samRecord.getUnclippedStart()-readClass.getCoverageStart())+r][0] > readClass.getMaxcoverage()) {
+						readClass.setMaxcoverage(coverageArray[(samRecord.getUnclippedStart()-readClass.getCoverageStart())+r][0]);
 					}
 				}
 				catch(Exception e) {
 				//	System.out.println(splitIndex.readSeqStart +" " +splitIndex.readSequence.length());
 					ErrorLog.addError(e.getStackTrace());
 					e.printStackTrace();
-					FileRead.cancelreadread = true;
+					
 					break;
 				}
 			}
@@ -3454,323 +3483,7 @@ static void readGFF(File infile, String outfile,  SAMSequenceDictionary dict) {
 	}
 
 }
-/*
-static void readGFF2(File infile, String outfile) {	
-	
-		try {
-			BufferedReader reader = null;
-			GZIPInputStream gzip = null;
-		
-			if(infile.getName().endsWith(".gz")) {
-				gzip = new GZIPInputStream(new FileInputStream(infile));
-				reader = new BufferedReader(new InputStreamReader(gzip));	
-				
-			}
-			else {
-				reader = new BufferedReader(new FileReader(infile));	
-			}
 
-			String line, chrom = "-1";
-			StringBuffer exonStarts, exonEnds, exonPhases;
-			ArrayList<Integer> eStarts = new ArrayList<Integer>(), eEnds = new ArrayList<Integer>(), ePhases = new ArrayList<Integer>();
-			HashMap<String, String> parentHash, childHash, tempChildHash, subParentHash;
-			ArrayList<String[]> rows = new ArrayList<String[]>();
-			HashMap<String,Gene> genes = new HashMap<String, Gene>();
-			HashMap<String,Transcript> transcripts = new HashMap<String, Transcript>();
-			String[] split, infosplit, resultTable;
-			int count = 0, index, exonpointer;			
-			line = reader.readLine();
-			boolean first = true;
-			String[] firstrow = {"0", "0","0","0","0","0","0","0","0","0","0","0","0","0","0","0","0"};
-			rows.add(firstrow);
-			
-	    while(true) { 
-	    	
-	    	if(line == null) {
-	    		break;
-	    	}
-	  
-	    	if(line.startsWith("#")) {
-	    		line = reader.readLine();
-	    		continue;
-	    	}
-	    	
-	    	parentHash = makeHash(line.split("\t"));
-	    	if(parentHash == null) {
-	    		line = reader.readLine();
-	    		continue;
-	    	}
-	    	if(parentHash.get("name") == null) {
-	    		line = reader.readLine();
-	    		continue;
-	    	}
-	    	if(parentHash.get("type").startsWith("region")) {
-	    		if(parentHash.get("type").startsWith("region") && parentHash.get("chromosome") != null) {
-	    			if(parentHash.get("name") != null) {
-	    				chrom = parentHash.get("name").replace("chr", "");	    				
-	    			}	    			
-	    		}
-	    		
-	    		line = reader.readLine();
-	    		continue;
-	    	}
-	    
-	    	if(!parentHash.containsKey("parent")) {
-	    		line = reader.readLine();
-	    		
-	    		tempChildHash = makeHash(line.split("\t"));
-	    		if(tempChildHash != null && !tempChildHash.containsKey("parent")) {
-	    			childHash = tempChildHash;
-	    			resultTable = new String[17];
-	    			if(!chrom.equals("-1")) {
-	    				resultTable[0] = chrom;
-	    			}
-	    			else {
-	    				resultTable[0] = getInfoValue(parentHash,"seqid");	    			
-	    			}
-	    			resultTable[1] = getInfoValue(childHash,"start");
-					resultTable[2] = getInfoValue(childHash,"end");
-					resultTable[3] = getInfoValue(parentHash,"name");
-					resultTable[4] = "1";
-					resultTable[5] = getInfoValue(parentHash,"strand");
-					resultTable[6] = getInfoValue(parentHash,"id");
-					
-					resultTable[7] = getInfoValue(childHash,"id");
-					resultTable[8] = getInfoValue(childHash,"uniprot");
-					resultTable[9] =  getInfoValue(childHash,"canonical");;
-					resultTable[10] = getInfoValue(childHash,"biotype");
-					resultTable[11] = getInfoValue(childHash,"end");
-					resultTable[12]	= getInfoValue(childHash,"end");
-					resultTable[13] = resultTable[1]+",";
-					resultTable[14] = resultTable[2]+",";
-					if(!parentHash.containsKey("description")) {
-						resultTable[16] = getInfoValue(parentHash,"note").replace("%20", " ");
-					}
-					else {
-						resultTable[16] = getInfoValue(parentHash,"description").replace("%20", " ");
-					}
-					if(childHash.get("phase").equals(".")) {
-	    				
-						resultTable[15] = "-1";
-	    			}
-	    			else {
-	    				if(childHash.get("phase").equals("0")) {
-	    					resultTable[15] = "0";
-    					}
-    					else if(childHash.get("phase").equals("1")) {
-    						resultTable[15] = "2";
-    					}
-    					else {
-    						resultTable[15] = "1";
-    					}
-    					
-	    			}
-					
-					rows.add(resultTable);
-				
-	    			continue;
-	    		}
-	    		childHash = tempChildHash;
-	    		while(childHash !=null && childHash.containsKey("parent")) {
-	    		
-	    			if(childHash.get("parent").contains(parentHash.get("id"))) {
-	    			
-	    				resultTable = new String[17];
-	    				if(!chrom.equals("-1")) {
-		    				resultTable[0] = chrom;
-		    			}
-		    			else {
-		    				resultTable[0] = getInfoValue(parentHash,"seqid");	    			
-		    			}
-						resultTable[1] = getInfoValue(childHash,"start");
-						resultTable[2] = getInfoValue(childHash,"end");
-						resultTable[3] = getInfoValue(parentHash,"name");
-						resultTable[4] = "1";
-						resultTable[5] = getInfoValue(parentHash,"strand");
-						resultTable[6] = getInfoValue(parentHash,"id");
-						
-						resultTable[7] = getInfoValue(childHash,"id");
-						resultTable[8] = getInfoValue(childHash,"uniprot");
-						resultTable[9] =  getInfoValue(childHash,"canonical");;
-						resultTable[10] = getInfoValue(childHash,"biotype");
-						resultTable[11] = getInfoValue(childHash,"end");
-						resultTable[12]	= getInfoValue(childHash,"end");
-						resultTable[13] = childHash.get("start");
-						resultTable[14] = childHash.get("end");
-						resultTable[15] = "-1,";
-						if(!parentHash.containsKey("description")) {
-							resultTable[16] = getInfoValue(parentHash,"note").replace("%20", " ");
-						}
-						else {
-							resultTable[16] = getInfoValue(parentHash,"description").replace("%20", " ");
-						}
-						if(childHash.containsKey("id")) {
-							subParentHash = childHash;					
-						}
-						else {
-							subParentHash = parentHash;
-						}
-						line = reader.readLine();
-						
-			    		tempChildHash = makeHash(line.split("\t"));
-			    		if(tempChildHash != null && tempChildHash.containsKey("parent") && !tempChildHash.get("parent").contains(subParentHash.get("id"))) {
-			    			
-			    			resultTable[13] = childHash.get("start");
-							resultTable[14] = childHash.get("end");
-							
-			    			if(childHash.get("phase").equals(".")) {
-			    				
-								resultTable[15] = "-1";
-			    			}
-			    			else {
-			    				if(childHash.get("phase").equals("0")) {
-			    					resultTable[15] = "0";
-		    					}
-		    					else if(childHash.get("phase").equals("1")) {
-		    						resultTable[15] = "2";
-		    					}
-		    					else {
-		    						resultTable[15] = "1";
-		    					}
-			    				resultTable[11] = getInfoValue(childHash,"start");
-			    				
-			    			}
-			    			rows.add(resultTable);
-			    		
-			    			break;
-			    		}
-			    		childHash = tempChildHash;
-			    		first = true;
-			    		eStarts.clear();
-			    		eEnds.clear();
-			    		ePhases.clear();
-			    		exonStarts = new StringBuffer();
-			    		exonEnds = new StringBuffer();
-			    		exonPhases = new StringBuffer();
-			    		
-			    		while(childHash != null && childHash.containsKey("parent") && childHash.get("parent").contains(subParentHash.get("id"))) {
-			    			
-			    			if(childHash.get("type").contains("UTR")) {
-			    				line = reader.readLine();
-					    		childHash = makeHash(line.split("\t"));
-					    		continue;
-			    			}
-			    			if(childHash.get("phase").equals(".")) {
-			    				if(eStarts.size() > 0 && eEnds.get(eEnds.size()-1) > Integer.parseInt(childHash.get("start"))) {
-			    					if( eStarts.get(eStarts.size()-1) > Integer.parseInt(childHash.get("start"))) {
-			    						eStarts.set(eStarts.size()-1, Integer.parseInt(childHash.get("start")));
-			    					}
-			    					if(eEnds.get(eEnds.size()-1) < Integer.parseInt(childHash.get("end"))) {
-			    						eEnds.set(eEnds.size()-1, Integer.parseInt(childHash.get("end")));
-			    					}
-			    				}
-			    				else {
-				    				eStarts.add(Integer.parseInt(childHash.get("start")));
-				    				eEnds.add(Integer.parseInt(childHash.get("end")));
-				    				ePhases.add(-1);	
-				    				
-			    				}
-			    			}
-			    			else {
-			    				if(first) {
-			    					first = false;
-			    					resultTable[11] = childHash.get("start");			    					
-			    				}
-			    				resultTable[12] = childHash.get("end");
-			    				
-			    				if(eStarts.size() > 0 && eEnds.get(eEnds.size()-1) > Integer.parseInt(childHash.get("start"))) {
-			    					if(childHash.get("phase").equals("0")) {
-			    						ePhases.set(ePhases.size()-1, 0);
-			    					}
-			    					else if(childHash.get("phase").equals("1")) {
-			    						ePhases.set(ePhases.size()-1, 2);
-			    					}
-			    					else if(childHash.get("phase").equals("2")) {
-			    						ePhases.set(ePhases.size()-1, 1);
-			    					}
-			    					else {
-			    				//		System.out.println(childHash.get("phase"));
-			    						ePhases.set(ePhases.size()-1, -1);
-			    					}
-			    				}
-			    				else {
-				    				eStarts.add(Integer.parseInt(childHash.get("start")));
-				    				eEnds.add(Integer.parseInt(childHash.get("end")));
-				    				if(childHash.get("phase").equals("0")) {
-			    						ePhases.add(0);
-			    					}
-			    					else if(childHash.get("phase").equals("1")) {
-			    						ePhases.add(2);
-			    					}
-			    					else if(childHash.get("phase").equals("2")) {
-			    						ePhases.add(1);
-			    					}
-			    					else {
-			    			//			System.out.println(childHash.get("phase"));
-			    						ePhases.add(-1);
-			    					}
-			    				}
-			    				
-			    			}
-			    			line = reader.readLine();
-			    			
-				    		childHash = makeHash(line.split("\t"));
-			    		}	    				
-			    		for(int i=0; i<eStarts.size(); i++) {
-			    			exonStarts.append(eStarts.get(i) +",");
-			    			exonEnds.append(eEnds.get(i) +",");
-			    			exonPhases.append(ePhases.get(i)+",");
-			    		}
-			    		resultTable[4] = ""+eStarts.size();
-			    		
-			    		resultTable[13] = exonStarts.toString();
-						resultTable[14] = exonEnds.toString();
-						resultTable[15] = exonPhases.toString();
-						rows.add(resultTable);
-					
-	    			}    			
-	    			
-	    			line = reader.readLine();
-	    			if(line != null) {
-	    				childHash = makeHash(line.split("\t"));
-	    			}
-	    			else {
-	    			
-	    				childHash = null;
-	    			}
-	    		}
-	    	}
-	    	else {
-	    		line = reader.readLine();
-	    		continue;
-	    	}
-	    	
-		
-	    	
-	    }
-	   
-	    rows.remove(0);
-	//    writer.write(header.getBytes());
-	    gffSorter gffsorter = new gffSorter();
-	    Collections.sort(rows, gffsorter);
-	   
-	 
-	    
-	   MethodLibrary.blockCompressAndIndex(rows, outfile, false);
-	    rows.clear();
-	    
-	   
-		reader.close();
-		if(gzip != null) {
-			gzip.close();
-		}
-		}
-		catch(Exception e) {
-			e.printStackTrace();
-		}
-	
-	
-}*/
 public static class gffSorter implements Comparator<String[]> {
 
 	public int compare(String[] o1, String[] o2) {  
@@ -3962,12 +3675,12 @@ int searchIndex(ArrayList<int[]> list, int value, int low, int high) {
 		
 }
 
-void readSam(String chrom, Reads readClass, SAMRecord samRecordBuffer, java.util.ArrayList<java.util.Map.Entry<Integer,String>> mismatches) {
+void readSam(String chrom, Reads readClass, SAMRecord samRecordBuffer, java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> mismatches) {
 	try {
 		
 		if(readClass.getReads().isEmpty()) {
 			
-			addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, splitIndex.readSequence, splitIndex.readSeqStart, readClass.sample, splitIndex,readClass, mismatches);			
+			addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, readClass.sample, splitIndex,readClass, mismatches);			
 			readClass.setFirstRead(addNode);			
 			startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-(readClass.readHeight+2)));					
 			addNode.setRectBounds((int)((addNode.getPosition()-start)*pixel), startY, (int)(samRecordBuffer.getReadLength()*pixel), readClass.readHeight);		
@@ -3978,101 +3691,10 @@ void readSam(String chrom, Reads readClass, SAMRecord samRecordBuffer, java.util
 			readClass.getHeadAndTail().add(addList);
 			readClass.setLastRead(addNode);
 			
-		/*	int[] adder = new int[2];
-			adder[0] = 0;
-			adder[1] = addNode.getPosition()+addNode.getWidth()+2;
-			readClass.getHelpArray().add(adder);
-			readClass.getHelpHash().put(0, 0);*/
+	
 		}
 		else {		
-			/*
-			if(readClass.getHelpArray().get(0)[1]>=samRecordBuffer.getUnclippedStart()) {
-				if(readClass.getHelpArray().size() < 100) {
-					xpos = (int)((samRecordBuffer.getUnclippedStart()-start)*pixel);					
-					addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, readSequence, readSeqStart, readClass.sample, splitIndex);	
-					
-					int[] adder = new int[2];
-					adder[0] = readClass.getHelpArray().size();
-					adder[1] = addNode.getPosition()+addNode.getWidth()+2;
-					readClass.getHelpArray().add(adder);
-					readClass.getHelpHash().put(readClass.getHelpArray().size(), readClass.getHelpArray().size());
-					ReadNode[] addList = new ReadNode[2];
-					addList[headnode] = addNode;
-					addList[tailnode] = addNode;
-					addNode.setPrev(null);
-					addNode.setNext(null);
-					readClass.getHeadAndTail().add(addList);
-					readClass.getReads().add(addNode);
-					startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-((readClass.getReads().size())*(Main.drawCanvas.readHeight+2))));					
-					addNode.setRectBounds(xpos, startY, (int)(addNode.getWidth()*pixel), Main.drawCanvas.readHeight);
-				}
-				
-			}
-			else {
-				/*for(int i = 0; i<readClass.getHelpArray().size(); i++) {
-					if(samRecordBuffer.getUnclippedStart() >readClass.getHelpArray().get(i)[1]) {
 						
-						index = i;
-						break;
-					}
-				}*/
-				
-				//Binary search
-			/*	xpos = (int)((samRecordBuffer.getUnclippedStart()-start)*pixel);	
-				addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, readSequence, readSeqStart, readClass.sample, splitIndex);	
-				readClass.setLastRead(addNode);	
-				
-				for(int i = 0; i<readClass.getHeadAndTail().size(); i++) {
-					if(readClass.getHeadAndTail().get(i)[tailnode].getPosition() +readClass.getHeadAndTail().get(i)[tailnode].getWidth() +2 < samRecordBuffer.getUnclippedStart()) {
-						try {
-							//readClass.setLastRead(addNode);	
-							startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-((i+1)*(Main.drawCanvas.readHeight+2))));							
-							addNode.setRectBounds(xpos, startY, (int)(addNode.getWidth()*pixel), Main.drawCanvas.readHeight);
-							addNode.setPrev(readClass.getHeadAndTail().get(i)[tailnode]);						
-							readClass.getHeadAndTail().get(i)[tailnode].setNext(addNode);
-							readClass.getHeadAndTail().get(i)[tailnode] = addNode;	
-							hashindex = readClass.getHelpHash().get(i);
-							readClass.getHelpArray().get(hashindex)[1] = addNode.getPosition()+addNode.getWidth()+2;
-							
-							if(readClass.getHelpArray().size() > 1) {
-								
-								tempadder = readClass.getHelpArray().get(hashindex);
-								
-								readClass.getHelpArray().remove(hashindex);	
-								index = searchIndex(readClass.getHelpArray(), tempadder[1], 0, readClass.getHelpArray().size());
-								
-								if(index == readClass.getHelpArray().size() || index == -1) {
-									
-									readClass.getHelpArray().add(tempadder);
-									readClass.getHelpHash().put(i, readClass.getHelpArray().size()-1);
-								}
-								else {
-									
-									readClass.getHelpArray().add(index, tempadder);
-									readClass.getHelpHash().put(i, index);
-								}
-							}
-							
-							break;
-						}
-						catch(Exception e) {
-							ErrorLog.addError(e.getStackTrace());
-							e.printStackTrace();
-						}
-						
-					}
-				}
-				
-			/*	startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-((readClass.getHelpArray().get(0)[0]+1)*(Main.drawCanvas.readHeight+2))));							
-				addNode.setRectBounds(xpos, startY, (int)(addNode.getWidth()*pixel), Main.drawCanvas.readHeight);
-				addNode.setPrev(readClass.getHeadAndTail().get(readClass.getHelpArray().get(0)[0])[tailnode]);						
-				readClass.getHeadAndTail().get(readClass.getHelpArray().get(0)[0])[tailnode].setNext(addNode);
-				readClass.getHeadAndTail().get(readClass.getHelpArray().get(0)[0])[tailnode] = addNode;			
-				
-				
-			}
-			*/
-			
 			mundane = null;
 			found = false;			
 			
@@ -4103,11 +3725,10 @@ void readSam(String chrom, Reads readClass, SAMRecord samRecordBuffer, java.util
 									try {										
 										if(mundane == null) {
 											xpos = (int)((searchPos-start)*pixel);	
-											addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, splitIndex.readSequence, splitIndex.readSeqStart, readClass.sample, splitIndex,readClass, mismatches);	
+											addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, readClass.sample, splitIndex,readClass, mismatches);	
 											readClass.setLastRead(addNode);	
 										}									
-										
-										
+																				
 										startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-((i+1)*(readClass.readHeight+2))));							
 										addNode.setRectBounds(xpos, startY, (int)(addNode.getWidth()*pixel), readClass.readHeight);
 										addNode.setPrev(readClass.getHeadAndTail().get(i)[tailnode]);						
@@ -4141,7 +3762,7 @@ void readSam(String chrom, Reads readClass, SAMRecord samRecordBuffer, java.util
 								}*/
 								
 								xpos = (int)((searchPos-start)*pixel);	
-								addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, splitIndex.readSequence, splitIndex.readSeqStart, readClass.sample, splitIndex,readClass, mismatches);	
+								addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, readClass.sample, splitIndex,readClass, mismatches);	
 								
 								startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-((i+1)*(readClass.readHeight+2))));					
 								addNode.setRectBounds(xpos, startY, (int)(addNode.getWidth()*pixel), readClass.readHeight);
@@ -4155,7 +3776,7 @@ void readSam(String chrom, Reads readClass, SAMRecord samRecordBuffer, java.util
 							}
 							else if(!readClass.getHeadAndTail().get(i)[tailnode].isDiscordant()) {
 								xpos = (int)((searchPos-start)*pixel);	
-								addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, splitIndex.readSequence, splitIndex.readSeqStart, readClass.sample, splitIndex,readClass, mismatches);	
+								addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, readClass.sample, splitIndex,readClass, mismatches);	
 								
 								mundane = readClass.getHeadAndTail().get(i)[tailnode];
 								/*
@@ -4219,7 +3840,7 @@ void readSam(String chrom, Reads readClass, SAMRecord samRecordBuffer, java.util
 					}*/
 					if(mundane == null) {
 						xpos = (int)((searchPos-start)*pixel);	
-						addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, splitIndex.readSequence, splitIndex.readSeqStart, readClass.sample, splitIndex,readClass, mismatches);	
+						addNode = new ReadNode(samRecordBuffer, readClass.complete, chrom, readClass.sample, splitIndex,readClass, mismatches);	
 						
 					}
 					ReadNode[] addList = new ReadNode[2];
@@ -5224,8 +4845,7 @@ void annotateVariant(VarNode vardraw) {
 					i--;
 				}
 			}
-		}
-		
+		}		
 	}
 	Map.Entry<String, ArrayList<SampleNode>> entry = null;
 	String base = null, amino = null;
@@ -5268,13 +4888,13 @@ void annotateVariant(VarNode vardraw) {
 				if(entry.getKey().length() < 2) {
 					sample.snvs++;
 					try {
-						sample.mutationTypes[Main.mutTypes.get(vardraw.getRefBase() +entry.getKey())]++;
+						sample.mutationTypes[Main.mutTypes.get(Main.getBase.get(vardraw.getRefBase()) +entry.getKey())]++;
 					}
 					catch(Exception e) {
-						System.out.println(vardraw.getPosition() +" " +vardraw.getRefBase() +entry.getKey());
+						System.out.println(vardraw.getPosition() +" " +(char)vardraw.getRefBase() +entry.getKey());
 						e.printStackTrace();
 					}
-					if((vardraw.getRefBase().equals("A") && entry.getKey().equals("G")) || (vardraw.getRefBase().equals("G") && entry.getKey().equals("A")) || (vardraw.getRefBase().equals("C") && entry.getKey().equals("T")) || (vardraw.getRefBase().equals("T") && entry.getKey().equals("C"))) {
+					if(((char)vardraw.getRefBase() == 'A' && entry.getKey().equals("G")) || ((char)vardraw.getRefBase() == 'G' && entry.getKey().equals("A")) || ((char)vardraw.getRefBase() == 'C' && entry.getKey().equals("T")) || ((char)vardraw.getRefBase() == 'T' && entry.getKey().equals("C"))) {
 						sample.sitioRate++;
 					}
 					else {
@@ -5351,8 +4971,7 @@ void annotateVariant(VarNode vardraw) {
 					vardraw.inVarList = true;
 				}
 			}
-		}
-		
+		}		
 	}
 	// INTRONIC
 	
@@ -5570,6 +5189,11 @@ void annotateVariant(VarNode vardraw) {
 			
 			}
 		}			
+	}
+	if(!vardraw.isInGene() && VariantHandler.intergenic.isSelected()) {
+		
+		VariantHandler.writeVariantToFile(vardraw, output);
+				
 	}
 }
 /*
@@ -5798,16 +5422,18 @@ static void fetchAnnotation() {
 		String cram = "X:/cg7/Heikki/CRAMtest/cram3/Y_crc47_1_13-0818_cram3_test.cram";
 		String crai = cram + ".crai";
 		File ref = new File("C:/HY-Data/RKATAINE/BasePlayer/BasePlayer/genomes/Homo_sapiens_GRCh37/Homo_sapiens.GRCh37.dna.primary_assembly.fa");
+		
 		try {
-		CRAMFileReader reader = new CRAMFileReader(new File(cram), new File(crai),new ReferenceSource(ref), ValidationStringency.SILENT);
+			RandomAccessFile random = new RandomAccessFile(ref, "r");
+		CRAMFileReader reader = new CRAMFileReader(new File(cram), new File(crai),new ReferenceSource(ref), random, ValidationStringency.SILENT);
 		QueryInterval[] interval = { new QueryInterval(0, 1000000, 1010000) };
 		
 		Iterator<SAMRecord> iter = reader.query(interval, true);
-		
-		while(iter.hasNext()) {
-			SAMRecord rec = iter.next();
-			System.out.println(rec.getAlignmentStart() +" " +rec.getStringAttribute("MD"));
-		}
+		System.out.println(iter.hasNext());
+	//	while(iter.hasNext()) {
+	//		SAMRecord rec = iter.next();
+		//	System.out.println(rec.getAlignmentStart() +" " +rec.getStringAttribute("MD"));
+	//	}
 		/*SAMRecord record = iter.next();
 		do {
 			System.out.println(record.getAlignmentStart());

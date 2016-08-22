@@ -22,7 +22,7 @@ public class Launcher  {
 	static String maindir;
 	static boolean fromMain = false, firstStart = false;
 	private static long timer;	
-	static String memlimit = "1200m", defaultDir = "demo", line, ctrldir = "demo", defaultAnnotation ="", defaultGenome = "";
+	static String memlimit = "4G", defaultDir = "demo", line, ctrldir = "demo", defaultAnnotation ="", defaultGenome = "";
 	static String gerpfile;	
 	static ArrayList<String> config = new ArrayList<String>();
 	public static String trackDir = "";
@@ -84,9 +84,17 @@ public class Launcher  {
 			  }
 			  fileReader.close();	
 			  if(!fromMain) {
-				  ProcessBuilder pb;				
-				  pb = new ProcessBuilder("java","-Xmx" +memlimit, "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
-			      pb.start();
+				  ProcessBuilder pb;
+				 try {
+					
+				    pb = new ProcessBuilder("java","-Xms" +memlimit, "-Xmx" +memlimit, "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
+				 }
+				 catch(Exception e) {
+					 e.printStackTrace();
+					 pb = new ProcessBuilder("java","-Xmx1200m", "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
+						
+				 }
+				  pb.start();
 			 
 		    	 while(System.currentTimeMillis() - timer < 3000) {			    		 
 		    	 }			    	

@@ -23,7 +23,7 @@ public class VarNode {
 	private final int position;
 	
 	private VarNode prev, next;
-	private final String refBase;
+	private final byte refBase;
 	private ArrayList<Transcript.Exon> exons;
 	private ArrayList<Transcript> transcripts;
 	private boolean inGene;
@@ -39,10 +39,10 @@ public class VarNode {
 
 	public boolean coding = false;
 	
-	public VarNode(int position, String ref, String variation, short coverage, short calls, boolean genotype, short quality, String rscode, Sample sample, VarNode prev, VarNode next) {
+	public VarNode(int position, byte ref, String variation, short coverage, short calls, boolean genotype, short quality, String rscode, Sample sample, VarNode prev, VarNode next) {
 		this.position = position;
 		this.rscode = rscode;
-		this.refBase = Main.bases.get(ref);
+		this.refBase = ref; //Main.bases.get(ref);
 		if (variation.length() > 1 ) indel = true;
 		if(vars.size() == 0) {
 			Map.Entry<String, ArrayList<SampleNode>> entry = new AbstractMap.SimpleEntry<String, ArrayList<SampleNode>>(variation, new ArrayList<SampleNode>());
@@ -91,7 +91,7 @@ public class VarNode {
 	public void putPrev(VarNode node) {
 		this.prev = node;
 	}		
-	public String getRefBase() {
+	public byte getRefBase() {
 		return this.refBase;
 	}
 	public int getPosition() {
