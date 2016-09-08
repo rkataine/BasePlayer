@@ -26,10 +26,10 @@ public class Transcript {
 	
 	short startphase, endphase, endphasetemp;
 	int firstamino = 0, ypos = 0;
-	ArrayList<VarNode> varnodes = new ArrayList<VarNode>();
+/*	ArrayList<VarNode> varnodes = new ArrayList<VarNode>();
 	int mutations = 0, nonsense=0, missense=0, synonymous=0, intronic = 0, utr =0;
 	ArrayList<Sample> samples = new ArrayList<Sample>();
-	
+	*/
 	
 	class Exon {
 		private int start, end;

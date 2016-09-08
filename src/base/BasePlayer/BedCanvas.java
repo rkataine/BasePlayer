@@ -120,6 +120,8 @@ private static final long serialVersionUID = 1L;
 	private double preresizer = 0.0;
 	private boolean negative = false;
 	private boolean negativelock = false,positivelock = false;
+	private boolean heightchanged = false;
+	private int selexstart;
 	
 	BedCanvas(int width, int height) {	
 		
@@ -153,6 +155,7 @@ private static final long serialVersionUID = 1L;
 	}	
 
 void drawScreen(Graphics g) {
+	
 	
 	if(this.trackDivider.get(this.trackDivider.size()-1) != 1.0) {	
 		 for(int i = 0 ; i<Main.bedCanvas.trackDivider.size(); i++) {
@@ -429,42 +432,47 @@ void drawLogo(BedTrack track, BedNode node, int trackstart) {
 		if((trackstart +this.trackheight) - (trackstart+15+((node.level-1)*(selexheight+15))+(track.mouseWheel*((selexheight+15)*2))) < selexheight) {
 			selexheight = (trackstart +this.trackheight) - (trackstart+15+((node.level-1)*(selexheight+15))+(track.mouseWheel*((selexheight+15)*2)));
 		}		
+		selexstart = (int)((node.getPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel);
+	//	nodebuf.setColor(Color.white);
+	//	nodebuf.fillRect(selexstart, trackstart+10+((node.level-1)*(40+15))+(track.mouseWheel*((40+15)*2)),(int)(matrix[0].length*Main.drawCanvas.splits.get(0).pixel), 40);
 		
-		
-		if(matrix != null && (trackstart +this.trackheight) > trackstart+15+((node.level-1)*(40+15))+(track.mouseWheel*((40+15)*2))) {
+		if(matrix != null && (trackstart +this.trackheight) > trackstart+10+((node.level-1)*(40+15))+(track.mouseWheel*((40+15)*2))) {
 			
 			sum = 0;
 			if(node.forward == null || node.forward) {
 				for(int j = 0; j<matrix[0].length; j++) {
-					prevY = trackstart+15+((node.level-1)*(40+15))+(track.mouseWheel*((40+15)*2));
+					prevY = trackstart+10+((node.level-1)*(40+15))+(track.mouseWheel*((40+15)*2));
 					sum = matrix[0][j] + matrix[1][j] +matrix[2][j] +matrix[3][j];
 				//	System.out.print((100*(matrix[0][j]/(double)sum)) +"\t" +(100*(matrix[1][j]/(double)sum)) +"\t" +(100*(matrix[2][j]/(double)sum)) +"\t" +(100*(matrix[3][j]/(double)sum)) +"\n");
-					nodebuf.drawImage(Main.A, (int)(((node.getPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+(j*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[0][j]/(double)sum)), null);
+					nodebuf.drawImage(Main.A, (int)(selexstart+(j*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[0][j]/(double)sum)), null);
 					prevY += (int)(selexheight*(matrix[0][j]/(double)sum));
-					nodebuf.drawImage(Main.C, (int)(((node.getPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+(j*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[1][j]/(double)sum)), null);
+					nodebuf.drawImage(Main.C, (int)(selexstart+(j*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[1][j]/(double)sum)), null);
 					prevY += (int)(selexheight*(matrix[1][j]/(double)sum));
-					nodebuf.drawImage(Main.G, (int)(((node.getPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+(j*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[2][j]/(double)sum)), null);
+					nodebuf.drawImage(Main.G, (int)(selexstart+(j*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[2][j]/(double)sum)), null);
 					prevY += (int)(selexheight*(matrix[2][j]/(double)sum));
-					nodebuf.drawImage(Main.T, (int)(((node.getPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+(j*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[3][j]/(double)sum)), null);
+					nodebuf.drawImage(Main.T, (int)(selexstart+(j*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[3][j]/(double)sum)), null);
 				}
 			}
 			else {
 				bedcounter = 0;
 				for(int j = matrix[0].length-1; j>=0; j--) {
-					prevY = trackstart+15+((node.level-1)*(40+15))+(track.mouseWheel*((40+15)*2));
+					prevY = trackstart+10+((node.level-1)*(40+15))+(track.mouseWheel*((40+15)*2));
 					sum = matrix[0][j] + matrix[1][j] +matrix[2][j] +matrix[3][j];
 				//	System.out.print((100*(matrix[0][j]/(double)sum)) +"\t" +(100*(matrix[1][j]/(double)sum)) +"\t" +(100*(matrix[2][j]/(double)sum)) +"\t" +(100*(matrix[3][j]/(double)sum)) +"\n");
-					nodebuf.drawImage(Main.A, (int)(((node.getPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+(bedcounter*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[3][j]/(double)sum)), null);
+					nodebuf.drawImage(Main.A, (int)(selexstart+(bedcounter*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[3][j]/(double)sum)), null);
 					prevY += (int)(selexheight*(matrix[3][j]/(double)sum));
-					nodebuf.drawImage(Main.C, (int)(((node.getPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+(bedcounter*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[2][j]/(double)sum)), null);
+					nodebuf.drawImage(Main.C, (int)(selexstart+(bedcounter*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[2][j]/(double)sum)), null);
 					prevY += (int)(selexheight*(matrix[2][j]/(double)sum));
-					nodebuf.drawImage(Main.G, (int)(((node.getPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+(bedcounter*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[1][j]/(double)sum)), null);
+					nodebuf.drawImage(Main.G, (int)(selexstart+(bedcounter*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[1][j]/(double)sum)), null);
 					prevY += (int)(selexheight*(matrix[1][j]/(double)sum));
-					nodebuf.drawImage(Main.T, (int)(((node.getPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+(bedcounter*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[0][j]/(double)sum)), null);
+					nodebuf.drawImage(Main.T, (int)(selexstart+(bedcounter*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[0][j]/(double)sum)), null);
 					bedcounter++;
 				}
 			}
 		}
+		nodebuf.setColor(Color.black);
+		nodebuf.fillRect(selexstart, trackstart+10+((node.level-1)*(40+15))+(track.mouseWheel*((40+15)*2)),(int)(matrix[0].length*Main.drawCanvas.splits.get(0).pixel), 1);
+		
 	}	
 	if(selexheight != 40) {
 		selexheight = 40;
@@ -540,6 +548,20 @@ void drawNodes() {
 		drawNode = track.getCurrent();
 		overlap = false;
 		while(drawNode != null && drawNode.getPosition() < Main.drawCanvas.splits.get(0).end) {
+			if(Main.drawCanvas.splits.get(0).viewLength > 100000 ) {
+				if(!this.heightchanged) {
+					if(nodeHeight != 4) {
+						nodeHeight = 4;
+					}
+				}
+			}
+			else {
+				if(!this.heightchanged) {
+					if(nodeHeight != 10) {
+						nodeHeight = 10;
+					}
+				}
+			}
 			bedwidth = (int)(drawNode.getLength()*Main.drawCanvas.selectedSplit.pixel);
 			if(bedwidth < 1) {
 				bedwidth = 1;
@@ -1019,6 +1041,11 @@ public class BedReader extends SwingWorker<String, Object> {
 						iterateWig(wigiter, track);
 					}
 			}
+			if(!track.selex && (track.minvalue != 0 || track.maxvalue != 0)) {
+			
+	   			track.graph = true;
+	   	
+	   		}
 			track.loading = false;
 			  Main.drawCanvas.ready("Reading BED-file");
 			  if(tabixReader != null) {
@@ -1072,24 +1099,22 @@ void iterateBED(TabixReader.Iterator iterator, BedTrack track) {
 		 }
 		 BEDFeature features;
 		 BEDCodec bedcodec = new BEDCodec();
+		 
 	   while((line = iterator.next()) != null) {
 	    	try {
 	    		features = bedcodec.decode(line);
-	    		addNode.putNext(new BedNode(features.getContig(),features.getStart()-1, (features.getEnd()-features.getStart())+2, track));	    		
-	    		addNode.putNext(new BedNode(features.getContig(),features.getStart()-1, (features.getEnd()-features.getStart())+2, track));	    		
+	    		if(track.selex && (features.getName() == null || !Main.SELEXhash.containsKey(features.getName()))) {
+					continue;
+				}
+	    		
+	    		addNode.putNext(new BedNode(features.getContig(),features.getStart()-1, (features.getEnd()-features.getStart())+2, track));	    
+	    	//	addNode.putNext(new BedNode(features.getContig(),features.getStart()-1, (features.getEnd()-features.getStart())+2, track));	    		
+	    		//addNode.putNext(new BedNode(features.getContig(),features.getStart(), (features.getEnd()-features.getStart())+1, track));	    		
 				addNode.getNext().putPrev(addNode);
 				addNode = addNode.getNext();
 				
-				if(features.getName() != null) {
+				if(features.getName() != null) {					
 					
-					/*
-					if(!track.getNames().contains(features.getName())) {
-						track.getNames().put(features.getName(), features.getName());
-						addNode.name = track.getNames().get(features.getName());
-					}
-					else {
-						addNode.name = track.getNames().get(features.getName());		
-					}*/
 					if(first) {						
 						
 						if(Main.SELEXhash.containsKey(features.getName())) {
@@ -1106,7 +1131,9 @@ void iterateBED(TabixReader.Iterator iterator, BedTrack track) {
 					else {
 						addNode.name = features.getName();
 					}
+					
 				}
+				
 				if(bedgraph) {
 					addNode.value = Double.parseDouble(features.getName());
 					
@@ -1119,6 +1146,7 @@ void iterateBED(TabixReader.Iterator iterator, BedTrack track) {
 				if(!Double.isNaN(addNode.value)) {
 					if(track.maxvalue < addNode.value) {
 						track.maxvalue = addNode.value;
+						System.out.println(addNode.value);
 						
 					}
 					if(track.minvalue > addNode.value) {
@@ -1145,9 +1173,11 @@ void iterateBED(TabixReader.Iterator iterator, BedTrack track) {
 	    	catch(Exception ex) {
 	    		ex.printStackTrace();
 	    	}
+	    	
 	    	first = false;
 	     }     
-	   
+	 		
+   		
 	   if(track.minvalue < 0) {
 		   track.negatives = true;
 		   track.scale = Math.max(Math.abs(track.maxvalue), Math.abs(track.minvalue));
@@ -1182,7 +1212,7 @@ void iterateBigBed(BigBedIterator iterator, BedTrack track) {
 	    		features = iterator.next();
 	    		allfields = features.getRestOfFields();
 	    //		position = features.getStart();
-				addNode.putNext(new BedNode(features.getChromosome(),features.getStartBase()-1, (features.getEndBase()-features.getStartBase()), track));
+				addNode.putNext(new BedNode(features.getChromosome(),features.getStartBase(), (features.getEndBase()-features.getStartBase()+1), track));
 				addNode.getNext().putPrev(addNode);
 				addNode = addNode.getNext();
 				
@@ -1892,11 +1922,13 @@ public void keyPressed(KeyEvent e) {
 	
 	
 	if(keyCode == KeyEvent.VK_PLUS || keyCode == 107) {
+		heightchanged = true;
 		nodeHeight++;
 		
 		repaint();
 	}
 	if(keyCode == KeyEvent.VK_MINUS || keyCode == 109) {
+		heightchanged = true;
 		nodeHeight--;
 		repaint();
 	}

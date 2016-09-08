@@ -16,10 +16,12 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.net.URL;
 import java.util.HashMap;
+
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
@@ -28,6 +30,7 @@ public class WelcomeScreen  extends JPanel{
 	private static final long serialVersionUID = 1L;
 	static JFrame frame = new JFrame("Welcome screen");	
 	JEditorPane htmlPage;
+	boolean editorial = true;
 	static HashMap<String, URL[]> genomeHash = new HashMap<String, URL[]>();
 	static HashMap<String, Integer[]> sizeHash = new HashMap<String, Integer[]>();
 	public WelcomeScreen() {
@@ -35,6 +38,19 @@ public class WelcomeScreen  extends JPanel{
 		makeGenomes();
 		this.setBackground(Color.black);
 		StringBuffer html = new StringBuffer("<html><body><h1>Welcome to BasePlayer</h1>");
+				if(editorial) {
+					html.append("<p>This is editors/reviewers version of BasePlayer for testing purposes.<br>"
+							+ "Check http://baseplayer.fi for instructions<br>"
+							+ "This package includes following items:"
+							+ "<ul><li> human reference sequence and Ensembl gene annotation for chromosome 22.</li>"
+							+ "<li>6 whole-genome samples from 1000 Genomes Project, including variants (vcf.gz) and read sequences (cram). File->Open samples</li>"
+							+ "<li>Variant data from ExAC for allele frequency filtering. File->Add controls</li>"
+							+ "<li>Additional tracks for ENCODE regulatory regions, transcription factor binding sites from Ensembl Biomart and replication timing. File->Add tracks</li>"
+							+ "</ul>"
+							+ "You can download whole reference genome and full annotation from links below.");					
+				}
+		
+		
 				if(Main.genomehash == null || Main.genomehash.size() == 0) {
 					html.append("<p>Before we start, download your favorite genome using following links or add new genome by hand in File->Change/add genome->Add new genome</p><br>");					
 				}
@@ -57,7 +73,8 @@ public class WelcomeScreen  extends JPanel{
 		htmlPage.setEditable(false);
 		htmlPage.setEditorKit(JEditorPane.createEditorKitForContentType("text/html"));
 		htmlPage.setText(html.toString());
-		htmlPage.setPreferredSize(new Dimension(400, 300));
+		
+		htmlPage.setPreferredSize(new Dimension(400, 500));
 		htmlPage.addHyperlinkListener(new HyperlinkListener() {
 			public void hyperlinkUpdate(HyperlinkEvent hyperlinkEvent) {
 			    HyperlinkEvent.EventType type = hyperlinkEvent.getEventType();
@@ -71,7 +88,12 @@ public class WelcomeScreen  extends JPanel{
 			    }
 			  }
 		});
-		add(htmlPage);
+		htmlPage.setCaretPosition(0);
+		JScrollPane scrollpane = new JScrollPane(htmlPage);
+		
+		scrollpane.setPreferredSize(new Dimension(400, 400));
+		
+		add(scrollpane);
 		
 	}
 	void makeGenomes() {

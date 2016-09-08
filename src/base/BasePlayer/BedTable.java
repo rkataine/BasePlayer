@@ -92,12 +92,17 @@ public class BedTable extends JPanel implements MouseMotionListener, MouseListen
 			Object[] obj = new Object[3]; obj[0] = "Sample"; 	obj[1] = 10; obj[2] = (int)((width-10)/7.0); geneheader.add(obj);
 					 obj = new Object[3]; obj[0] = "Mut. count";obj[1] = (int)geneheader.get(geneheader.size()-1)[1] + (int)geneheader.get(geneheader.size()-1)[2]; obj[2] = (int)((width-10)/7.0); geneheader.add(obj);
 					 obj = new Object[3]; obj[0] = "Position"; 	obj[1] = (int)geneheader.get(geneheader.size()-1)[1] + (int)geneheader.get(geneheader.size()-1)[2]; obj[2] = (int)((width-10)/7.0); geneheader.add(obj);
-					 obj = new Object[3]; obj[0] = "Effect"; 	obj[1] = (int)geneheader.get(geneheader.size()-1)[1] + (int)geneheader.get(geneheader.size()-1)[2]; obj[2] = (int)((width-10)/7.0); geneheader.add(obj);
+					 obj = new Object[3]; obj[0] = "Base change"; 	obj[1] = (int)geneheader.get(geneheader.size()-1)[1] + (int)geneheader.get(geneheader.size()-1)[2]; obj[2] = (int)((width-10)/7.0); geneheader.add(obj);
 					 obj = new Object[3]; obj[0] = "Genotype"; 	obj[1] = (int)geneheader.get(geneheader.size()-1)[1] + (int)geneheader.get(geneheader.size()-1)[2]; obj[2] = (int)((width-10)/7.0); geneheader.add(obj);
 					 obj = new Object[3]; obj[0] = "Quality"; 	obj[1] = (int)geneheader.get(geneheader.size()-1)[1] + (int)geneheader.get(geneheader.size()-1)[2]; obj[2] = (int)((width-10)/7.0); geneheader.add(obj);
 					 obj = new Object[3]; obj[0] = "rs-code"; 	obj[1] = (int)geneheader.get(geneheader.size()-1)[1] + (int)geneheader.get(geneheader.size()-1)[2]; obj[2] = (int)((width-10)/7.0); geneheader.add(obj);
-
+					 
+					
 			geneheaderlength = geneheader.size();
+			 for(int i = 0 ; i<Control.controlData.fileArray.size(); i++) {							
+				  addRowGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
+				  addRowGeneheader("OR");						 
+			  }
 			bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width, (int)height, BufferedImage.TYPE_INT_ARGB));	
 			buf = (Graphics2D)bufImage.getGraphics();
 			this.addMouseListener(this);
@@ -167,6 +172,10 @@ void addRowGeneheader(String columnName) {
 	geneheader.add(obj);
 	
 	if((int)obj[1]+(int)obj[2] > this.getWidth()) {
+		if(bufImage == null) {
+			bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width, (int)height, BufferedImage.TYPE_INT_ARGB));	
+			buf = (Graphics2D)bufImage.getGraphics();
+		}
 		if(bufImage.getWidth() < (int)obj[1]+(int)obj[2]) {
 			bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width*2, (int)height, BufferedImage.TYPE_INT_ARGB));	
 			buf = (Graphics2D)bufImage.getGraphics();
@@ -1473,7 +1482,7 @@ void getAminos(BedNode transcript) {
 					addrow[1] = ""+mutcount;
 					addrow[2] = transcript.getChrom() +":"+MethodLibrary.formatNumber((varnode.getPosition()+1));
 					if(base.length() == 1) {
-						addrow[3] = Main.getBase.get(varnode.getRefBase()) +"->" +base;							
+						addrow[3] = "" +varnode.getRefBase() +">" +base;							
 					}
 					else {
 						addrow[3] = base;	

@@ -23,6 +23,7 @@ public class SplitClass implements Serializable {
 	int chromEnd = 0, offset;
 	double pixel = 0.0, start=1, end=0, viewLength=0;
 	String chrom;	
+	private transient int minReadStart = Integer.MAX_VALUE, maxReadEnd = 0;
 //	private transient ArrayList<Transcript> transcripts = new ArrayList<Transcript>();
 	private transient ArrayList<Gene> genes = new ArrayList<Gene>();
 	//StringBuffer sequence = null;
@@ -53,6 +54,18 @@ public class SplitClass implements Serializable {
 	void setTranscripts(ArrayList<Transcript> trans) {
 		this.transcripts = trans;
 	}*/
+	int getMinReadStart() {
+		return this.minReadStart;
+	}
+	void setMinReadStart(int value) {
+		this.minReadStart = value;
+	}
+	int getMaxReadEnd() {
+		return this.maxReadEnd;
+	}
+	void setMaxReadEnd(int value) {
+		this.maxReadEnd = value;
+	}
 	ArrayList<Gene> getGenes() {
 		return this.genes;
 	}

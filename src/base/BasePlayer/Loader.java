@@ -47,7 +47,7 @@ public class Loader extends SwingWorker<String, Object>  {
 						memory = false;
 						Main.cancel(1);
 						
-						JOptionPane.showMessageDialog(Main.chromDraw, "Try to search more specific region to visualize all data", "Information", JOptionPane.INFORMATION_MESSAGE);
+						JOptionPane.showMessageDialog(Main.chromDraw, "Try to search more specific region to visualize all data\nTip: try to increase memory allocation for BasePlayer (config.txt in your BasePlayer folder)", "Information", JOptionPane.INFORMATION_MESSAGE);
 						System.gc();
 						Main.chromDraw.repaint();
 					}

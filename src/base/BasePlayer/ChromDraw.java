@@ -354,38 +354,43 @@ private static final long serialVersionUID = 1L;
 	
 	void drawSeq(SplitClass split) {
 		
-		if(split.pixel >= 1 && split.viewLength > 10){
+		if(split.viewLength <= Settings.readDrawDistance && split.viewLength > 10){
 			
 			split.getExonImageBuffer().setColor(Color.black);
-			
-			if(split.drawReference == null || split.drawReference.getSeq().length > Settings.readDrawDistance) {
-				if((int)split.start-(int)split.viewLength < 0) seqstart = 0;				
-				else seqstart = (int)split.start-(int)split.viewLength;
-				if((int)split.end+(int)split.viewLength > split.chromEnd) seqend = split.chromEnd; 
-				else seqend = (int)split.end+(int)split.viewLength;				
-			
-				split.drawReference = new ReferenceSeq(split.chrom,seqstart, seqend, Main.referenceFile);
+			if(!ReferenceSeq.wait) {
+				if(split.drawReference == null) {
+					if((int)split.start-(int)split.viewLength < 0) seqstart = 0;				
+					else seqstart = (int)split.start-(int)split.viewLength;
+					if((int)split.end+(int)split.viewLength > split.chromEnd) seqend = split.chromEnd; 
+					else seqend = (int)split.end+(int)split.viewLength;				
 				
-			}
+					split.drawReference = new ReferenceSeq(split.chrom,seqstart, seqend, Main.referenceFile);
+					
+				}
+				
+				else if(split.drawReference.getStartPos() > 1 && split.drawReference.getStartPos() > split.start-200) {
+					if(split.drawReference.getStartPos()-(int)split.viewLength < 1) seqstart = 1;
+					else seqstart = split.drawReference.getStartPos()-(int)split.viewLength;
+					split.drawReference.appendToStart(seqstart);								
+				}
+				else if(split.drawReference.getEndPos() < split.end+200) {
+					if(split.drawReference.getEndPos()+(int)split.viewLength > split.chromEnd) seqend = split.chromEnd;
+					else seqend = split.drawReference.getEndPos()+(int)split.viewLength+200;
+					split.drawReference.append(seqend);											
+					
+				}
 			
-			else if(split.drawReference.getStartPos() > 1 && split.drawReference.getStartPos() > split.start-200) {
-				if(split.drawReference.getStartPos()-(int)split.viewLength < 1) seqstart = 1;
-				else seqstart = split.drawReference.getStartPos()-(int)split.viewLength;
-				split.drawReference.appendToStart(seqstart);								
 			}
-			else if(split.drawReference.getEndPos() < split.end+200) {
-				if(split.drawReference.getEndPos()+(int)split.viewLength > split.chromEnd) seqend = split.chromEnd;
-				else seqend = split.drawReference.getEndPos()+(int)split.viewLength;
-				split.drawReference.append(seqend);													
+			if(split.drawReference == null || split.drawReference.getSeq() == null) {
+				return;
 			}
-			
 			if(split.pixel >= 1) {
 				split.getExonImageBuffer().fillRect(0, Main.chromScroll.getViewport().getHeight()-32, this.getWidth(), 15);
-			
-				for(int i = (int)(split.start-split.drawReference.getStartPos()-1); i< split.drawReference.getSeq().length; i++) {
+				
+				for(int i = Math.max(0,(int)(split.start-split.drawReference.getStartPos()-1)); i< split.drawReference.getSeq().length; i++) {
 					try {
 				
-					if(split.drawReference.getStartPos()+i < split.start-1 || i < 0 ) {						
+					if(split.drawReference.getStartPos()+i < split.start-1 ) {						
 						continue;
 					}
 					else if(split.drawReference.getStartPos()+i > split.end-1) {
@@ -438,9 +443,8 @@ private static final long serialVersionUID = 1L;
 				split.getExonImageBuffer().drawLine((Main.drawCanvas.getDrawWidth())/2, 0, ((Main.drawCanvas.getDrawWidth()))/2, Main.chromScroll.getViewport().getHeight());
 				split.getExonImageBuffer().drawLine((int)((Main.drawCanvas.getDrawWidth())/2+split.pixel), 0, (int)((Main.drawCanvas.getDrawWidth())/2+split.pixel), Main.chromScroll.getViewport().getHeight());
 				split.getExonImageBuffer().setStroke(Draw.basicStroke);
-					//if(split.viewLength < 60000) {
 				split.getExonImageBuffer().drawString(MethodLibrary.formatNumber((int)(split.start+((Main.drawCanvas.getDrawWidth())/2+split.pixel/2)/split.pixel)), (Main.drawCanvas.getDrawWidth())/2+10, this.getHeight()-45);
-				//	}
+			
 			}
 		}
 		else {
@@ -449,63 +453,7 @@ private static final long serialVersionUID = 1L;
 		}
 	}
 
-	/*
-	void drawSplitSeq() {
-		if(splitClass.viewLength < 20000 && splitClass.viewLength > 10){
-			
-			chromImageBuffer.setColor(Color.black);
-			
-			if(splitClass.sequence == null || splitClass.sequence.length() > 40000) {	
-				
-				splitClass.sequence = getSeq(splitClass.chrom,(int)splitClass.start-1000, (int)splitClass.end+1000, Main.referenceFile);	
-				splitClass.seqStartPos = (int)splitClass.start-1000;
-				
-			}
-			
-			else if(splitClass.seqStartPos > splitClass.start-200) {
-				
-				splitClass.sequence.insert(0, getSeq(splitClass.chrom,splitClass.seqStartPos-1000, splitClass.seqStartPos, Main.referenceFile)); 
-				splitClass.seqStartPos -= 1000;
-			}
-			else if(splitClass.seqStartPos+splitClass.sequence.length() < splitClass.end +200) {
-				
-				splitClass.sequence.append(getSeq(splitClass.chrom,splitClass.seqStartPos+splitClass.sequence.length(), splitClass.seqStartPos+splitClass.sequence.length()+1000, Main.referenceFile));
-			}
-			
-			if(splitClass.viewLength < 300 && splitClass.seqStartPos > -1) {
-				for(int i = (int)(splitClass.start-splitClass.seqStartPos-1); i< splitClass.sequence.length(); i++) {
-					
-					if(splitClass.seqStartPos+i < splitClass.start-1 ) {
-						continue;
-					}
-					else if(splitClass.seqStartPos+i > splitClass.end+1) {
-						break;
-					}
-					else if((int)((splitClass.seqStartPos+i+1 -splitClass.start)*splitClass.pixel)+(int)(splitClass.pixel/3) > (Main.drawCanvas.getDrawWidth())/2 && (int)((splitClass.seqStartPos+i+1 -splitClass.start)*splitClass.pixel)+(int)(splitClass.pixel/3+chromImageBuffer.getFont().getSize()) < (Main.drawCanvas.getDrawWidth())/2+splitClass.pixel) {
-						chromImageBuffer.setFont(middleFont);
-						chromImageBuffer.drawString(""+splitClass.sequence.charAt(i), (int)((splitClass.seqStartPos+i+1 -splitClass.start)*splitClass.pixel)+(int)(splitClass.pixel/3)+Main.drawCanvas.getDrawWidth()/2, this.getHeight()-20);
-						
-					
-					}
-					else {			
-						chromImageBuffer.setFont(seqFont);
-						chromImageBuffer.drawString(""+splitClass.sequence.charAt(i), (int)((splitClass.seqStartPos+i+1 -splitClass.start)*splitClass.pixel)+(int)(splitClass.pixel/3)+(Main.drawCanvas.getDrawWidth())/2, this.getHeight()-20);
-					}
-					
-				}			
-				// Middle line			
-				chromImageBuffer.setStroke(Draw.dashed);			
-				chromImageBuffer.drawLine(3*(Main.drawCanvas.getDrawWidth())/4, 0, 3*(Main.drawCanvas.getDrawWidth())/4, this.getHeight());
-				chromImageBuffer.drawLine((int)(3*(Main.drawCanvas.getDrawWidth())/4+splitClass.pixel), 0, (int)(3*(Main.drawCanvas.getDrawWidth())/4+splitClass.pixel), this.getHeight());
-				chromImageBuffer.setStroke(Draw.basicStroke);
-			}
-		}
-		else {
-			Main.chromDraw.splitClass.sequence = null;
-			splitClass.seqStartPos = -1;
-		}
-	}*/
-	
+		
 void drawSideBar() {
 	
 	chromImageBuffer.setColor(Draw.sidecolor);
@@ -533,15 +481,24 @@ void drawSideBar() {
 			
 			if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 100) {		
 				System.gc();
-				if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 100) {		
-					Loader.memory = true;
+				if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 100) {
+					Main.drawCanvas.clearReads();
+					System.gc();
+					
+					if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 100) {
+						Loader.memory = true;
+					}
 				}
 			}
 		}
 		else if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 300) {		
 			System.gc();
 			if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 300) {		
-				Loader.memory = true;
+				Main.drawCanvas.clearReads();
+				System.gc();
+				if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 300) {
+					Loader.memory = true;
+				}
 			}
 			
 		}
@@ -743,11 +700,12 @@ void drawScreen(Graphics g) {
 
 	}
 	if(VariantHandler.table != null && VariantHandler.table.hoverNode != null && VariantHandler.table.hoverNode.getChrom().equals(Main.chromosomeDropdown.getSelectedItem().toString())) {
-		chromImageBuffer.setColor(Color.white);				
-		chromImageBuffer.fillRect((int)((VariantHandler.table.hoverNode.getStart()+1-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+Main.sidebarWidth-2,17, 4, this.getHeight());
-		chromImageBuffer.setColor(Color.black);
-		chromImageBuffer.drawLine((int)((VariantHandler.table.hoverNode.getStart()+1-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+Main.sidebarWidth,17, (int)((VariantHandler.table.hoverNode.getStart()+1-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+Main.sidebarWidth, this.getHeight());
-			
+		if(VariantHandler.table.hoverNode.getStart() > Main.drawCanvas.splits.get(0).start-1 && VariantHandler.table.hoverNode.getStart() < Main.drawCanvas.splits.get(0).end) {
+			chromImageBuffer.setColor(Color.white);				
+			chromImageBuffer.fillRect((int)((VariantHandler.table.hoverNode.getStart()+1-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+Main.sidebarWidth-2,17, 4, this.getHeight());
+			chromImageBuffer.setColor(Color.black);
+			chromImageBuffer.drawLine((int)((VariantHandler.table.hoverNode.getStart()+1-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+Main.sidebarWidth,17, (int)((VariantHandler.table.hoverNode.getStart()+1-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+Main.sidebarWidth, this.getHeight());
+		}
 	}
 	
 	if(timer > 0) {
@@ -775,6 +733,7 @@ void drawScreen(Graphics g) {
 	}
 	
 	if(Main.searchChrom.equals(Main.drawCanvas.splits.get(0).chrom)) {
+	
 		drawSearchInterval();
 	}
 	if(this.seqDrag && mouseX-Main.drawCanvas.pressX > 0) {		
@@ -789,7 +748,9 @@ void drawScreen(Graphics g) {
 	
 }	
 void drawSearchInterval() {
+
 	if(Main.searchStart > 0 && Main.searchEnd < 1) {
+		
 		if(Main.searchStart > Main.drawCanvas.splits.get(0).start && Main.searchStart < Main.drawCanvas.splits.get(0).end) {
 			chromImageBuffer.setColor(Color.black);		
 			chromImageBuffer.drawLine((int)((Main.searchStart-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+Main.sidebarWidth, cytoHeight, (int)((Main.searchStart-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel)+Main.sidebarWidth, this.getHeight());
@@ -1221,7 +1182,9 @@ void drawExons(SplitClass split) {
 									
 									
 									aminoNro = exon.getFirstAmino();
-									
+									if(split.drawReference == null) {
+										continue;
+									}
 									for(int codon = exon.getEnd()-exon.getStartPhase(); codon-3>=exon.getStart(); codon-=3) {
 										if(codon-3 < transcript.getCodingStart()) {
 											break;
@@ -1752,7 +1715,7 @@ void drawMutations(int ylevel) {
 							Main.drawCanvas.splits.get(0).getExonImageBuffer().drawString(mutcount +" " +base, mutScreenPos, 27*baselevel);
 						}
 						else {
-							Main.drawCanvas.splits.get(0).getExonImageBuffer().drawString(mutcount +" " +vardraw.getRefBase() +"->" +base, mutScreenPos, 27*baselevel);
+							Main.drawCanvas.splits.get(0).getExonImageBuffer().drawString(mutcount +" " +Main.getBase.get(vardraw.getRefBase()) +"->" +base, mutScreenPos, 27*baselevel);
 							
 						}
 					//	Main.drawCanvas.splits.get(0).getExonImageBuffer().setColor(varColor);		
@@ -2250,7 +2213,9 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 			}
 			// SPLICE CODON
 			if(phase < 0 || (exon.getEnd() - node.getPosition() <= exon.getEndPhase())) {
-				
+				if(exon.getNro() < exon.getTranscript().getExons().length ) {
+					
+				}
 				if(exon.getEnd() - node.getPosition() <= exon.getEndPhase()) {
 					if(phase == 1) {
 						if(node.getCodon() == null) {
@@ -2264,8 +2229,10 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 					else {
 						if(exon.getEndPhase() == 2) {
 							if(node.getCodon() == null) {
+								
 								nextExonStart = exon.getTranscript().getExons()[exon.getNro()].getStart();
 								node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), nextExonStart, nextExonStart+1, Main.referenceFile))));
+								
 							}
 							array = node.getCodon().toCharArray();
 							array[phase] = base.charAt(0);
@@ -2282,7 +2249,6 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 						}
 						
 					}
-			//		System.out.println(Main.chromosomeDropdown.getSelectedItem().toString() +":" +node.getPosition() +" " +phase);
 					
 				}				
 				else if(phase == -2) {

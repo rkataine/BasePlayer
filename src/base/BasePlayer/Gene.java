@@ -21,7 +21,10 @@ public class Gene {
 	private Transcript canonical, longest;
 	private int start, end;
 	private ArrayList<Transcript> transcripts = new ArrayList<Transcript>();
-	
+	ArrayList<VarNode> varnodes = new ArrayList<VarNode>();
+	int mutations = 0, nonsense=0, missense=0, synonymous=0, intronic = 0, utr =0;
+	ArrayList<Sample> samples = new ArrayList<Sample>();
+	StringBuffer transcriptString = new StringBuffer();
 	
 	public Gene(String[] line) {
 		this.chrom = line[0];

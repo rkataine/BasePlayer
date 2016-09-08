@@ -118,15 +118,12 @@ public class MethodLibrary {
 		public int compare(ReadNode o1, ReadNode o2) {  
 		
 	            
-	        if ( o1.split.offset + o1.rect.x <  o2.split.offset +o2.rect.x ) {  
+	        if ( o1.split.offset + (o1.getPosition()-o1.split.start)*o1.split.pixel <  o2.split.offset +(o2.getPosition()-o2.split.start)*o2.split.pixel ) {  
 	                return -1;  
 	        } 
-	        else if( o1.split.offset +o1.rect.x >  o2.split.offset +o2.rect.x ) {  
+	        else  {  
 	        		return 1;  
-	        }
-	        else {
-	        	return 0;
-	        }        
+	        }              
 	       
 	}  
 	}
@@ -447,24 +444,57 @@ public class MethodLibrary {
 	
 	public static String aminoEffect(String amino) {
 		if(amino.length() < 4) {
+			
 			return "";
 		}
-		if(amino.contains("intronic")) {
+	
+		if(!amino.contains(";")) {
+			if(amino.contains("fs") || amino.contains("Stop") || (amino.length() == 7 && amino.startsWith("Met1") && !amino.substring(4).equals("Met")) || amino.contains("spl")) {
+				return "nonsense";
+			}
+			if(amino.length() > 6 && amino.substring(0,3).equals(amino.substring(amino.length()-3))) {
+				return "synonymous";
+			}
+			if(amino.contains("UTR")) {
+				return "UTR";
+			}
+			if(!amino.contains("UTR") && !amino.contains("intro") && (amino.contains("if") || !amino.substring(0, 3).equals(amino.substring(amino.length()-3)))) {
+				return "missense";
+			}			
+				return "intronic";
+			
+		}
+		else {
+			
+			if(amino.contains("fs") || amino.contains("Stop") ||amino.contains("spl") ||  amino.matches(".*Met1\\w+") && !amino.matches(".*Met1Met")) {
+				return "nonsense";
+			}
+			String[] aminoTable = amino.split(";");
+			boolean syn = false, utr = amino.contains("UTR");
+			for(int i = 0; i< aminoTable.length; i++) {
+				
+				if(!syn && aminoTable[i].substring(0,3).equals(aminoTable[i].substring(aminoTable[i].length()-3))) {
+					
+					syn = true;
+					continue;
+				}
+				
+				if(!aminoTable[i].contains("UTR") && !aminoTable[i].contains("intro") && (aminoTable[i].contains("if") || !aminoTable[i].substring(0, 3).equals(aminoTable[i].substring(aminoTable[i].length()-3)))) {
+					
+					return "missense";
+				}				
+			}
+			if(syn) {
+				return "synonymous";
+			}
+			if(utr) {
+				return "UTR";
+			}
 			return "intronic";
+			
 		}
-		if(amino.contains("UTR")) {
-			return "UTR";
-		}
-		if(amino.contains("fs") || amino.contains("Stop") || (amino.length() == 7 && amino.startsWith("Met1") && !amino.substring(4).equals("Met")) || amino.contains("spl")) {
-			return "nonsense";
-		}
-		if(amino.length() > 6 && amino.substring(0,3).equals(amino.substring(amino.length()-3))) {
-			return "synonymous";
-		}
-		if(amino.contains("if") || amino.charAt(3) != amino.charAt(amino.length()-1)) {
-			return "missense";
-		}
-		return "";
+				
+		
 	}
 	
 /*

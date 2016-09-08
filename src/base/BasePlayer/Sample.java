@@ -13,7 +13,9 @@ package base.BasePlayer;
 
 import htsjdk.samtools.util.BlockCompressedInputStream;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,7 +32,7 @@ public class Sample implements Serializable{
 	private String sampleName;
 	private String tabixfile;
 	private transient BlockCompressedInputStream inputStream;
-	
+	private transient BufferedReader vcfreader;
 	short infolocation = 0;
 	int varcount = 0, homozygotes = 0, heterozygotes = 0, indels = 0, snvs=0, ins=0, coding = 0;
 	File samFile;
@@ -48,7 +50,8 @@ public class Sample implements Serializable{
 		if(tabixfile != null) {
 			this.tabixfile = tabixfile;		
 			try {
-				inputStream = new BlockCompressedInputStream(new File(this.tabixfile));
+				setInputStream();
+				//inputStream = new BlockCompressedInputStream(new File(this.tabixfile));
 			}
 			catch(Exception e) {
 				e.printStackTrace();
@@ -60,6 +63,11 @@ public class Sample implements Serializable{
 	}
 	
 	void resetreadHash() {
+		if(samFile != null) {
+			if(samFile.getName().toLowerCase().endsWith(".cram")) {
+				this.CRAM = true;
+			}
+		}
 		if(readHash == null) {
 			readHash = new HashMap<SplitClass, Reads>();
 		}
@@ -77,14 +85,26 @@ public class Sample implements Serializable{
 	BlockCompressedInputStream getVCFInput() {
 		return this.inputStream;
 	}
+	BufferedReader getIDXInput() {
+		return this.vcfreader;
+	}
 	void setInputStream() {
 		try {
-		 this.inputStream = new BlockCompressedInputStream(new File(this.tabixfile));
+		if(this.tabixfile.endsWith(".gz")) {
+			this.inputStream = new BlockCompressedInputStream(new File(this.tabixfile));
+		}
+		else {
+			this.vcfreader= new BufferedReader(new FileReader(this.tabixfile));
+		}
 		}
 		catch(Exception e) {
 			e.printStackTrace();
 		}
 	}
+	BufferedReader getVCFReader() {
+		return this.vcfreader;
+	}
+	
 	HashMap<SplitClass, Reads> getreadHash() {
 		return this.readHash;
 	}

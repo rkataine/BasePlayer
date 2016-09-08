@@ -36,7 +36,7 @@ public class Reads implements Serializable{
 	public boolean complete = false, loading = false, nodraw = false;
 	Font readfont =new Font("SansSerif", Font.BOLD, 10);
 	int readHeight = 10;
-	public ReferenceSeq reference;
+	//public ReferenceSeq reference;
 	
 	Rectangle getScrollBar() {
 		return this.scrollbar;

@@ -64,11 +64,8 @@ public class ReadNode {
 		*/
 		public ReadNode(SAMRecord record, boolean cg, String chrom, Sample sample, SplitClass split, Reads readClass,java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> mismatches) {
 			
-			this.rect = new java.awt.Rectangle();
-			
-			
-			this.primary = !record.getSupplementaryAlignmentFlag();
-			
+			this.rect = new java.awt.Rectangle();			
+			this.primary = !record.getSupplementaryAlignmentFlag();			
 			this.readName = record.getReadName();
 			
 			this.quality = (short)record.getMappingQuality();
@@ -81,7 +78,7 @@ public class ReadNode {
 			}
 			this.forward = !record.getReadNegativeStrandFlag();
 			SA = record.getStringAttribute("SA");
-			
+		
 			isDiscordant = MethodLibrary.isDiscordant(record, cg);
 			
 				

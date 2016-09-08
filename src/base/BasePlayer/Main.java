@@ -34,17 +34,14 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
-
 import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.seekablestream.SeekableStreamFactory;
 import htsjdk.tribble.readers.TabixReader;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
-
 import java.util.Map;
 import java.awt.Color;
 import java.beans.PropertyChangeEvent;
@@ -67,10 +64,7 @@ import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
-
 import java.net.URLConnection;
-
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
@@ -111,13 +105,15 @@ import org.apache.commons.io.FilenameUtils;
 	    static String version = "1.0.0";
 	    static int sidebarWidth = 200;
 	    static String[] argsit = {}, args;
-	    static GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();   
+	    
+	    static GraphicsDevice gd;   
 	    static HashMap<Byte, String> getBase = new HashMap<Byte,String>();
-	    static int width = gd.getDisplayMode().getWidth();
-	    static int height = gd.getDisplayMode().getHeight();
+	    static int width = Toolkit.getDefaultToolkit().getScreenSize().width;
+	    static int height= Toolkit.getDefaultToolkit().getScreenSize().height;
+	   
 	    static int loadTextWidth = 200;
-	    static Dimension screenSize = new Dimension(width, height);
-	    static int drawWidth = (int)screenSize.getWidth()-200, drawHeight = (int)screenSize.getHeight()-100, chromHeight = 150, bedHeight = 200;
+	    static Dimension screenSize;
+	    static int drawWidth, drawHeight, chromHeight = 150, bedHeight = 200;
 	    static GradientPaint gradient = new GradientPaint(drawWidth/2-loadTextWidth/2,0,Color.red,drawWidth/2+loadTextWidth,height,Color.green,true);
 	    private String[] searchList;
 	    static Short samples = 0, varsamples = 0;
@@ -229,9 +225,8 @@ import org.apache.commons.io.FilenameUtils;
 	    		  drawCanvas.splits.get(0).setCytoImage(null);
 	    		  drawCanvas.splits.get(0).chrom = drawCanvas.chrom;
 	    		  drawCanvas.splits.get(0).transStart = 0;
+	    		  drawCanvas.splits.get(0).drawReference = null;
 	    		  drawCanvas.splits.get(0).chromEnd = chromIndex.get(Main.refchrom + Main.chromosomeDropdown.getSelectedItem().toString())[1].intValue();
-	    		  //drawCanvas.splits.get(0).reference = null;
-	    			
 	    		  FileRead filereader = new FileRead();
 	    		  filereader.chrom = Main.chromosomeDropdown.getSelectedItem().toString();	    		  
 	    		  drawCanvas.setStartEnd(1.0,(double)drawCanvas.splits.get(0).chromEnd);
@@ -434,7 +429,20 @@ import org.apache.commons.io.FilenameUtils;
 	public Main() {	
 		
 	super(new GridBagLayout());	
+	try {
+	gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+	width = gd.getDisplayMode().getWidth();
+	height = gd.getDisplayMode().getHeight();
+	}
+	catch(Exception e) {
+		e.printStackTrace();
+	}
 	
+	
+	screenSize = new Dimension(width, height);
+	drawWidth = (int)screenSize.getWidth()-200;
+	drawHeight = (int)screenSize.getHeight()-100;
+	   
 	thisMainListener = this;
 	try {
 		htsjdk.samtools.util.Log.setGlobalLogLevel(htsjdk.samtools.util.Log.LogLevel.ERROR);
@@ -879,12 +887,27 @@ import org.apache.commons.io.FilenameUtils;
 			}
 			
 			if(genomes.length == 0 || Launcher.firstStart) {
+				
 				if(Launcher.firstStart) {
 					writeToConfig("FirstStart=false");
 				}
 				WelcomeScreen.main(args);
 				WelcomeScreen.frame.setLocation(drawWidth/2-200, 40);
 				WelcomeScreen.frame.setVisible(true);
+				if(genomes.length != 0) {
+					if(!genomehash.containsKey(defaultGenome)) {
+						
+						
+						setChromDrop(genomes[0].getName());
+						defaultGenome = genomes[0].getName();
+						}
+						else {
+							
+							setChromDrop(defaultGenome);
+						}
+						getBands();			
+					    getExons();	
+				}
 			}
 			else {
 				if(!genomehash.containsKey(defaultGenome)) {
@@ -892,11 +915,11 @@ import org.apache.commons.io.FilenameUtils;
 				
 				setChromDrop(genomes[0].getName());
 				defaultGenome = genomes[0].getName();
-			}
-			else {
-				
-				setChromDrop(defaultGenome);
-			}
+				}
+				else {
+					
+					setChromDrop(defaultGenome);
+				}
 				getBands();			
 			    getExons();	
 			}
@@ -1038,7 +1061,7 @@ import org.apache.commons.io.FilenameUtils;
 		String infotext = "<html><h2>BasePlayer</h2>This is pre-release version of BasePlayer<br/> Author: Riku Katainen <br/> University of Helsinki<br/>"
 						+"Tumor Genomics Group (<a href=http://research.med.helsinki.fi/gsb/aaltonen/>http://research.med.helsinki.fi/gsb/aaltonen/</a>) <br/> " 
 						+"Contact: help@baseplayer.fi <br/><br/>"
-						+"Package includes GRCh37 / HG19 reference genome and Ensembl genes release 78<br/><br/>"
+						
 						+"For optimal usage, you should have vcf and bam -files for each sample. <br/> "
 						+"e.g. in case you have a sample named as sample1, name all files similarly and <br/>"
 						+"place in the same folder:<br/>"
@@ -1495,16 +1518,18 @@ import org.apache.commons.io.FilenameUtils;
 				if (file.isDirectory()) {
 					return true;
 			    }	
-				if (file.getName().contains(".vcf.gz") && !file.getName().contains(".tbi")) {
+				if (file.getName().endsWith(".vcf.gz")) {
 					return true;
 				}					
-				
+				else if(file.getName().endsWith(".vcf")) {
+					return true;
+				}
 				else {
 					return false;
 				}	
 		} 
 		
-		public String getDescription() { return "*.vcf.gz"; }
+		public String getDescription() { return "*.vcf, *.vcf.gz"; }
 }
 	static class MyFilterSES extends javax.swing.filechooser.FileFilter {
 		public boolean accept(File file) { 
@@ -1801,14 +1826,8 @@ import org.apache.commons.io.FilenameUtils;
 		    	  chooser.setAcceptAllFileFilterUsed(false);
 		    	  MyFilterBAM bamFilter = new MyFilterBAM();
 		    	  MyFilterVCF vcfFilter = new MyFilterVCF();
-		    	//  MyFilterBED bedFilter = new MyFilterBED();
-		 //   	  MyFilterCRAM cramFilter = new MyFilterCRAM();
-		    	//  MyFilterALL allFilter = new MyFilterALL();
 		    	  chooser.addChoosableFileFilter(vcfFilter); 	
 		    	  chooser.addChoosableFileFilter(bamFilter); 
-		    	//  chooser.addChoosableFileFilter(bedFilter); 
-		    //	  chooser.addChoosableFileFilter(cramFilter);
-		    //	  chooser.addChoosableFileFilter(allFilter);
 		    	  chooser.setDialogTitle("Add samples");
 		    	  chooser.setPreferredSize(new Dimension((int)screenSize.getWidth()/3, (int)screenSize.getHeight()/3));
 		          int returnVal = chooser.showOpenDialog((Component)this.getParent());	         
@@ -1829,13 +1848,6 @@ import org.apache.commons.io.FilenameUtils;
 		        		  filereader.readBAM = true;
 		        		  filereader.execute();
 		        	  }
-		        	/*  else if(chooser.getFileFilter().equals(chooser.getChoosableFileFilters()[2])){
-		        		  filereader.readBED(vcffiles);
-		        		  
-		        	  }*/
-		        	/*  else if(chooser.getFileFilter().equals(chooser.getChoosableFileFilters()[2])) {
-		        		 
-		        	  }*/
 		          }
 			 }
 			 catch(Exception ex) {
@@ -2008,204 +2020,7 @@ import org.apache.commons.io.FilenameUtils;
 	        	 }
 		}
 		else if (e.getSource() == openProject) {
-			  
-			 JFileChooser chooser = new JFileChooser(Main.projectDir);	    	
-			 chooser.setAcceptAllFileFilterUsed(false);
-	    	  MyFilterSES sesFilter = new MyFilterSES();	    	  
-	    	  chooser.addChoosableFileFilter(sesFilter);
-	    	  chooser.setDialogTitle("Open project");
-	    	  chooser.setPreferredSize(new Dimension((int)screenSize.getWidth()/3, (int)screenSize.getHeight()/3));
-	          int returnVal = chooser.showOpenDialog((Component)this.getParent());	         	         
-	    	  
-	          if (returnVal == JFileChooser.APPROVE_OPTION) {
-	        	  clearData();
-					VariantHandler.maxCoverage = 1500;
-					projectDir = chooser.getSelectedFile().getParent();	 	
-	        		writeToConfig("DefaultProjectDir=" +projectDir);
-					try {
-						FileInputStream fin = new FileInputStream(chooser.getSelectedFile());
-						ObjectInputStream ois = new ObjectInputStream(fin) {
-							
-													 
-							protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
-							    ObjectStreamClass read = super.readClassDescriptor();
-							    
-							    if (read.getName() != null && !read.getName().contains("[") && !read.getName().contains(".")) {
-							    	 try {
-								    	Field f = read.getClass().getDeclaredField("name");
-							            f.setAccessible(true);
-							            f.set(read, "base.BasePlayer." +read.getName());
-							    	 }
-							    	 catch(Exception e) {
-							    		 System.out.println(read.getName());
-							    		 e.printStackTrace();
-							    		
-							    	 }
-							    }
-							    return read;
-							}
-						};
-						
-						try {
-							
-							drawCanvas.sampleList = (ArrayList<Sample>)ois.readObject();	
-							
-							Main.samples = (short)drawCanvas.sampleList.size();			
-						
-							drawCanvas.splits = (ArrayList<SplitClass>) ois.readObject();
-							for(int i = 0 ; i<drawCanvas.sampleList.size(); i++) {
-								drawCanvas.sampleList.get(i).resetreadHash();
-								if(drawCanvas.sampleList.get(i).getTabixFile() != null || drawCanvas.sampleList.get(i).multipart) {		
-									if(drawCanvas.sampleList.get(i).vcfchr == null) {
-										drawCanvas.sampleList.get(i).vcfchr = "";
-									}
-									if(!drawCanvas.sampleList.get(i).multipart) {
-										if(drawCanvas.sampleList.get(i).getVCFInput() == null) {
-											drawCanvas.sampleList.get(i).setInputStream();
-										}
-									}
-									Main.varsamples++;
-								}
-								if(drawCanvas.sampleList.get(i).longestRead == null) {
-									
-									drawCanvas.sampleList.get(i).longestRead = 0;
-								}
-							}
-							for(int i = 0; i<drawCanvas.splits.size(); i++) {
-								drawCanvas.splits.get(i).setDivider(4.0);
-							}
-						
-							for(int i = 0; i<drawCanvas.splits.size(); i++) {
-								drawCanvas.splits.get(i).resetSplits();
-							}
-							drawCanvas.drawVariables = (DrawVariables)ois.readObject();						
-							VariantHandler.commonSlider.setMaximum(Main.varsamples);
-							VariantHandler.commonSlider.setValue(1);
-							VariantHandler.commonSlider.setUpperValue(Main.varsamples);
-							VariantHandler.geneSlider.setMaximum(Main.varsamples);
-							VariantHandler.geneSlider.setValue(1);
-							try {
-								Control.controlData = (ControlData)ois.readObject();
-								
-								if(Control.controlData.fileArray.size() > 0) {
-									if(Control.controlData.fileArray.get(0) instanceof ControlFile) {
-									  Main.trackPane.setVisible(true);
-								//	  Main.trackPane.setDividerSize(3);
-									  Main.varpane.setDividerSize(3);	 									
-									  Main.varpane.setDividerLocation(0.1);
-									  Main.controlScroll.setVisible(true);
-									  Main.controlDraw.setVisible(true);	
-									  varpane.revalidate();
-									  
-									  for(int i = 0 ; i<Control.controlData.fileArray.size(); i++) {
-										
-										  VariantHandler.table.addRowGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
-										  VariantHandler.table.addRowGeneheader("OR");
-										  if(VariantHandler.tables.size() > 0) {
-											  for(int t = 0; t < VariantHandler.tables.size(); t++) {
-												  VariantHandler.tables.get(t).addRowGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
-												  VariantHandler.tables.get(t).addRowGeneheader("OR");
-											  }
-										  }
-										  VariantHandler.clusterTable.addRowGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
-										  VariantHandler.clusterTable.addRowGeneheader("OR");
-									  }
-								}
-								else {									
-									  Control.controlData.fileArray = Collections.synchronizedList(new ArrayList<ControlFile>());
-								}
-							}
-												
-					
-					//		if(ois.available() > 0) {
-							try {
-								bedCanvas.bedTrack = (ArrayList<BedTrack>)ois.readObject();
-							}
-							catch(EOFException excep) {
-								
-							}
-						//	}
-							if(bedCanvas.bedTrack != null && bedCanvas.bedTrack.size() > 0) {
-								
-								if(Main.trackPane.isVisible()) {
-									
-									 Main.varpane.setDividerLocation(Main.varpane.getDividerLocation()+100);
-									  Main.trackPane.setDividerLocation(Main.varpane.getDividerLocation()/2);
-									 if(Main.controlScroll.isVisible()) {
-										 Main.trackPane.setDividerSize(4);
-									 }
-								}
-								else {
-									Main.trackPane.setVisible(true);
-									Main.varpane.setDividerLocation(0.1);
-									Main.varpane.setDividerSize(3);	
-								}
-								 Main.bedScroll.setVisible(true);
-								 Main.bedCanvas.setVisible(true);	
-								  
-								 
-								for(int i = 0 ; i< bedCanvas.bedTrack.size(); i++) {
-									bedCanvas.bedTrack.get(i).setHead();
-									//bedCanvas.bedTrack.get(i).setNames();
-									bedCanvas.bedTrack.get(i).setColors();
-									bedCanvas.bedTrack.get(i).first = true;
-									bedCanvas.trackDivider.add(0.0);
-									bedCanvas.bedTrack.get(i).setBedLevels();
-									FileRead.setTable(bedCanvas.bedTrack.get(i));
-								}
-								
-							}
-						}
-						catch(Exception ex) {
-							ex.printStackTrace();
-							clearData();
-						}
-						
-						ois.close();
-						
-					/*	if(Control.controlData.fileArray.size() > 0) {
-							Control.useCheck.setEnabled(true);
-						}*/
-						frame.setTitle("BasePlayer - Project: " +drawCanvas.drawVariables.projectName);
-						
-						Main.drawCanvas.drawVariables.visiblesamples = Main.samples;
-						Main.drawCanvas.checkSampleZoom();
-						drawCanvas.resizeCanvas(Main.drawCanvas.getWidth(), Main.drawCanvas.getHeight());
-						
-						Draw.setScrollbar(drawCanvas.drawVariables.scrollbarpos);
-						
-						for(int i= 0; i<drawCanvas.splits.size(); i++) {
-							drawCanvas.splits.get(i).setCytoImage(null);
-							chromDraw.drawCyto(drawCanvas.splits.get(i));
-							
-							chromDraw.updateExons = true;
-							FileRead.search = true;
-							
-							drawCanvas.gotoPos(drawCanvas.splits.get(i).chrom, drawCanvas.splits.get(i).start, drawCanvas.splits.get(i).end);
-							
-							chromDraw.repaint();
-						}
-						
-					//	for(int i = 0 ;i<drawCanvas.sampleList.size(); i++) {
-							//for(int r = 0 ;r<drawCanvas.sampleList.size(); r++) {
-							//	if(drawCanvas.sampleList.get(i).getReadClass().size() > 0) {
-					//				drawCanvas.sampleList.get(i).resetReadClass();
-							//	}
-							//}
-					//	}
-						}
-						catch(Exception ex) {
-							JOptionPane.showMessageDialog(drawCanvas, "Sorry, your project must be created again.", "Error", JOptionPane.ERROR_MESSAGE);
-				    		clearData();
-				    		ex.printStackTrace();
-						}
-					}
-					catch(Exception ex) {
-						ex.printStackTrace();
-						clearData();
-					}
-	        	  	        	  
-	          }
+			 openProject(); 
 		}
 		else if (e.getSource() == saveProjectAs) {
 			
@@ -2290,6 +2105,7 @@ import org.apache.commons.io.FilenameUtils;
 }
 
 void clearData() {
+	Main.drawCanvas.bam = false;
 	undoList.clear();
 	undoPointer = 0;
 	bedCanvas.bedOn = false;
@@ -2331,7 +2147,16 @@ void clearData() {
 	}
 	SplitClass split = Main.drawCanvas.splits.get(0);
 	for(int g = 0 ; g<split.getGenes().size(); g++) {
-		for(int i = 0; i<split.getGenes().get(g).getTranscripts().size(); i++) {
+		split.getGenes().get(g).mutations = 0;
+		split.getGenes().get(g).missense = 0;
+		split.getGenes().get(g).nonsense = 0;
+		split.getGenes().get(g).synonymous = 0;
+		split.getGenes().get(g).intronic = 0;
+		split.getGenes().get(g).utr = 0;
+		split.getGenes().get(g).samples.clear();
+		split.getGenes().get(g).varnodes.clear();
+		split.getGenes().get(g).transcriptString = new StringBuffer();
+		/*for(int i = 0; i<split.getGenes().get(g).getTranscripts().size(); i++) {
 			split.getGenes().get(g).getTranscripts().get(i).mutations = 0;
 			split.getGenes().get(g).getTranscripts().get(i).missense = 0;
 			split.getGenes().get(g).getTranscripts().get(i).nonsense = 0;
@@ -2340,7 +2165,7 @@ void clearData() {
 			split.getGenes().get(g).getTranscripts().get(i).utr = 0;
 			split.getGenes().get(g).getTranscripts().get(i).samples.clear();
 			split.getGenes().get(g).getTranscripts().get(i).varnodes.clear();
-		}
+		}*/
 	}
 	split = null;
 	bedCanvas.bedTrack.clear();
@@ -2438,6 +2263,8 @@ void clearData() {
 	    else {
 	    	Main.menubar.setMinimumSize(new Dimension(180, 22));
 	    }
+	    
+	     
 	}
 	public static void main(String[] args) {
 		
@@ -2449,6 +2276,7 @@ void clearData() {
 		 javax.swing.SwingUtilities.invokeLater(new Runnable() {
 	            public void run() {	     
 	            	
+	            		Logo.main(argsit);
 	            		createAndShowGUI();	            	
 	            }
 	        });			
@@ -3132,17 +2960,16 @@ void clearData() {
 		}
 	}
 
-
 	@Override
 	public void mousePressed(MouseEvent event) {
 		Logo.frame.setVisible(false);
 	
 		if(event.getSource() == splitPaneDivider) {
 			Main.vardivider = bedCanvas.nodeImage.getHeight()/(double)varPaneDivider.getY();
-			Main.bedCanvas.resize = true;
+	//		Main.bedCanvas.resize = true;
 		}
 		if(event.getSource() == varPaneDivider) {
-			Main.bedCanvas.resize = true;			
+	//		Main.bedCanvas.resize = true;			
 			Main.vardivider = bedCanvas.nodeImage.getHeight()/(double)varPaneDivider.getY();			
 		}
 		if(event.getSource() == filemenu) {			
@@ -3217,11 +3044,15 @@ void clearData() {
 					}
 				}
 			}
-			defaultGenome = hoverGenome;
-			writeToConfig("DefaultGenome=" +defaultGenome);
+			
+			 defaultGenome = hoverGenome;
+			 writeToConfig("DefaultGenome=" +defaultGenome);
 		     writeToConfig("DefaultGenes=" +annotationfile);
 		     setChromDrop(defaultGenome); 		
 		     getBands();
+		     if(genomehash.get(defaultGenome).size() > 0 && genomehash.get(defaultGenome).get(annotation) != null) {
+		    	 
+		    
 		     ChromDraw.exonReader = new TabixReader(genomehash.get(defaultGenome).get(annotation).getCanonicalPath());
 			    
 				String s;
@@ -3246,6 +3077,7 @@ void clearData() {
 					}
 				}
 				 ChromDraw.exonReader.close();
+		     }
 				 drawCanvas.chrom = chromosomeDropdown.getItemAt(0);
 				   chromosomeDropdown.setSelectedIndex(0);
 			}
@@ -3581,7 +3413,212 @@ void clearData() {
 		}
 	}
 	
+	void openProject() {
 
+		
+		 JFileChooser chooser = new JFileChooser(Main.projectDir);	    	
+		 chooser.setAcceptAllFileFilterUsed(false);
+   	  	 MyFilterSES sesFilter = new MyFilterSES();	    	  
+   	  	 chooser.addChoosableFileFilter(sesFilter);
+   	  	 chooser.setDialogTitle("Open project");
+   	  	 chooser.setPreferredSize(new Dimension((int)screenSize.getWidth()/3, (int)screenSize.getHeight()/3));
+         int returnVal = chooser.showOpenDialog((Component)this.getParent());	         	         
+   	  
+         if (returnVal == JFileChooser.APPROVE_OPTION) {
+       	  clearData();
+				VariantHandler.maxCoverage = 1500;
+				projectDir = chooser.getSelectedFile().getParent();	 	
+       		writeToConfig("DefaultProjectDir=" +projectDir);
+				try {
+					FileInputStream fin = new FileInputStream(chooser.getSelectedFile());
+					ObjectInputStream ois = new ObjectInputStream(fin) {
+						
+												 
+						protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
+						    ObjectStreamClass read = super.readClassDescriptor();
+						    
+						    if (read.getName() != null && !read.getName().contains("[") && !read.getName().contains(".")) {
+						    	 try {
+							    	Field f = read.getClass().getDeclaredField("name");
+						            f.setAccessible(true);
+						            f.set(read, "base.BasePlayer." +read.getName());
+						    	 }
+						    	 catch(Exception e) {
+						    		 System.out.println(read.getName());
+						    		 e.printStackTrace();
+						    		
+						    	 }
+						    }
+						    return read;
+						}
+					};
+					
+					try {
+						
+						drawCanvas.sampleList = (ArrayList<Sample>)ois.readObject();	
+						
+						Main.samples = (short)drawCanvas.sampleList.size();			
+					
+						drawCanvas.splits = (ArrayList<SplitClass>) ois.readObject();
+						for(int i = 0 ; i<drawCanvas.sampleList.size(); i++) {
+							drawCanvas.sampleList.get(i).resetreadHash();
+							if(drawCanvas.sampleList.get(i).getTabixFile() != null || drawCanvas.sampleList.get(i).multipart) {		
+								if(drawCanvas.sampleList.get(i).vcfchr == null) {
+									drawCanvas.sampleList.get(i).vcfchr = "";
+								}
+								if(!drawCanvas.sampleList.get(i).multipart) {
+									if(drawCanvas.sampleList.get(i).getVCFInput() == null) {
+										drawCanvas.sampleList.get(i).setInputStream();
+									}
+								}
+								Main.varsamples++;
+							}
+							if(drawCanvas.sampleList.get(i).longestRead == null) {
+								
+								drawCanvas.sampleList.get(i).longestRead = 0;
+							}
+						}
+						for(int i = 0; i<drawCanvas.splits.size(); i++) {
+							drawCanvas.splits.get(i).setDivider(4.0);
+						}
+					
+						for(int i = 0; i<drawCanvas.splits.size(); i++) {
+							drawCanvas.splits.get(i).resetSplits();
+						}
+						drawCanvas.drawVariables = (DrawVariables)ois.readObject();						
+						VariantHandler.commonSlider.setMaximum(Main.varsamples);
+						VariantHandler.commonSlider.setValue(1);
+						VariantHandler.commonSlider.setUpperValue(Main.varsamples);
+						VariantHandler.geneSlider.setMaximum(Main.varsamples);
+						VariantHandler.geneSlider.setValue(1);
+						try {
+							Control.controlData = (ControlData)ois.readObject();
+							
+							if(Control.controlData.fileArray.size() > 0) {
+								
+								  Main.trackPane.setVisible(true);
+							
+								  Main.varpane.setDividerSize(3);	 									
+								  Main.varpane.setDividerLocation(0.1);
+								  Main.controlScroll.setVisible(true);
+								  Main.controlDraw.setVisible(true);	
+								  varpane.revalidate();
+								
+							}
+											
+				
+				//		if(ois.available() > 0) {
+						try {
+							bedCanvas.bedTrack = (ArrayList<BedTrack>)ois.readObject();
+						}
+						catch(EOFException excep) {
+							
+						}
+					//	}
+						if(bedCanvas.bedTrack != null && bedCanvas.bedTrack.size() > 0) {
+							
+							if(Main.trackPane.isVisible()) {
+								
+								 Main.varpane.setDividerLocation(Main.varpane.getDividerLocation()+100);
+								  Main.trackPane.setDividerLocation(Main.varpane.getDividerLocation()/2);
+								 if(Main.controlScroll.isVisible()) {
+									 Main.trackPane.setDividerSize(4);
+								 }
+							}
+							else {
+								Main.trackPane.setVisible(true);
+								Main.varpane.setDividerLocation(0.1);
+								Main.varpane.setDividerSize(3);	
+							}
+							 Main.bedScroll.setVisible(true);
+							 Main.bedCanvas.setVisible(true);	
+							  
+							 
+							for(int i = 0 ; i< bedCanvas.bedTrack.size(); i++) {
+								bedCanvas.bedTrack.get(i).setHead();
+								//bedCanvas.bedTrack.get(i).setNames();
+								bedCanvas.bedTrack.get(i).setColors();
+								bedCanvas.bedTrack.get(i).first = true;
+								bedCanvas.trackDivider.add(0.0);
+								bedCanvas.bedTrack.get(i).setBedLevels();
+								FileRead.setTable(bedCanvas.bedTrack.get(i));
+							}
+							
+						}
+						if(Control.controlData.fileArray.size() > 0) {
+							if(Control.controlData.fileArray.get(0) instanceof ControlFile) {
+														  
+							  for(int i = 0 ; i<Control.controlData.fileArray.size(); i++) {
+								
+								  VariantHandler.table.addRowGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
+								  VariantHandler.table.addRowGeneheader("OR");
+							/*	  if(VariantHandler.tables.size() > 0) {
+									  for(int t = 0; t < VariantHandler.tables.size(); t++) {
+										  VariantHandler.tables.get(t).addRowGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
+										  VariantHandler.tables.get(t).addRowGeneheader("OR");
+									  }
+								  }*/
+								  VariantHandler.clusterTable.addRowGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
+								  VariantHandler.clusterTable.addRowGeneheader("OR");
+							  }
+						}
+						else {									
+							  Control.controlData.fileArray = Collections.synchronizedList(new ArrayList<ControlFile>());
+							 
+						}
+					}
+					}
+					catch(Exception ex) {
+						ex.printStackTrace();
+						clearData();
+					}
+					
+					ois.close();
+					
+				/*	if(Control.controlData.fileArray.size() > 0) {
+						Control.useCheck.setEnabled(true);
+					}*/
+					frame.setTitle("BasePlayer - Project: " +drawCanvas.drawVariables.projectName);
+					
+					Main.drawCanvas.drawVariables.visiblesamples = Main.samples;
+					Main.drawCanvas.checkSampleZoom();
+					drawCanvas.resizeCanvas(Main.drawCanvas.getWidth(), Main.drawCanvas.getHeight());
+					
+					Draw.setScrollbar(drawCanvas.drawVariables.scrollbarpos);
+					
+					for(int i= 0; i<drawCanvas.splits.size(); i++) {
+						drawCanvas.splits.get(i).setCytoImage(null);
+						chromDraw.drawCyto(drawCanvas.splits.get(i));
+						
+						chromDraw.updateExons = true;
+						FileRead.search = true;
+						
+						drawCanvas.gotoPos(drawCanvas.splits.get(i).chrom, drawCanvas.splits.get(i).start, drawCanvas.splits.get(i).end);
+						
+						chromDraw.repaint();
+					}
+					
+				//	for(int i = 0 ;i<drawCanvas.sampleList.size(); i++) {
+						//for(int r = 0 ;r<drawCanvas.sampleList.size(); r++) {
+						//	if(drawCanvas.sampleList.get(i).getReadClass().size() > 0) {
+				//				drawCanvas.sampleList.get(i).resetReadClass();
+						//	}
+						//}
+				//	}
+					}
+					catch(Exception ex) {
+						JOptionPane.showMessageDialog(drawCanvas, "Sorry, your project must be created again.", "Error", JOptionPane.ERROR_MESSAGE);
+			    		clearData();
+			    		ex.printStackTrace();
+					}
+				}
+				catch(Exception ex) {
+					ex.printStackTrace();
+					clearData();
+				}
+       	  	        	  
+         }
+	}
 	static void getBands() {
 		try {
 			File bandfile = new File(userDir +"/genomes/" +selectedGenome +"/bands.txt");

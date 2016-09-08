@@ -29,9 +29,9 @@ public class Logo extends JPanel {
 	private static final long serialVersionUID = 1L;
 //	static Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 	static Image iconimage;
-	static GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-	static int width = gd.getDisplayMode().getWidth();
-	static int height = gd.getDisplayMode().getHeight();
+//	static GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+//	static int width = gd.getDisplayMode().getWidth();
+//	static int height = gd.getDisplayMode().getHeight();
 	
 	public Logo(){
 		    iconimage=Toolkit.getDefaultToolkit().getImage(getClass().getResource("Logo.png"));
@@ -66,7 +66,16 @@ public class Logo extends JPanel {
 		Logo logo = new Logo();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); 
 	   frame.setAlwaysOnTop(true);
-	  
+	   int width = Toolkit.getDefaultToolkit().getScreenSize().width;
+	   int height = Toolkit.getDefaultToolkit().getScreenSize().height;
+	   try {
+		GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+		width = gd.getDisplayMode().getWidth();
+		height = gd.getDisplayMode().getHeight();
+	   }
+	   catch(Exception e) {
+		   e.printStackTrace();
+	   }
 		 frame.setPreferredSize(new Dimension( iconimage.getWidth(null),iconimage.getHeight(null)));
 		 frame.setLocation((int)width/2-300, (int)height/2-300);
 		 frame.setSize(iconimage.getWidth(null),iconimage.getHeight(null));

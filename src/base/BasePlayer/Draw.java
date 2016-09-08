@@ -52,6 +52,7 @@ import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
@@ -108,7 +109,7 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	final static BasicStroke strongStroke = new BasicStroke(4), doubleStroke = new BasicStroke(2), basicStroke = new BasicStroke(1), dashed = new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, ChromDraw.dash, 0.0f), doubledashed = new BasicStroke(2.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, ChromDraw.dash, 0.0f);
 	Rectangle mouseRect = new Rectangle(), remoBox = new Rectangle(), hoverRect = new Rectangle();
 	static final Color zoomColor = new Color(255,150,50,140), softColor = new Color(0,0,0,50), loadColor = new Color(255,255,200,200), forwardColor = new Color(171,194,171), reverseColor = new Color(194,171,171), reverseText= new Color(255,50,70), forwardText = new Color(255,255,255),reverseTextLow= new Color(150,100,100,200), forwardTextLow = new Color(220,255,240,200);
-	static Color backColor = new Color(60,60,60,240);
+	static Color backColor = new Color(60,60,60,225);
 	static Color sidecolor = new Color(200,80,80);
 	static Color backTransparent = new Color(255,255,230,100);
 	static boolean updatevars = false;
@@ -170,7 +171,7 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	private Sample sidebarSample;
 	private Sample removeSample;
 	SplitClass selectedSplit = null;
-	private Rectangle mateRect;
+
 	private ReadNode selectedMate;
 	public long timer = 0;
 	Timer navTimer = new Timer();
@@ -197,8 +198,7 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	private boolean overlap = false;
 	private Color overlapColor = Color.black;
 	private int prepixel;
-	private Rectangle clickedMateRect;
-	private double searchwindow;
+	private Rectangle clickedMateRect;	
 	private double tempViewLength;
 	public boolean scrolldrag;
 	private ReadNode hoverMate = null;
@@ -226,7 +226,8 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 
 	private Rectangle saReadRect = new Rectangle();
 	private Color infoBoxColor = new Color(225,225,210,240);
-	
+	public boolean bam = false;
+	private boolean zoomNote = false;
 	static int clickedAdd = 0;
 	static boolean updateCoverages = false;
 	public static boolean variantcalculator =false;
@@ -417,9 +418,11 @@ public Draw(int width, int height) {
 }
 
 void drawCoverages(SplitClass split) {
+	
 	prepixel = -1;
 	try {
 		maxcovtemp = 0;
+		
 	for(int j = 0; j<readHash.getCoverages().length; j++) {
 		
 		if(j+readHash.getCoverageStart() < split.start-1) {			
@@ -1080,7 +1083,9 @@ boolean hideNode(VarNode node) {
 	}	
 	
 	if(VariantHandler.hidenoncoding.isSelected()) {
+		
 		if(!node.coding) {			
+			
 			return true;
 		}
 		/*else {
@@ -1652,18 +1657,23 @@ void drawSidebar() {
 							}
 							else {
 								sidebuf.setColor(Color.red);
-								sidebuf.drawString("VCF", 4, (int)(drawVariables.sampleHeight*i)-Main.drawScroll.getVerticalScrollBar().getValue()+90);
+								sidebuf.drawString("No VCF", 4, (int)(drawVariables.sampleHeight*i)-Main.drawScroll.getVerticalScrollBar().getValue()+90);
 								
 							}
 							if(sidebarSample.samFile != null) {
 								
 								sidebuf.setColor(ChromDraw.exonBarColor);
-								sidebuf.drawString("BAM", 40, (int)(drawVariables.sampleHeight*i)-Main.drawScroll.getVerticalScrollBar().getValue()+90);							
-								
+								if(sidebarSample.CRAM) {
+									sidebuf.drawString("CRAM", 40, (int)(drawVariables.sampleHeight*i)-Main.drawScroll.getVerticalScrollBar().getValue()+90);							
+									
+								}
+								else {
+									sidebuf.drawString("BAM", 40, (int)(drawVariables.sampleHeight*i)-Main.drawScroll.getVerticalScrollBar().getValue()+90);							
+								}
 							}
 							else {
-								sidebuf.setColor(Color.red);
-								sidebuf.drawString("BAM", 40, (int)(drawVariables.sampleHeight*i)-Main.drawScroll.getVerticalScrollBar().getValue()+90);
+								sidebuf.setColor(Color.red);								
+								sidebuf.drawString("No reads", 40, (int)(drawVariables.sampleHeight*i)-Main.drawScroll.getVerticalScrollBar().getValue()+90);
 								
 							}
 							
@@ -1742,7 +1752,13 @@ void resizeAllCanvas(int width) {
 }
 
 public void drawScreen(Graphics g) {
-	
+	/*	if(loading && !updatevars && !updateReads) {
+			
+			g.drawImage(backbuffer, 0, Main.drawScroll.getVerticalScrollBar().getValue(), null);
+			
+			return;
+		}
+		*/
 		buf.drawImage(image, Main.sidebarWidth,0,this.getWidth()-Main.sidebarWidth, Main.drawScroll.getViewport().getHeight(), this);
 		buf.setColor(backColor);
 		buf.fillRect(Main.sidebarWidth, 0,this.getWidth()-Main.sidebarWidth, Main.drawScroll.getViewport().getHeight());	
@@ -1758,6 +1774,7 @@ public void drawScreen(Graphics g) {
 			} 
 				
 		}
+	//	System.out.println(Settings.colorSlider.getValue() +" " +backColor.getAlpha());
 		if(Main.varsamples > 0) {
 			
 			drawVars(this.splits.get(0).offset);
@@ -1773,7 +1790,7 @@ public void drawScreen(Graphics g) {
 		}
 		
 		if(Main.samples > 0 && drawVariables.sampleHeight > 100) {			
-			
+		
 			if(mouseDrag) {			
 				if(splits.size() > 1) {				
 					for(int s = 0; s<Main.drawCanvas.splits.size(); s++) {						
@@ -1807,7 +1824,7 @@ public void drawScreen(Graphics g) {
 			
 			else {	
 				
-			
+				
 				if((!sampleZoomer) && (!zoomDrag || lineZoomer)) {					
 					
 					rbuf.setComposite( composite);				
@@ -2029,7 +2046,14 @@ public void drawScreen(Graphics g) {
 			mouseWheel = false;
 		}
 		
-		
+		if(zoomNote) {
+			if(!buf.getColor().equals(Color.lightGray)) {
+				buf.setColor(Color.lightGray);				
+			}	
+			
+			buf.drawString("Zoom in closer than " +Settings.coverageDrawDistance +" to see reads and coverages", Main.sidebarWidth +20, 20);
+			
+		}
 		/*if(selectedSplit.pressLocus > 0){ 
 			buf.setColor(Color.white);
 			buf.drawString(MethodLibrary.formatNumber(selectedSplit.pressLocus), selectedSplit.offset+(int)((selectedSplit.pressLocus-selectedSplit.start)*selectedSplit.pixel), pressY);
@@ -2227,11 +2251,13 @@ void drawClickedRead() {
 					continue;
 				}
 				*/
+				
 				if(splits.indexOf(clickedRead.getMates().get(i).split) < 0) {					
 					clickedRead.getMates().remove(i);	
 					i--;
 					continue;
-				}			
+				}		
+				
 				if(hoverMate != null) {
 					if(hoverMate.equals(clickedRead.getMates().get(i))) {
 						buf.setColor(Color.white);
@@ -2642,8 +2668,8 @@ void clearReads() {
 		splits.get(i).getSelectbuf().setComposite( composite);		
 		splits.get(i).getSelectbuf().fillRect(0,0,(int)Main.screenSize.getWidth(), Main.drawScroll.getViewport().getHeight());	
 		splits.get(i).getSelectbuf().setComposite(splits.get(i).getBackups());
-		
-		
+		splits.get(i).setMinReadStart(Integer.MAX_VALUE);
+		splits.get(i).setMaxReadEnd(0);
 	}
 	
 	//removeSplits();
@@ -2749,7 +2775,7 @@ void clearReads(Sample sample) {
 		reads.setReadStart(Integer.MAX_VALUE);
 		reads.setFirstRead(null);
 		reads.setLastRead(null);
-        reads.reference = null;
+    //    reads.reference = null;
         it.remove(); // avoids a ConcurrentModificationException
     }
     selectedRead = null;
@@ -2910,11 +2936,20 @@ void drawTriangles(ReadNode read, Sample sample, SplitClass split, Color color) 
 	}
 }
 
-void drawReads(SplitClass split) {
-	
+void drawReads(SplitClass split) {	
 		
 	
-	try {		
+	try {	
+		if(variantcalculator) {
+			return;
+		}
+		if(bam && split.viewLength > Settings.coverageDrawDistance) {
+			zoomNote = true;
+			
+		}
+		else {
+			zoomNote = false;
+		}
 		if(scrollbar) {
 		
 			split.getReadBuffer().setComposite( composite);					
@@ -2943,13 +2978,7 @@ void drawReads(SplitClass split) {
 			updateReads = false;
 			
 		}
-		if(split.viewLength > Settings.coverageDrawDistance) {
-			if(!split.getReadBuffer().getColor().equals(Color.lightGray)) {
-				split.getReadBuffer().setColor(Color.lightGray);
-				split.getReadBuffer().drawString("Zoom in closer than " +Settings.coverageDrawDistance +" to see reads and coverages", 20, 20);
-				
-			}					
-		}
+		
 		if(split.viewLength < Settings.coverageDrawDistance && drawVariables.sampleHeight > 100) {
 			
 	
@@ -2969,6 +2998,7 @@ void drawReads(SplitClass split) {
 			split.getReadBuffer().setComposite(split.getBackupr());					
 			split.getReadBuffer().setStroke(basicStroke);
 		}
+		
 	//		firstreadsample = true;
 		if(previsiblestart != drawVariables.visiblestart) {
 			
@@ -3041,7 +3071,7 @@ void drawReads(SplitClass split) {
 					
 				if(!sampleZoomer && !readsample.getreadHash().get(split).loading && !scrollbar) {
 					
-					if(!readsample.MD) {
+				//	if(!readsample.MD) {
 					
 					/*	if(split.viewLength < 10000) {
 							searchwindow = 10000;
@@ -3075,10 +3105,17 @@ void drawReads(SplitClass split) {
 						
 							}						
 						}	*/
-					}
-	
-					
-						FileRead reader = new FileRead();					
+			//		}
+						
+						if(split.getMaxReadEnd()-split.getMinReadStart() > Settings.readDrawDistance && (split.start - split.getMinReadStart() > split.viewLength*2 || split.getMaxReadEnd() - split.end > split.viewLength*2)) {
+						
+							clearReads();						
+							split.drawReference = null;
+						}
+						FileRead reader = new FileRead();		
+						if(i == drawVariables.visiblestart) {
+							reader.firstSample = true;							
+						}
 						reader.readClass = readsample.getreadHash().get(split);					
 						readsample.getreadHash().get(split).loading = true;
 						reader.chrom = split.chrom;
@@ -3126,7 +3163,7 @@ void drawReads(SplitClass split) {
 						if(readsample.getreadHash().get(split).getReadSize()*readsample.getreadHash().get(split).readHeight < readsample.getreadHash().get(split).readwheel) {
 							readsample.getreadHash().get(split).readwheel = 0;
 						}
-						break;
+					//	break;
 					}
 					
 					readsample.getreadHash().get(split).getReads().set(j, read);
@@ -3177,9 +3214,10 @@ void drawReads(SplitClass split) {
 						read = clickedRead.getMates().get(m);	
 					
 						if(read.getRect().y >((int)(readsample.getIndex()*this.drawVariables.sampleHeight-drawVariables.visiblestart*this.drawVariables.sampleHeight)+this.drawVariables.sampleHeight/read.split.getDivider()) && read.getRect().y < ((int)(sampleList.get(i).getIndex()*this.drawVariables.sampleHeight-drawVariables.visiblestart*this.drawVariables.sampleHeight)+this.drawVariables.sampleHeight)) {
-							
-							read.yposition = read.getRect().y;
-							drawRead(read,clickedReadSample.getreadHash().get(read.split),read.getRect().y);		
+							if(read.getPosition()+read.getWidth() > read.split.start && read.getPosition() < read.split.end) {
+								read.yposition = read.getRect().y;
+								drawRead(read,clickedReadSample.getreadHash().get(read.split),read.getRect().y);	
+							}
 							continue;					
 						}
 						
@@ -3220,8 +3258,9 @@ void drawReads(SplitClass split) {
 					//	read.split.getReadBuffer().setComposite( composite);					
 					//	read.split.getReadBuffer().fillRect(read.getRect().x-20,yposition-20, read.getRect().width +40,clickedReadSample.getreadHash().get(read.split).readHeight+40);	
 					//	read.split.getReadBuffer().setComposite(read.split.getBackupr());										
-						drawRead(read,clickedReadSample.getreadHash().get(read.split), yposition);					
-			
+						if(read.getPosition()+read.getWidth() > read.split.start && read.getPosition() < read.split.end) {
+							drawRead(read,clickedReadSample.getreadHash().get(read.split), yposition);					
+						}
 					}
 					
 				}
@@ -3606,11 +3645,7 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 	}
 }
 
-/*void drawReadScroll(Reads readClass) {
-	
-	
-	
-}*/
+
 void drawSelect(SplitClass split) {
 	try {
 		
@@ -3622,7 +3657,7 @@ void drawSelect(SplitClass split) {
 		if(moveY < selectedIndex*drawVariables.sampleHeight + drawVariables.sampleHeight/split.getDivider()) {		
 			return;
 		}
-		if(mouseWheel) {		
+		if(mouseWheel || sidebar) {		
 			return;			
 		}
 		
@@ -3683,7 +3718,7 @@ void drawSelect(SplitClass split) {
 									if(selectedMate.equals(selectedRead)) {
 										continue;
 									}
-									if(splits.indexOf(selectedMate.split) > -1 && !selectedRead.split.equals(selectedMate.split)) {
+									if(splits.indexOf(selectedMate.split) > -1 && selectedMate.getPosition()+selectedMate.getWidth() > split.start && selectedMate.getPosition() < split.end/* && !selectedRead.split.equals(selectedMate.split)*/) {
 										
 										selectedMate.split.getSelectbuf().drawRect(selectedMate.getRect().x, selectedMate.getRect().y, selectedMate.getRect().width, selectedMate.getRect().height);						
 									}	
@@ -3974,8 +4009,14 @@ void addSplit(String chrom, int start, int end) {
     	}
     }
     try {
-    	
-    	split.chromEnd = Main.chromIndex.get(Main.refchrom +chrom)[1].intValue();
+    	if(Main.chromIndex.containsKey(Main.refchrom +chrom)) {
+    		split.chromEnd = Main.chromIndex.get(Main.refchrom +chrom)[1].intValue();
+    	}
+    	else {
+    		 JOptionPane.showMessageDialog(Main.chromDraw, "Target chromosome (" +(Main.refchrom +chrom) +") is not available.\nTry to download more comprehensive reference FASTA-file.", "Note", JOptionPane.ERROR_MESSAGE);
+	    		
+    		return;
+    	}
     }
     catch(Exception e) {
     	split.chromEnd = end+(end-start);
@@ -4547,6 +4588,7 @@ public void mouseClicked(MouseEvent event) {
 					break;
 				}
 				else if (clickedRead.SA != null) {
+					
 					String[] SAs = clickedRead.SA.split(";");
 					ArrayList<ReadNode[]> headAndTail = sampleList.get(selectedIndex).getreadHash().get(selectedSplit).getHeadAndTail();
 					ReadNode addread;		
@@ -4675,52 +4717,31 @@ public void mouseClicked(MouseEvent event) {
 				clickedRead = selectedRead;
 				clickedReadSample = sampleList.get(selectedIndex);
 				clickedReadInfo = createReadInfo(clickedRead);				
-				if(clickedRead.SA != null ) {	
-					/*if(saReads != null) {
-						if(!saReads.read.getMates().equals(clickedRead.getMates())) {
-							saReads = new SAread(clickedRead);
-						}
-						else {
-							for(int r = 0 ; r<saReads.reads.size(); r++) {
-								if(saReads.reads.get(r)[SAread.SARead] == null) {
-									if((int)saReads.reads.get(r)[SAread.pos] == clickedRead.getPosition()) {
-										
-										saReads.reads.get(r)[SAread.SARead] = clickedRead;
-										break;
-									}
-								}
-							}
-						}
-					}
-					else {*/
-						saReads = new SAread(clickedRead);
-					/*	for(int r = 0 ; r<saReads.reads.size(); r++) {
-							if(saReads.reads.get(r)[SAread.SARead] == null) {
-								if((int)saReads.reads.get(r)[SAread.pos] == clickedRead.getPosition()) {
-									
-									saReads.reads.get(r)[SAread.SARead] = clickedRead;
-									break;
-								}
-							}
-						}*/
-				//	}
-				}
 				
-				for(int i = 0; i <splits.size(); i++) {
-					splits.get(i).updateReads = true;
-					
-				}
+				
+				
 				if(clickedRead.getMates() != null) {
+					
 					Collections.sort(clickedRead.getMates(), mateSorter);
 					for(int i = 0 ; i<clickedRead.getMates().size()-1;i++) {
+						
 						if(clickedRead.getMates().get(i).getPosition() == clickedRead.getMates().get(i+1).getPosition()) {
+							
 							clickedRead.getMates().remove(i+1);
 							i--;
 						}
 					}
+					
 		//			clickmates = (ArrayList<ReadNode>)clickedRead.getMates().clone();
 				}		
-			
+				for(int i = 0; i <splits.size(); i++) {
+					splits.get(i).updateReads = true;
+					
+				}
+				if(clickedRead.SA != null ) {					
+					saReads = new SAread(clickedRead);				
+			}
+				
 				repaint();			
 			}		
 			}			
@@ -5198,7 +5219,7 @@ Color getColor(ReadNode read, String chrom) {
 	}
 	
 	if(read.getMatePos() != -1) {
-		if(read.isForward() == read.isMateForward()) {
+		if(read.isDiscordant() && read.isForward() == read.isMateForward()) {
 			return Color.blue;
 		}
 		
@@ -5462,10 +5483,12 @@ public void mouseReleased(MouseEvent event) {
 			if(sampleList.get(i).samFile == null) {
 				continue;
 			}
-			sampleList.get(i).getreadHash().get(selectedSplit).setCoverageStart(0);
-			sampleList.get(i).getreadHash().get(selectedSplit).setCoverages(null);
-			sampleList.get(i).getreadHash().get(selectedSplit).getReads().clear();		
-			sampleList.get(i).getreadHash().get(selectedSplit).getHeadAndTail().clear();	
+			if(sampleList.get(i).getreadHash().get(selectedSplit) != null) {
+				sampleList.get(i).getreadHash().get(selectedSplit).setCoverageStart(0);
+				sampleList.get(i).getreadHash().get(selectedSplit).setCoverages(null);
+				sampleList.get(i).getreadHash().get(selectedSplit).getReads().clear();		
+				sampleList.get(i).getreadHash().get(selectedSplit).getHeadAndTail().clear();	
+			}
 		}
 		
 	}
@@ -5478,7 +5501,9 @@ public void mouseReleased(MouseEvent event) {
 				continue;
 			}
 			try {
-				sampleList.get(i).getreadHash().get(selectedSplit).setCoverageStart(0);	
+				if(sampleList.get(i).getreadHash().get(selectedSplit) != null) {
+					sampleList.get(i).getreadHash().get(selectedSplit).setCoverageStart(0);	
+				}
 			}
 			catch(Exception e) {
 				e.printStackTrace();
@@ -5493,25 +5518,12 @@ public void mouseReleased(MouseEvent event) {
 			}
 		}		
 	}
-	/*if(lineZoomer) {
-		if(Main.samples > 0) {
-			for(int i = drawVariables.visiblestart; i<drawVariables.visiblestart+drawVariables.visiblesamples; i++) {
-				if(i >=Main.samples-1) {
-					break;
-				}
-				sampleList.get(i).prepixel = -1;
-			}
-			updatevars = true;
-		}
-	}*/
+	
 	release();
-	Main.widthLabel.setText("" +MethodLibrary.formatNumber((int)(splits.get(0).end-splits.get(0).start)) +"bp");
-	
-	
+	Main.widthLabel.setText("" +MethodLibrary.formatNumber((int)(splits.get(0).end-splits.get(0).start)) +"bp");	
 	
 	switch(event.getModifiers()) {
-		case InputEvent.BUTTON3_MASK: {	
-			
+		case InputEvent.BUTTON3_MASK: {			
 			
 		}
 	}

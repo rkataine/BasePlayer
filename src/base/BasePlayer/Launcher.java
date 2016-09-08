@@ -10,18 +10,19 @@
  *  
  */
 package base.BasePlayer;
-import java.awt.event.WindowEvent;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 
-import javax.swing.JOptionPane;
+
 
 public class Launcher  {	
 	static String maindir;
 	static boolean fromMain = false, firstStart = false;
-	private static long timer;	
+//	private static long timer;	
 	static String memlimit = "4G", defaultDir = "demo", line, ctrldir = "demo", defaultAnnotation ="", defaultGenome = "";
 	static String gerpfile;	
 	static ArrayList<String> config = new ArrayList<String>();
@@ -30,10 +31,11 @@ public class Launcher  {
 	
 	public static void main(String[] args) {
 		try {
-		String[] argsit = {};
-		Logo.main(argsit);
-		timer = System.currentTimeMillis();
-		maindir = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().replace("%20", " ");	
+		
+	//	Logo.main(argsit);
+	//	 Logo.frame.dispatchEvent(new WindowEvent(Logo.frame, WindowEvent.WINDOW_CLOSING));
+	//	timer = System.currentTimeMillis();
+		maindir = new File(Launcher.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().replace("%20", " ");	
 		
 		  if(new File(maindir +"/config.txt").exists()) {
 			
@@ -74,7 +76,7 @@ public class Launcher  {
 					  downloadDir = line.substring(line.indexOf("=")+1).replace(" ", "");
 				  }
 				  else if(line.startsWith("FirstStart")) {
-					  if(line.substring(line.indexOf("=")+1).replace(" ", "").contains("true")) {
+					  if(line.substring(line.indexOf("=")+1).replace(" ", "").contains("rue")) {
 						  firstStart = true;
 					  }					 
 				  }
@@ -84,22 +86,41 @@ public class Launcher  {
 			  }
 			  fileReader.close();	
 			  if(!fromMain) {
+				  
 				  ProcessBuilder pb;
 				 try {
 					
-				    pb = new ProcessBuilder("java","-Xms" +memlimit, "-Xmx" +memlimit, "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
+					  pb = new ProcessBuilder("java","-Xmx" +memlimit, "-Dprism.verbose=true", "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
+				     pb.start();
+			//      Logo.frame.dispatchEvent(new WindowEvent(Logo.frame, WindowEvent.WINDOW_CLOSING));
+				 /*    
+				     
+					 BufferedReader read = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+					
+					 if(read.readLine() !=null) {
+					
+						 process.destroy();
+						
+						 read.close();
+						 pb = new ProcessBuilder("java","-Xmx1200m","-Dprism.verbose=true",  "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
+						 pb.start();
+						 
+					      
+					 }
+					 else {						
+						 read.close();					      
+					 }
+					*/
 				 }
 				 catch(Exception e) {
 					 e.printStackTrace();
-					 pb = new ProcessBuilder("java","-Xmx1200m", "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
-						
+					
 				 }
-				  pb.start();
-			 
-		    	 while(System.currentTimeMillis() - timer < 3000) {			    		 
+				
+		    	/* while(System.currentTimeMillis() - timer < 3000) {			    		 
 		    	 }			    	
-		    	 Logo.frame.dispatchEvent(new WindowEvent(Logo.frame, WindowEvent.WINDOW_CLOSING));
-			      
+		    	Logo.frame.dispatchEvent(new WindowEvent(Logo.frame, WindowEvent.WINDOW_CLOSING));
+			      */
 			      
 			     
 			  }
@@ -110,28 +131,37 @@ public class Launcher  {
 		  }
 		  else {
 			  if(!fromMain) {
-				  ProcessBuilder pb;				 
-				  pb = new ProcessBuilder("java","-Xmx" +((Runtime.getRuntime().maxMemory()/1048576)*2) +"m", "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");		
-				  pb.start();				      
+				  ProcessBuilder pb;
+					 try {
+						  pb = new ProcessBuilder("java","-Xmx4G", "-Dprism.verbose=true", "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
+					     pb.start();
+						
+						
+					 }
+					 catch(Exception e) {
+						 e.printStackTrace();
+						
+					 }			      
 			     
 			  }
 		  }		  
 			
 		}
 		catch(Exception e) {
-			JOptionPane.showMessageDialog(Main.chromDraw, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+		//	JOptionPane.showMessageDialog(Main.chromDraw, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 			//e.printStackTrace();
-			 if(!fromMain) {
+			
+			if(!fromMain) {
 				try {
-					ProcessBuilder pb;					
-					pb = new ProcessBuilder("java","-Xmx1200m", "-Dsun.java2d.d3d=false", "-jar", maindir +"/BasePlayer.jar");					
-					pb.start();					
+			//		ProcessBuilder pb;					
+			//		pb = new ProcessBuilder("java","-Xmx1200m","-Dprism.verbose=true",  "-Dsun.java2d.d3d=false", "-jar", maindir +"/BasePlayer.jar");					
+			//		pb.start();					
 				}
 				catch(Exception ex) {
 					ex.printStackTrace();
 				}
 			 }
-			 System.exit(0);
+			// System.exit(0);
 		}
 		
 	

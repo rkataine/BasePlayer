@@ -20,6 +20,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+
+import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -44,9 +46,10 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	static JLabel mappingLabel = new JLabel("Mapping quality: 10"), baseLabel = new JLabel("Base quality: 10"), reloadReads = new JLabel("Click here to reload reads"); 
 	static JLabel colorLabel = new JLabel("Color slider");
 	static JFrame frame = new JFrame("Settings");
-	JPanel readPanel = new JPanel(new GridLayout(9,2));
+	static JCheckBox softclips = new JCheckBox("Show bases in softclips");
+	JPanel readPanel = new JPanel(new GridLayout(10,2));
 	static int readDrawDistance = 60000, readDepthLimit = 1000, coverageDrawDistance = 1000000, coverageAlleleFreq = 1;
-	public static boolean softClips = true;
+//	public static boolean softClips = true;
 	
 	static int getMaxInsertSize() {
 		return insertSize.getValue();
@@ -86,7 +89,8 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		depthLimitSlide.setValue(readDepthLimit);
 		depthLimitSlide.setOpaque(false);
 		colorSlider.addChangeListener(this);
-		colorSlider.setValue(138);
+		colorSlider.setValue(696);
+		colorLabel.setText("Color slider: " +colorSlider.getValue());
 		coverageDistanceSlide.setOpaque(false);
 		coverageDistanceSlide.addKeyListener(this);
 		readPanel.add(insertLabel);		
@@ -96,6 +100,8 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		readPanel.add(baseLabel);
 		readPanel.add(depthLimitSlide);
 		readPanel.add(depthLimitLabel);
+		readPanel.add(softclips);
+		readPanel.add(new JSeparator());
 		readPanel.add(colorSlider);
 		readPanel.add(colorLabel);
 		colorSlider.setOpaque(false);
@@ -146,33 +152,34 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		}
 		if(event.getSource() == colorSlider) {
 			if(colorSlider.getValue() <= 120) {
-				Draw.sidecolor = new Color(200, 80+colorSlider.getValue(), 80);				
+				Draw.sidecolor = new Color(200, 80+colorSlider.getValue(), 150);				
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 			}
 			
 			else if(colorSlider.getValue() <= 240) {
-				Draw.sidecolor = new Color(200-(colorSlider.getValue()-120), 200, 80);
+				Draw.sidecolor = new Color(200-(colorSlider.getValue()-120), 200, 150);
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 				
 			}
 			else if(colorSlider.getValue() <= 360) {
-				Draw.sidecolor = new Color(80, 200, 80+(colorSlider.getValue()-240));
+				Draw.sidecolor = new Color(150, 200, 80+(colorSlider.getValue()-240));
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 				
 			}
 			else if(colorSlider.getValue() <= 480) {
-				Draw.sidecolor = new Color(80, 200-(colorSlider.getValue()-360), 200);
+				Draw.sidecolor = new Color(150, 200-(colorSlider.getValue()-360), 200);
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 				
 			}
 			else if(colorSlider.getValue() <= 600) {
-				Draw.sidecolor = new Color(80+(colorSlider.getValue()-480), 80, 200);	
+				Draw.sidecolor = new Color(80+(colorSlider.getValue()-480),150, 200);	
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 			}
 			else {
-				Draw.sidecolor = new Color(200, 80, 200-(colorSlider.getValue()-600));	
+				Draw.sidecolor = new Color(200, 150, 200-(colorSlider.getValue()-600));	
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 			}
+			colorLabel.setText("Color slider: " +colorSlider.getValue());
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				Main.chromDraw.repaint();

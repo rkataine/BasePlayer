@@ -388,6 +388,22 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 	public void actionPerformed(ActionEvent event) {
 		
 		if(event.getSource() == add) {
+			if(genomeFile == null) {
+				if(new File(genomeFileText.getText()).exists()) {
+					genomeFile = new File(genomeFileText.getText());					
+				}	
+				else {
+					genomeFileText.setText("Select reference genome fasta-file.");
+					genomeFileText.setForeground(Color.red);
+					return;
+				}
+			}
+			if(annotationFile == null) {
+				if(new File(annotationFileText.getText()).exists()) {
+					annotationFile = new File(annotationFileText.getText());
+				}
+			}
+			
 			if(genomeName.getText().contains("Give name") || genomeName.getText().length() == 0) {
 				genomeName.setText("Give name of the genome");
 				genomeName.setForeground(Color.red);
@@ -405,9 +421,8 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 				genomeFileText.setForeground(Color.red);
 				genomeFileText.revalidate();
 			}
-			else {
-				
-				
+			
+			else {	
 				OutputRunner runner = new OutputRunner(genomeName.getText().trim().replace("\\s+", "_"), genomeFile, annotationFile);
 				runner.execute();
 			}
