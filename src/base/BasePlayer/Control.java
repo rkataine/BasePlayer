@@ -45,6 +45,12 @@ public class Control {
 	private static int refindex;
 
 	private static int allelenumber;
+
+
+	private static String[] infosplit;
+
+
+	private static String[] coverages;
 	
 	
 public Control() {	
@@ -55,6 +61,7 @@ static void applyControl() {
 	try {
 	//	String[] controlvars = null;
 		String teststring = null;
+		
 		for(int c = 0; c<controlData.fileArray.size(); c++) {	
 			if(!Main.drawCanvas.loading) {
 	    		 break;
@@ -62,7 +69,7 @@ static void applyControl() {
 			if(!controlData.fileArray.get(c).controlOn || controlData.fileArray.get(c).controlled) {
 				continue;
 			}
-			
+		
 			 Main.drawCanvas.loadbarAll = (int)((c/(double)(controlData.fileArray.size()))*100);
 			 try {
 				 tabixreader = new TabixReader(controlData.fileArray.get(c).getTabixFile());
@@ -76,16 +83,17 @@ static void applyControl() {
 			 TabixReader.Iterator iterator=null; 		
 		    
 			 VarNode current = FileRead.head.getNext();	     
-		     
+			
 		     try {
 		    	
-		    	 iterator = tabixreader.query(Main.chromosomeDropdown.getSelectedItem().toString() +":" +(current.getPosition()-1));
+		    	 
+		    	iterator = tabixreader.query(Main.chromosomeDropdown.getSelectedItem().toString() +":" +(current.getPosition()-1));
 		    	teststring = iterator.next();
-		    	if(teststring == null) {
+		    	
+		    	if(teststring == null) {	
 		    		
-		    			
-	    			 iterator = tabixreader.query("chr" +Main.chromosomeDropdown.getSelectedItem().toString() +":" +(current.getPosition()-1));
-	    			 teststring = iterator.next();
+	    			iterator = tabixreader.query("chr" +Main.chromosomeDropdown.getSelectedItem().toString() +":" +(current.getPosition()-1));
+	    			teststring = iterator.next();
 	    			 
 		    		if(teststring == null) {
 		    			 try {
@@ -113,33 +121,49 @@ static void applyControl() {
 		    		}
 		    	}
 		     }
-		     catch(Exception e) {	    	
+		     catch(Exception e) {	    
+		    	 
 		    	 ErrorLog.addError(e.getStackTrace());		    		
 		     }
 		     
 		     if (iterator == null || teststring == null) {
 		    	continue; 
 		     }
-		     if(controlData.fileArray.get(c).getTabixFile().endsWith(".vcf.gz")) {
-		    	
-		    	useVCF(iterator, current, c, teststring);		    	 
-				  
+		    /* if (1==1) {
+		    	 String line = "";
+		    	 String[] split;
+		    	 int position;
+		    	 while(line !=null) {	 
+		    		 line = iterator.next();
+			    	 
+			    	 if(line == null) {
+			    		 break;
+			    	 }
+			    	 split = line.split("\t");	    	
+			    	 position = Integer.parseInt(split[1])-1;
+			    	 System.out.println(position);		    		
+		    	 }
+		    	 return;
+		     }
+		     */
+		     if(controlData.fileArray.get(c).getTabixFile().endsWith(".vcf.gz")) {		    	
+		    	useVCF(iterator, current, c, teststring);				  
 			 }
 		     else {
-		    	 useCTRL(iterator, current, c);
-		    	 
-		    	 
+		    	 useCTRL(iterator, current, c);		    	 
 		     }
 		     current = null;
 		     controlData.fileArray.get(c).controlled = true;
 			 
 		}
-		if(VariantHandler.commonSlider.getValue() > 1 && !VariantHandler.clusterBox.getText().equals("0") && !VariantHandler.clusterBox.getText().equals("")) {
+		
+		/*if(VariantHandler.commonSlider.getValue() > 1 && VariantHandler.clusterSize > 0) {
 	    	Main.drawCanvas.calcClusters(FileRead.head);
-		}
+		}*/
+		
 		Draw.updatevars = true;
-		 Main.drawCanvas.repaint();
-		 VariantHandler.table.repaint();
+		Main.drawCanvas.repaint();
+		VariantHandler.table.repaint();
 	}
 	catch(Exception e) {
 		ErrorLog.addError(e.getStackTrace());
@@ -246,18 +270,19 @@ static void useVCF(TabixReader.Iterator iterator, VarNode current, int c, String
 	try {
 	String line = firstline, controlvar = "";
 	String[] split, templist = null;
-	int position, count = 0;
+	int position, count = 0, ref= 0, alt = 0;
 	ArrayList<SampleNode> samplelist = null;
 	int alleles = 0;
+	 
 	
 	   while(line !=null) {	 
-	    	
-	    	 split = line.split("\t");	    	
-	    	 position = Integer.parseInt(split[1])-1;
+		  
+	    	 
 	    	 if(!Main.drawCanvas.loading) {
 	    		 break;
 	    	 }
-	    	 
+	    	 split = line.split("\t");	    	
+	    	 position = Integer.parseInt(split[1])-1;
 	    	 while(current != null && current.getPosition() < position) {
 	    		
 	    		 current = current.getNext();		    		 
@@ -269,7 +294,7 @@ static void useVCF(TabixReader.Iterator iterator, VarNode current, int c, String
 	    		 line = iterator.next();
 	    		 continue;
 	    	 }	    	
-	    	 
+	    	
 	    	 if(current.getPosition() == position) { 
 	    		 if(!split[4].contains(",")) {
 		    		 controlvar = FileRead.getVariant(split[3], split[4]);		    	
@@ -296,12 +321,28 @@ static void useVCF(TabixReader.Iterator iterator, VarNode current, int c, String
 	    				 for(int t = 0; t<templist.length; t++) {
 	    					 if(current.vars.get(i).getKey().equals(templist[t])) {
 	    						 if(controlData.fileArray.get(c).varcount > 2) {
-	    						 alleles = Integer.parseInt(split[7].substring(index, split[7].indexOf(";", index)).split(",")[t]);
-	    						 allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
+	    							 alleles = Integer.parseInt(split[7].substring(index, split[7].indexOf(";", index)).split(",")[t]);
+	    							 allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
 	    						 }
 	    						 else {
-	    							 alleles = 2;
-	    							 allelenumber = 2;
+	    							 infosplit = split[split.length-1].split(":");
+	    							 /*if(infosplit[0].length() > 2 ) { 
+		    							 if(infosplit[0].charAt(0) != infosplit[0].charAt(2)) {
+		    								 alleles = 1;
+		    							 }
+		    							 else {
+		    								 alleles = 2;
+		    							 }
+	    						 	 }
+	    							 else {
+	    								 alleles = 0;
+	    							 }*/
+	    							 coverages = infosplit[split[8].indexOf("AD")/3].split(",");
+	    							 ref = Integer.parseInt(coverages[0]);
+	    							 alt = Integer.parseInt(coverages[1]);
+	    							 
+	    							 alleles = alt;				 	
+	    							 allelenumber = ref+alt;
 	    						 }
 	    	    				 samplelist = current.vars.get(i).getValue();		    				
 	    	    				 samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	
@@ -312,13 +353,35 @@ static void useVCF(TabixReader.Iterator iterator, VarNode current, int c, String
 	    				 continue;
 	    			 }
 	    			 else if(current.vars.get(i).getKey().equals(controlvar)) {
-	    				 allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
-	    				 if(controlData.fileArray.get(c).varcount > 2) {
-	    					 alleles = Integer.parseInt(split[7].substring(index, split[7].indexOf(";", index)));
-	    				 }
-	    				 else {
-	    					 alleles = 2;
-	    				 }
+	    				 
+    					 if(controlData.fileArray.get(c).varcount > 2) {
+    						 allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
+    						 alleles = Integer.parseInt(split[7].substring(index, split[7].indexOf(";", index)));    					 
+    					 
+    					 }
+    					 else {
+    						 infosplit = split[split.length-1].split(":");
+							 if(infosplit[0].length() > 2 ) { 
+    							 if(infosplit[0].charAt(0) != infosplit[0].charAt(2)) {
+    								 alleles = 1;
+    							 }
+    							 else {
+    								 alleles = 2;
+    							 }
+						 	 }
+							 else {
+								 alleles = 0;
+							 }
+							 allelenumber = 2;
+							/* coverages = infosplit[split[8].indexOf("AD")/3].split(",");
+							 ref = Integer.parseInt(coverages[0]);
+							 alt = Integer.parseInt(coverages[1]);
+							 
+							 alleles = alt;				 	
+							 allelenumber = ref+alt;
+    					 */
+    					 }
+	    				
 	    				 
 	    				 samplelist = current.vars.get(i).getValue();		   
 	    				
@@ -333,8 +396,12 @@ static void useVCF(TabixReader.Iterator iterator, VarNode current, int c, String
 				 Draw.updatevars = true;
 				 Main.drawCanvas.repaint();
 			}
-				
+				try {
 				line = iterator.next();
+				}
+				catch(htsjdk.samtools.FileTruncatedException e) {
+					
+				}
 		}
 	   if(samplelist != null) {
 			 samplelist = null;
@@ -342,6 +409,7 @@ static void useVCF(TabixReader.Iterator iterator, VarNode current, int c, String
 	   current = null;
 	}
 	catch(Exception e) {
+		
 		e.printStackTrace();
 	}
 }
@@ -362,7 +430,9 @@ static void addFiles(File[] filestemp) {
   	try {
   	
   	int samplecount = 0;
-  
+  	if(Main.trackPane.isVisible() && Control.controlData.fileArray.size() == 0) {
+  		Main.trackPane.setDividerLocation(Main.varpane.getDividerLocation());
+  	}
 	
 	for(int i=0;i<filestemp.length; i++) {
 		if(filestemp[i].isDirectory()) {
@@ -377,7 +447,7 @@ static void addFiles(File[] filestemp) {
     				
     				if(filestemp[i].listFiles()[j].getName().contains(".ctrl")) {
     					Object[] addi = {row, filestemp[i].listFiles()[j].getName(), new Boolean(true)};
-    					
+    					 Main.controlDraw.trackDivider.add(0.0);
     					
     					try {
     						samplecount = 0;
@@ -423,20 +493,22 @@ static void addFiles(File[] filestemp) {
 		else {	
 			ControlFile addSample = new ControlFile(filestemp[i].getName(), (short)(controlData.fileArray.size()), filestemp[i].getCanonicalPath());			
 			controlData.fileArray.add(addSample);		
-			VariantHandler.table.addRowGeneheader("AF: " +filestemp[i].getName());	
+			MethodLibrary.addHeaderColumns(addSample);
+			Main.controlDraw.trackDivider.add(0.0);
+		/*	VariantHandler.table.addRowGeneheader(addSample);	
 			VariantHandler.table.addRowGeneheader("OR");
 			 if(VariantHandler.tables.size() > 0) {
 				  for(int t = 0; t < VariantHandler.tables.size(); t++) {
-					  VariantHandler.tables.get(t).addRowGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
+					  VariantHandler.tables.get(t).addRowGeneheader(Control.controlData.fileArray.get(i));
 					  VariantHandler.tables.get(t).addRowGeneheader("OR");
 					  VariantHandler.tables.get(t).repaint();
 				  }
 			  }
-			  VariantHandler.clusterTable.addRowGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
-			  VariantHandler.clusterTable.addRowGeneheader("OR");
+			  VariantHandler.clusterTable.addColumnGeneheader(addSample);
+			  VariantHandler.clusterTable.addColumnGeneheader("OR");
 			  VariantHandler.clusterTable.repaint();
 			  VariantHandler.table.repaint();
-			  
+			*/  
 			if(filestemp[i].getName().endsWith(".ctrl")) {
 				
 				Object[] addi = { "", filestemp[i].getName(), new Boolean(true) };
@@ -578,16 +650,21 @@ static void addFiles(File[] filestemp) {
 					ErrorLog.addError(e.getStackTrace());
 					e.printStackTrace();
 				}				
-			}		
+			}	
+			
 		}
+		 
 	}
   
 	
  if(controlData.fileArray.size() > 0) {	
-	
+	 for(int i = 0 ; i<Main.controlDraw.trackDivider.size(); i++) {
+		 Main.controlDraw.trackDivider.set(i, ((i+1)*(Main.varpane.getDividerLocation()/(double)Main.controlDraw.trackDivider.size())));
+	 }	
 	 if(!Main.trackPane.isVisible()) {
 		  Main.trackPane.setVisible(true);
-	//	  Main.trackPane.setDividerSize(3);
+		  //Main.trackPane.setDividerLocation(controlData.fileArray.size()*64);
+		 
 		  Main.varpane.setDividerSize(4);	  
 		//  Main.varpane.setResizeWeight(0.1);
 		  
@@ -595,8 +672,9 @@ static void addFiles(File[] filestemp) {
 		  
 	 }
 	 else {
-		  Main.trackPane.setDividerLocation(0.5);		 
-		  Main.varpane.setDividerLocation(Main.varpane.getDividerLocation()+100);
+		  
+		  Main.varpane.setDividerLocation(Main.varpane.getDividerLocation()+70);
+		  
 		  if(Main.bedScroll.isVisible()) {
 			  Main.trackPane.setDividerSize(4);
 		  }
@@ -645,7 +723,6 @@ void clearControls() {
 	 controlData.sampleCount = 0;
 	 entry = null;	
 	 current = null;
-
 }
 
 static void dismissControls(VarNode head) {
@@ -669,6 +746,7 @@ static void dismissControls(VarNode head) {
 		
 		 current = current.getNext();
 	 }
+	
 	entry = null;
 	current = null;
 	head = null;
@@ -678,8 +756,6 @@ static void control(VarNode head) {
 	//	Control.controlData.alleleThreshold = Double.parseDouble(allelebox.getText());
 	}
 	catch(Exception ec) {
-	//	allelebox.setText("0.0");
-	//	Control.controlData.alleleThreshold = 0.0;
 		ec.printStackTrace();
 		ErrorLog.addError(ec.getStackTrace());
 	}

@@ -23,7 +23,7 @@ public class Launcher  {
 	static String maindir;
 	static boolean fromMain = false, firstStart = false;
 //	private static long timer;	
-	static String memlimit = "4G", defaultDir = "demo", line, ctrldir = "demo", defaultAnnotation ="", defaultGenome = "";
+	static String memlimit = "4G", defaultDir = "demo", line, ctrldir = "demo", defaultAnnotation ="", defaultGenome = "", defaultSaveDir = "";
 	static String gerpfile;	
 	static ArrayList<String> config = new ArrayList<String>();
 	public static String trackDir = "";
@@ -79,6 +79,9 @@ public class Launcher  {
 					  if(line.substring(line.indexOf("=")+1).replace(" ", "").contains("rue")) {
 						  firstStart = true;
 					  }					 
+				  }
+				  else if(line.startsWith("DefaultSave")) {
+					  defaultSaveDir = line.substring(line.indexOf("=")+1).replace(" ", "");
 				  }
 			  }
 			  if(!new File(defaultDir).exists()) {

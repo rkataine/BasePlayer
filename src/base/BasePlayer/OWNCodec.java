@@ -104,13 +104,19 @@ public class OWNCodec extends AsciiFeatureCodec<BEDFeature> {
         String chr = tokens[0];
 
         // The BED format uses a first-base-is-zero convention,  Tribble features use 1 => add 1.
+       
         int start = Integer.parseInt(tokens[1]) + startOffsetValue;
 
         int end = start;
         if (tokenCount > 2) {
-            end = Integer.parseInt(tokens[2]);
+        	try {
+        		end = Integer.parseInt(tokens[2]);
+        	}
+        	catch(Exception e) {
+        		end = Integer.parseInt(tokens[2].trim());
+        	}
         }
-
+        
         FullBEDFeature feature = new FullBEDFeature(chr, start, end);
 
         // The rest of the columns are optional.  Stop parsing upon encountering
@@ -169,7 +175,7 @@ public class OWNCodec extends AsciiFeatureCodec<BEDFeature> {
         //We don't parse BED header
         return false;
     }
-
+/*
     private void createExons(int start, String[] tokens, FullBEDFeature gene,
                              Strand strand) throws NumberFormatException {
 
@@ -198,7 +204,7 @@ public class OWNCodec extends AsciiFeatureCodec<BEDFeature> {
             }
         }
     }
-
+*/
     @Override
     public boolean canDecode(final String path) {
         return path.toLowerCase().endsWith(".bed");

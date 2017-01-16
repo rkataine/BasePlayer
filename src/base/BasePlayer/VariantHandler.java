@@ -10,6 +10,19 @@
  *  
  */
 package base.BasePlayer;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.util.BlockCompressedOutputStream;
+import htsjdk.tribble.AbstractFeatureReader;
+import htsjdk.tribble.Feature;
+import htsjdk.tribble.FeatureReader;
+import htsjdk.tribble.index.Index;
+import htsjdk.tribble.index.tabix.TabixFormat;
+import htsjdk.tribble.index.tabix.TabixIndexCreator;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeaderLine;
+import htsjdk.variant.vcf.VCFHeaderVersion;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -39,6 +52,8 @@ import java.io.FileWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
@@ -85,18 +100,18 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JMenu filters = new JMenu("Variant Filters");
 	static JMenuBar aminobar = new JMenuBar();
 	static JMenu aminomenu = new JMenu("Variant Annotator");
-	static JMenu outputmenu = new JMenu("Save output");
+	static JMenu outputmenu = new JMenu("Save variant table");
 	static JMenuItem write = new JMenuItem("Save");
 	static JLabel slideLabel = new JLabel("Common variants in 1/1 samples");	
 	static JLabel clusterLabel = new JLabel("Window size for variant clusters (use common variant slider)");
 	static JTextField clusterBox = new JTextField("0");
 	static ButtonGroup outputgroup = new ButtonGroup();
 	static JRadioButton tsv = new JRadioButton("TSV");
+	static JRadioButton compactTsv = new JRadioButton("Compact TSV");
 	static JRadioButton vcf = new JRadioButton("VCF");
 	static JCheckBox hidenoncoding = new JCheckBox("Hide non-coding variants");
 	static JCheckBox freeze = new JCheckBox("Freeze filters");
 	static JCheckBox rscode = new JCheckBox("Hide rs-coded variants");
-
 	static JCheckBox allChroms = new JCheckBox("All chromosomes");
 	static JCheckBox hideSNVs = new JCheckBox("Hide SNVs");
 	static JCheckBox hideIndels = new JCheckBox("Hide indels");
@@ -114,6 +129,8 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JButton statcalc = new JButton("Stats");	
 	static ArrayList<ControlFile> controlarray = new ArrayList<ControlFile>();
 	String userDir;
+	static int lastWrittenPos = 0;
+	static  ArrayList<String> outputStrings = new ArrayList<String>();
 	static MouseWheelListener sliderWheelListener;
 	static JTabbedPane tabs = new JTabbedPane();
 	static JScrollPane tableScroll = new JScrollPane();
@@ -125,7 +142,10 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JScrollPane clusterScroll = new JScrollPane();
 	static ArrayList<JScrollPane> tablescrolls = new ArrayList<JScrollPane>();
 	static ArrayList<BedTable> tables = new ArrayList<BedTable>();
-//	static Image image;
+	static NodeSorter nodesorter = new NodeSorter();
+	
+	static OwnVCFCodec vcfCodec= new OwnVCFCodec();
+	static String format = "GT:DP:AD:GQ";
 	int moveX=0, moveY=0, pressX=0,pressY=0;
 	final int buttonHeight = 15, buttonWidth = 40;
 	final Dimension buttondimension = new Dimension(buttonWidth, buttonHeight);
@@ -172,7 +192,9 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static int maxCoverage = 1500;
 
 	public VariantHandler() {	
-		super(new GridBagLayout());		
+		super(new GridBagLayout());	
+		
+	 
 		GridBagConstraints c = new GridBagConstraints();	
 		sliderWheelListener = new MouseWheelListener() {
 		    @Override
@@ -261,7 +283,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		);
 		
 		clusterScroll.getVerticalScrollBar().setUnitIncrement(16);
-		
+		clusterScroll.setName("Clusters");
 		clusterScroll.getVerticalScrollBar().setUnitIncrement(16);
 		
 		clusterScroll.setPreferredSize(new Dimension(500,400));
@@ -293,7 +315,8 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		tabs.setBackground(backColor);
 		tabs.add("Genes", tableScroll);	
 		tabs.add("Stats", statsScroll);
-		tabs.add("Clusters", clusterScroll);		
+		//tabs.add("Clusters", clusterScroll);		
+		
 		add(tabs, c);
 		
 	}
@@ -308,7 +331,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	    }
 	 
 	void createButtons() {
-		intergenic.setEnabled(false);
+		
 		freeze.addChangeListener(
 				new ChangeListener() {					
 					public void stateChanged(ChangeEvent arg0) {
@@ -468,10 +491,11 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		aminobar.add(aminomenu);
 		tsv.setSelected(true);
 		outputgroup.add(tsv);
-	//	outputgroup.add(vcf);
-	//	outputgroup.add(forVEP);
+		outputgroup.add(compactTsv);
+		outputgroup.add(vcf);
 		outputmenu.add(tsv);
-	//	outputmenu.add(vcf);
+		outputmenu.add(compactTsv);
+		outputmenu.add(vcf);
 	//	outputmenu.add(forVEP);
 		outputmenu.add(write);
 		aminobar.add(outputmenu);
@@ -526,11 +550,26 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 				clusterSize = Integer.parseInt(clusterBox.getText());
 				
 				Main.drawCanvas.calcClusters(FileRead.head,1);
-			
+				if(tabs.indexOfComponent(clusterScroll) == -1) {
+						
+					tabs.add(clusterScroll, tabs.indexOfComponent(statsScroll));
+				}
 			}
 			else if(clusterSize != 0) {
 				if(clusterBox.getText().equals("0") || clusterBox.getText().equals("")) {
 					clusterSize = 0;
+				}
+				if(tabs.indexOfComponent(clusterScroll) != -1) {
+					
+					tabs.remove(clusterScroll);
+				}
+			}
+			else {
+				if(clusterSize == 0) {
+					if(tabs.indexOfComponent(clusterScroll) != -1) {
+						
+						tabs.remove(clusterScroll);
+					}
 				}
 				
 			}
@@ -604,30 +643,45 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		}
 		
 	}
-	
-	@Override
-	public void actionPerformed(ActionEvent event) {
-		/*
-		if(event.getSource() == controller) {
-			Control.frame.setLocation(frame.getLocationOnScreen().x+10, frame.getLocationOnScreen().y+10);
-			//		VariantHandler.frame.setAlwaysOnTop(true);	
-			Control.frame.setState(JFrame.NORMAL);
+	public static class NodeSorter implements Comparator<VarNode> {
 		
-			Control.frame.setVisible(true);
+		public int compare(VarNode o1, VarNode o2) {  
+			
+				if ( o1.getPosition() <= o2.getPosition()) { 	        	
+	        		return -1;  
+	        	}
+	        	else {
+	        		return 1;
+	        	}
+	                
+	        
 			
 		}
-		else */
+	}
+	@Override
+	public void actionPerformed(ActionEvent event) {
+		
 		if(event.getSource() == writetofile) {
 			
-			if(writetofile.isSelected()) {
-				intergenic.setEnabled(true);
+			if(writetofile.isSelected()) {				
 				tabs.setEnabled(false);
+				aminomenu.add(tsv,aminomenu.getItemCount()-1);
+				aminomenu.add(compactTsv,aminomenu.getItemCount()-1);
+				aminomenu.add(vcf,aminomenu.getItemCount()-1);
+				aminomenu.getPopupMenu().pack();
+				varcalc.setText("Annotate and write");
+				aminomenu.revalidate();
+				aminomenu.repaint();
 				tabs.revalidate();
 			}
-			else {
-				intergenic.setSelected(false);
-				intergenic.setEnabled(false);
-				tabs.setEnabled(true);
+			else {				
+				tabs.setEnabled(true);				
+				outputmenu.add(vcf,0);
+				outputmenu.add(compactTsv,0);
+				outputmenu.add(tsv,0);
+				outputmenu.revalidate();
+				aminomenu.getPopupMenu().pack();
+				varcalc.setText("Annotate");
 				tabs.revalidate();
 			}
 		}
@@ -647,20 +701,24 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			}
 		}
 		else if(event.getSource() == varcalc) {
+			 
 			if(writetofile.isSelected()) {
 				try {
 			  		String outfname = "";
-			  		String path ="";			 
-		    		path = new java.io.File(".").getCanonicalPath();		    		    
+			  		String path =Main.savedir;			 
+			  		
+		    		//path = new java.io.File(".").getCanonicalPath();		    		    
 		    		JFileChooser chooser = new JFileChooser(path);		    
 		    		int returnVal = chooser.showSaveDialog((Component)this.getParent());	         
 			    	  
-			       
+		    		
 		    		if(returnVal == JFileChooser.APPROVE_OPTION) {  		    	  
 		    		outfname = chooser.getSelectedFile().getAbsolutePath();		      	
 		    		BufferedWriter output = null;
-		    					    
-			    	 if(tsv.isSelected()) {
+		    		Main.savedir = chooser.getSelectedFile().getParent();
+		        	 Main.writeToConfig("DefaultSaveDir=" +chooser.getSelectedFile().getParent());
+		        	 lastWrittenPos = 0;
+			    	 if(tsv.isSelected() || compactTsv.isSelected()) {
 			    		 if(!outfname.contains(".tsv")) {
 					    	   File outfile = new File(outfname +".tsv");
 					    	//   statout = new BufferedWriter(new FileWriter(new File (outfname +"_stats.tsv")));
@@ -682,16 +740,61 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			 				VariantHandler.table.sorter.ascending = true;
 			 				VariantHandler.table.createPolygon();
 			 				VariantHandler.table.repaint();	
-			 				FileRead.output = output;
-			 				
+			 				FileRead.output = output;			 				
 			 				FileRead calculator = new FileRead();
 			 				calculator.varcalc = true;
-			 				calculator.execute();	
-						    							    	
-			    		 }
-			    		 
+			 				calculator.execute();						    							    	
+			    		 }			    		 
 			    	 }
-			    	 
+			    	 else {
+			    		 if(vcf.isSelected()) {
+			    			SAMSequenceDictionary dict = AddGenome.ReadDict(Main.ref);
+			    			FileRead.indexCreator = new TabixIndexCreator(dict, TabixFormat.VCF);			    			
+			    			FileRead.filepointer = 0;
+			    			
+			    			
+			    			if(!outfname.contains(".vcf")) {
+			    				outfname = outfname +".vcf";
+						   // 	   File outfile = new File(outfname +".vcf");
+						    	//   statout = new BufferedWriter(new FileWriter(new File (outfname +"_stats.tsv")));
+						   // 	   FileRead.outputName = outfname +".vcf";
+						   // 	   output = new BufferedWriter(new FileWriter(outfile));
+						       }
+						       else {
+						    	   File outfile = new File(outfname);
+						    	   FileRead.outputName = outfname;
+						    	 //  statout = new BufferedWriter(new FileWriter(new File (outfname.replace(".tsv", "") +"_stats.tsv")));
+						  //  	   output = new BufferedWriter(new FileWriter(outfile));
+						       }    
+				    			
+				    		 
+				    			
+				    			 if(!outfname.endsWith(".gz")) {
+				    				 outfname = outfname +".gz";
+				    			 }
+				    			 FileRead.lastpos = 0;
+				    			 FileRead.outputgz = new BlockCompressedOutputStream(outfname);
+				    			 FileRead.outFile = new File(outfname);
+				    			String header = createVCFHeader();
+				    			VCFHeader vcfheader = new VCFHeader();
+				    			VCFHeaderLine headerline = new VCFHeaderLine("format","##fileformat=VCFv4.1");
+				    			vcfheader.addMetaDataLine(headerline);
+				    			vcfCodec.setVCFHeader(vcfheader, VCFHeaderVersion.VCF4_1);
+				    			
+				    			FileRead.outputgz.write(header.getBytes());
+				    			VariantHandler.table.clear();
+				 				VariantHandler.table.headerHover = 2;
+				 				VariantHandler.table.sorter.ascending = true;
+				 				VariantHandler.table.createPolygon();
+				 				VariantHandler.table.repaint();	
+				 				
+				 				//FileRead.output = output;			 				
+				 				FileRead calculator = new FileRead();
+				 				calculator.varcalc = true;
+				 				calculator.execute();					    							    	
+				    		 			    		
+			    		 }
+			    	 }			    	 
 		    		}
 			     }
 			     catch(Exception e) {
@@ -701,7 +804,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 				
 			}
 			else {
-				
+				FileRead.outputgz = null;
 				VariantHandler.table.clear();
 				VariantHandler.table.headerHover = 2;
 				VariantHandler.table.sorter.ascending = true;
@@ -753,40 +856,38 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			}			
 		}
 		else if(event.getSource() == write) {
+			
 			 try {
+				
 		  		String outfname = "";
-		  		String path ="";			 
-	    		path = new java.io.File(".").getCanonicalPath();		    		    
-	    		JFileChooser chooser = new JFileChooser(path);		
-	    		if(tabs.getSelectedIndex() == 0) {
-	    			chooser.setDialogTitle("Save gene list and variants");
-	    		}
-	    		else if(tabs.getSelectedIndex() == 1) {
+		  		String path =Main.savedir;			 
+	    		//path = new java.io.File(".").getCanonicalPath();		    		    
+	    		JFileChooser chooser = new JFileChooser(path);	
+	    		if(tabs.getSelectedComponent().equals(statsScroll)) {
 	    			chooser.setDialogTitle("Save variant statistics");
 	    		}
-	    		else if(tabs.getSelectedIndex() == 2){
-	    			chooser.setDialogTitle("Save variant cluster list");
-	    		}
 	    		else {
-	    			chooser.setDialogTitle("Save " +tables.get(tabs.getSelectedIndex()-3).getName() +" results");
+	    			chooser.setDialogTitle("Save variants");
 	    		}
-		    	
+	    		
 	    		int returnVal = chooser.showSaveDialog((Component)this.getParent());	  
 	    		
 		      
 	    		if(returnVal == JFileChooser.APPROVE_OPTION) {  		    	  
-	    		outfname = chooser.getSelectedFile().getAbsolutePath();		      	
+	    		outfname = chooser.getSelectedFile().getCanonicalPath();		      	
 	    		BufferedWriter output = null;
-	    		
+	    		Main.savedir = chooser.getSelectedFile().getParent();
+	        	 Main.writeToConfig("DefaultSaveDir=" +chooser.getSelectedFile().getParent());
 		     try {
-		    	 if(tsv.isSelected()) {
+		    	 File outfile = null;
+		    	 if(tsv.isSelected() || compactTsv.isSelected()) {
 		    		 if(!outfname.contains(".tsv")) {
-				    	   File outfile = new File(outfname +".tsv");
+				    	  outfile = new File(outfname +".tsv");
 				    	  
 				    	   output = new BufferedWriter(new FileWriter(outfile));
 				       }
 				       else {
-				    	   File outfile = new File(outfname);
+				    	  outfile = new File(outfname);
 				    	 
 				    	   output = new BufferedWriter(new FileWriter(outfile));
 				       }    
@@ -794,22 +895,40 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		    		 if(output != null) {
 		    			 	
 					    	//TODO
-		    			 	OutputRunner runner = new OutputRunner(output);
+		    			 	OutputRunner runner = new OutputRunner(output, null,null);
 		    			 	runner.execute();
 					    	
 		    		 }
 		    		 
 		    	 }
 		    	 else if(vcf.isSelected()) {
+		    		 BlockCompressedOutputStream outputgz;
+		    	
 		    		 if(!outfname.contains(".vcf")) {
-				    	   File outfile = new File(outfname +".vcf");
-				    	   output = new BufferedWriter(new FileWriter(outfile));
+				    	   outfile = new File(outfname +".vcf.gz");
+				    	   outputgz = new BlockCompressedOutputStream(outfile);
 				       }
 				       else {
-				    	   File outfile = new File(outfname);
-				    	   output = new BufferedWriter(new FileWriter(outfile));
-				    	   
-				       }    
+				    	   if(!outfname.endsWith(".gz")) {
+				    		   outfile = new File(outfname +".gz");
+					    	   outputgz = new BlockCompressedOutputStream(outfile);
+				    	   }
+				    	   else {
+					    	   outfile = new File(outfname);
+					    	   outputgz = new BlockCompressedOutputStream(outfile);
+				    	   }
+				       }  
+		    		
+		    		 if(outputgz != null) {
+		    			 	
+					    	//TODO
+		    			 	OutputRunner runner = new OutputRunner(output, outputgz,outfile);
+		    			 	runner.execute();
+					    	
+		    		 }
+		    		 	
+			    	
+					 
 		    	 }
 		    	 /*else if(forVEP.isSelected()) {
 		    		
@@ -849,40 +968,87 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		     catch(Exception ex) {
 		    	 JOptionPane.showMessageDialog(frame, ex.getMessage());		    	
 		     }
-		     
-		    
-		     
-		      }
-			 
-			 }
-			 catch(Exception e) {
-				 ErrorLog.addError(e.getStackTrace());
-				e.printStackTrace(); 
-			 }
-		}
-		
+	     }
+		 
+		 }
+		 catch(Exception e) {
+			 ErrorLog.addError(e.getStackTrace());
+			e.printStackTrace(); 
+		 }
 	}
+	
+}
+/*	static void writeTranscriptsToVCF(ArrayList<Gene> genes, BufferedWriter output) {
+		if(genes.size() == 0) {
+			return;
+		}
+		 ArrayList<VarNode> nodes = new ArrayList<VarNode>();
+		 int lastpos = 0;
+		 String lastChrom;
+		 
+		 for(int v=0; v<genes.get(0).varnodes.size(); v++) {		    					
+			 if(!nodes.contains(genes.get(0).varnodes.get(v))) {		    						
+				 nodes.add(genes.get(0).varnodes.get(v));		    								    						
+			 }		    					
+		 }	  
+		 lastpos = genes.get(0).getEnd();
+		 lastChrom = genes.get(0).getChrom();
+		 for(int i = 1 ; i< genes.size() ; i++) {
+			 if(lastpos < genes.get(i).getStart() || !lastChrom.equals( genes.get(i).getChrom()) || i == genes.size()-1) {
+				 Collections.sort(nodes, nodesorter);
+				 for(int j = 0 ; j<nodes.size(); j++) {
+					
+					 writeNodeToFile(nodes.get(j),genes.get(i).getChrom(), output);				    					
+				 }
+				 nodes.clear();
+			 }
+			 if(lastpos < genes.get(i).getEnd() ) {
+				 lastpos = genes.get(i).getEnd();
+			 }
+			 if(!lastChrom.equals(genes.get(i).getChrom())) {
+				 lastChrom = genes.get(i).getChrom();
+			 }
+			 for(int v=0; v<genes.get(i).varnodes.size(); v++) {		    					
+				 if(!nodes.contains(genes.get(i).varnodes.get(v))) {		    						
+					 nodes.add(genes.get(i).varnodes.get(v));		    								    						
+				 }		    					
+			 }	    				
+		 }
+	}*/
 	String createVCFHeader() {
 		StringBuffer headerstring = new StringBuffer("##fileformat=VCFv4.1\n"
 				+ "##BasePlayer=<Version: " +Main.version +" output " +new SimpleDateFormat("dd.MM.yyyy HH:mm").format(Calendar.getInstance().getTime())+"\n"
 				+ "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n"
 				+ "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth\">\n"
 				+ "##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">\n"
-				+ "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n");
+				+ "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n"
+				+ "##reference=" +Main.ref.getName() +"\n");
 				
-				headerstring.append("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
+				
 				if(VariantHandler.onlyselected.isSelected()) {
-					headerstring.append("\tMain.drawCanvas.selectedSample.getName()\n");
+					headerstring.append("##sample="+Main.drawCanvas.selectedSample.getName()+"\n");
+					headerstring.append("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t"+Main.drawCanvas.selectedSample.getName() +"\n");
 				}
 				else {
-					for(int i = 0; i<Main.drawCanvas.sampleList.size(); i++) {
-						headerstring.append("##Files=" +Main.drawCanvas.selectedSample.getName() +"\n");
-						if(Main.drawCanvas.sampleList.get(i).getTabixFile() != null) {
+					StringBuffer headersamples = new StringBuffer("");
+					headerstring.append("##files=");
+					for(int i = 0; i<Main.drawCanvas.sampleList.size(); i++) {						
+						if((Main.drawCanvas.sampleList.get(i).getTabixFile() != null)) {
+							headerstring.append(Main.drawCanvas.sampleList.get(i).getName() +",");
 							
+						}	
+						if(!Main.drawCanvas.sampleList.get(i).multiVCF && (Main.drawCanvas.sampleList.get(i).getTabixFile() != null || Main.drawCanvas.sampleList.get(i).multipart) && !Main.drawCanvas.sampleList.get(i).removed) {
+							
+							headersamples.append("\t" +Main.drawCanvas.sampleList.get(i).getName());
 						}
-					}
+					}					
+					headerstring.deleteCharAt(headerstring.length()-1);
+					headerstring.append("\n");
+					headerstring.append("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT");
+					headerstring.append(headersamples +"\n");
+					headersamples = new StringBuffer();
 				}
-		
+	
 		return headerstring.toString();
 	}
 	String createTSVHeader() {
@@ -890,12 +1056,19 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
    	  headerstring.append("##BasePlayer version: " +Main.version +" output " +new SimpleDateFormat("dd.MM.yyyy HH:mm").format(Calendar.getInstance().getTime())+"\n");
    	  
    	  headerstring.append("##Files: ");
-   	  for(int i = 0; i< Main.samples; i++) {
-   		  if(Main.drawCanvas.sampleList.get(i).getTabixFile() != null) {
-   			headerstring.append(Main.drawCanvas.sampleList.get(i).getName() +",");
-   		  }   		  
-   	  }
-   	  headerstring.deleteCharAt(headerstring.length()-1);
+	   	if(VariantHandler.onlyselected.isSelected()) {
+			headerstring.append(Main.drawCanvas.selectedSample.getName());
+		}
+		else {
+	   	  for(int i = 0; i< Main.samples; i++) {
+	   		if((Main.drawCanvas.sampleList.get(i).getTabixFile() != null || Main.drawCanvas.sampleList.get(i).multipart) && !Main.drawCanvas.sampleList.get(i).removed) {
+				
+	   			headerstring.append(Main.drawCanvas.sampleList.get(i).getName() +",");
+	   		  }   		  
+	   	  }
+	   	 headerstring.deleteCharAt(headerstring.length()-1);
+		}
+   	 
    	  headerstring.append("\n");
    	  headerstring.append("##Genome:" +Main.ref.getName() +",Annotation:" +Main.annotationfile +"\n");   	  
    	 
@@ -911,28 +1084,36 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		    	  }	    		  
 		    	  headerstring.deleteCharAt(headerstring.length()-1);
 		    	  headerstring.append("\n");
-	    	 // headerstring += Control.fileArray.get(Control.fileArray.size()-1).getName() +"\n";
-	    //	  headerstring += "#Filter only homozygous variants: " +Control.homoCheck.isSelected()+"\n";
-	    //	  headerstring += "#Ignore indel lengths: " +Control.lengthCheck.isSelected() +"\n";
-	    //	  headerstring += "#Treat indels as the same: " +Control.indelCheck.isSelected() +"\n";
-	    //	  headerstring += "#Indel controlling window size: " +Control.indelWindow.getValue() +"\n";
-	    //	  headerstring += "#Allow " +Control.threshold.getValue() +" hits in controls\n";		    	  
+	    	  
    	  }
    	  else {
    		  headerstring.append("##No controls applied\n");
    	  }
-   	  
+   	  if(Main.bedCanvas.bedOn) {
+   		  headerstring.append("##Tracks:");
+   		  for(int i=0; i<Main.bedCanvas.bedTrack.size(); i++) {
+   			  if(Main.bedCanvas.bedTrack.get(i).intersect) {
+   				  if(Main.bedCanvas.bedTrack.get(i).limitValue > Double.MIN_VALUE) {
+   					  headerstring.append(Main.bedCanvas.bedTrack.get(i).file.getName() +">=" +Main.bedCanvas.bedTrack.get(i).limitValue +",");
+   				  }
+   				  else {
+   					  headerstring.append(Main.bedCanvas.bedTrack.get(i).file.getName() +",");
+   				  }
+   		      }
+   		  }
+   		  headerstring.deleteCharAt(headerstring.length()-1);
+   		  headerstring.append("\n");
+   	  }
    	  if(VariantHandler.commonSlider.getValue() > 1) {
-   		  headerstring.append("##Common variants in " +VariantHandler.commonSlider.getValue() +"/" +Main.varsamples +" samples");
+   		  
    		  if(VariantHandler.clusterSize > 0) {
-	    		  headerstring.append(" within " +VariantHandler.clusterSize +"bp\n");
+	    	headerstring.append("##Variant clusters in " +VariantHandler.commonSlider.getValue() +"/" +Main.varsamples +" samples within " +VariantHandler.clusterSize +"bp\n");
 	      }
    		  else {
-   			headerstring.append("\n");
-   		  }
-   		  
+   			headerstring.append("##Common variants in " +VariantHandler.commonSlider.getValue() +"/" +Main.varsamples +" samples\n");   			
+   		  }   		  
    	  }
-   	  else if(VariantHandler.geneSlider.getValue() > 1) {
+   	  if(VariantHandler.geneSlider.getValue() > 1) {
    		  headerstring.append("##At least " +VariantHandler.geneSlider.getValue() +"/" +Main.varsamples +" samples share a mutated gene\n");
    	  }
    	  headerstring.append("##Variant filters:\n");
@@ -943,7 +1124,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
    	  headerstring.append("##Min. allelic/fraction: " +VariantHandler.callSlider.getValue() +"%\n");
    	  headerstring.append("##Min. quality score: " +VariantHandler.qualitySlider.getValue() +"\n");   	    	 
    	  headerstring.append("##Max. coverage: " +VariantHandler.maxCoverageSlider.getValue() +"\n");   	  
-   	  StringBuffer controls = new StringBuffer("\t");	 
+   	  StringBuffer controls = new StringBuffer("");	 
 
 	 if(Control.controlData.controlsOn) {
 		 controlarray.clear();
@@ -956,35 +1137,39 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			 controlarray.add(Control.controlData.fileArray.get(i));    		
 		 }
 	 }
-   	  
-	 headerstring.append("#Sample\tGene\tMutationCount\tSampleCount\tENSG\tENST\tBioType\tPosition\tStrand\tRegion\tEffect\tBaseChange\tGenotype(calls/coverage)\trs-code" +controls +"Description\n");
- 	
+	 StringBuffer tracks = new StringBuffer("");	 
+   	 if(Main.bedCanvas.bedOn) {
+   		 for(int i = 0; i<Main.bedCanvas.bedTrack.size(); i++) {
+   			 if(Main.bedCanvas.bedTrack.get(i).intersect) {
+   				 tracks.append(Main.bedCanvas.bedTrack.get(i).file.getName() +"\t");
+   			 }
+   		 }
+   	 }
+   	 String clusters = "";
+   	 if(commonSlider.getValue() > 1 && clusterSize > 0) {
+   		clusters = "ClusterID\tClusterMutCount\tClusterWidth\tClusterMutFreq\t"; 
+   	 }
+   	 
+	   	if(!tabs.getSelectedComponent().equals(statsScroll)) {
+	   		headerstring.append("#Sample\tGene\tMutationCount\tSampleCount\tENSG\tENST\tBioType\tPosition\tStrand\tRegion\tEffect\tBaseChange\tGenotype(calls/coverage)\tquality\trs-code\t" +clusters +controls +tracks+"Description\n");
+	   	}
+	   	else {
+	   		headerstring.append("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov\n");
+	   	}
    	  return headerstring.toString();
 	}
 	
-	void writeOutput(BufferedWriter output) {
+	void writeOutput(BufferedWriter output, BlockCompressedOutputStream outputgz, File outFile) {
 		 frame.getGlassPane().setVisible(true);
 		 table.setEnabled(false);		 
 		 frame.getGlassPane().setCursor( Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)); 
 		try {
 			
-		if(tabs.getSelectedIndex() == 0) {		
-		   	
-    	 String header = createTSVHeader();
-    	 output.write(header);  	
-    	 
-    	 for(int trans = 0; trans < table.genearray.size(); trans++) {
- 		 	writeTranscriptToTSVFile(table.genearray.get(trans), output);  	    		
-    	 }
-    	
-    	 output.close();
-    	 
-		}
-		else if(tabs.getSelectedIndex() == 1) {
+		if(tabs.getSelectedComponent().equals(statsScroll)) {
 			 String header = createTSVHeader();	    	 
 	    	 output.write(header);
 	    	 Sample sample;
-	    	 output.write("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov\n");
+	   // 	 output.write("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov\n");
 	 	  	 for(int i = 0 ; i<VariantHandler.stattable.sampleArray.size(); i++) {
 	 	  		 sample = (Sample)VariantHandler.stattable.sampleArray.get(i)[0];
 	 	  		 output.write(sample.getName() +"\t");
@@ -992,9 +1177,59 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	 	  		 for(int j = 1; j<VariantHandler.stattable.headerlengths.length-1; j++) {
 	 	  			output.write(VariantHandler.stattable.sampleArray.get(i)[j] +"\t");
 	 	  		 }
-	 	  		output.write(VariantHandler.stattable.sampleArray.get(i)[VariantHandler.stattable.headerlengths.length-1] +"\n");
+	 	  		 output.write(VariantHandler.stattable.sampleArray.get(i)[VariantHandler.stattable.headerlengths.length-1] +"\n");
 	 	  	 }
 	    	output.close();
+		}
+		else {
+			
+	    	 if(vcf.isSelected()) {
+	    		 String header = createVCFHeader();
+	    		 if(outputgz != null) {
+	    			SAMSequenceDictionary dict = AddGenome.ReadDict(Main.ref);
+		    		FileRead.indexCreator = new TabixIndexCreator(dict, TabixFormat.VCF);			    			
+		    		FileRead.filepointer = 0;
+    			 	VCFHeader vcfheader = new VCFHeader();
+	    			VCFHeaderLine headerline = new VCFHeaderLine("format","##fileformat=VCFv4.1");
+	    			vcfheader.addMetaDataLine(headerline);
+	    			vcfCodec.setVCFHeader(vcfheader, VCFHeaderVersion.VCF4_1);		    			
+	    			outputgz.write(header.getBytes());
+	    		 }
+	    		 else {
+	    			output.write(createVCFHeader());  	
+	    		 }
+	    		
+	    		 writeGeneListToVCF(table.genearray, output, outputgz);
+	    		 if(outputgz != null) {
+	    				
+	    				for(int i = 0 ; i<VariantHandler.outputStrings.size(); i++) {
+	    					 outputgz.write(VariantHandler.outputStrings.get(i).getBytes());
+	    					 
+	    					 Feature vcf = VariantHandler.vcfCodec.decode(VariantHandler.outputStrings.get(i));
+	    					
+	    					 FileRead.indexCreator.addFeature(vcf, FileRead.filepointer);
+	    					 FileRead.filepointer = outputgz.getFilePointer();
+	    				 }
+	    				VariantHandler.outputStrings.clear();
+	    				outputgz.flush();
+	    				 
+	    			    Index index = FileRead.indexCreator.finalizeIndex(outputgz.getFilePointer());
+	    			    
+	    			    index.writeBasedOnFeatureFile(outFile);
+	    				outputgz.close();
+	    				
+	    			}
+	    	 }
+	    	 else {
+	    		 output.write(createTSVHeader());  	
+	    		 for(int gene = 0; gene < table.genearray.size(); gene++) {
+	 	 		 	writeTranscriptToFile(table.genearray.get(gene), output);  	    		
+	 	    	 }
+	    		 output.close();
+	    	 }	    	
+	    	
+	    	
+			
 		}
 		}
 		catch(Exception e) {
@@ -1010,6 +1245,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
     	 controlarray.clear();
     	 table.setEnabled(true);
 	}
+	/*
 static void	writeVariantToTSVFile(VarNode node, BufferedWriter output) {
 	 try {
 		 if(Main.drawCanvas.hideNode(node)) {
@@ -1022,9 +1258,10 @@ static void	writeVariantToTSVFile(VarNode node, BufferedWriter output) {
     	 String rscode, uniprot, strand, aminochange;
     	 Transcript.Exon exon;
     	 int casefreq = 0;
+    	 String clusters;
     	 String genotype = "", biotype = ".";
-    	 StringBuffer controls = new StringBuffer("\t");
-    	
+    	 StringBuffer controls = new StringBuffer(""), tracks = new StringBuffer("");
+    	 StringBuffer[] bedarray;
     	 HashMap<ControlFile, SampleNode> temphash = new HashMap<ControlFile, SampleNode>();
 		    	    		
     		 if(node.isRscode() != null) {
@@ -1058,6 +1295,25 @@ static void	writeVariantToTSVFile(VarNode node, BufferedWriter output) {
     			 geneIDs =  node.getTranscripts().get(0).getENSG() +"..." +node.getTranscripts().get(1).getENSG();
     			 transIDs = node.getTranscripts().get(0).getENST() +"..." +node.getTranscripts().get(1).getENST();
     		 }
+    		 if(Main.bedCanvas.bedOn) {	    				 
+				 	tracks = new StringBuffer("");	
+				 	bedarray = MethodLibrary.makeTrackArray(node,null);
+					
+					for(int b = 0 ; b<bedarray.length; b++) {
+							if(!Main.bedCanvas.bedTrack.get(b).intersect) {
+								continue;
+							}							
+							if(bedarray[b] != null) {
+								tracks.append(bedarray[b].toString()+"\t");							
+							}							
+						}
+	    		 }
+    		 clusters = "";
+	    		
+    		 if(commonSlider.getValue() > 1 && clusterSize > 0) {
+    			 clusters = node.clusterNode.ID+"\t" +node.clusterNode.nodecount +"\t" +node.clusterNode.width +"\t" +MethodLibrary.round(node.clusterNode.nodecount/(double)node.clusterNode.width, 2) +"\t";
+    			
+    		 }
     		 for(int var = 0; var < node.vars.size(); var++) {
     			 
     			 entry = node.vars.get(var);   
@@ -1070,7 +1326,7 @@ static void	writeVariantToTSVFile(VarNode node, BufferedWriter output) {
     			 if(Control.controlData.controlsOn && entry.getValue().size() > 0) {
 				
 						casefreq = 0;
-						controls = new StringBuffer("\t");
+						controls = new StringBuffer("");
 						temphash.clear();
 						for(int e = entry.getValue().size()-1; e> -1;e-- ) {
 							
@@ -1096,121 +1352,377 @@ static void	writeVariantToTSVFile(VarNode node, BufferedWriter output) {
 								//AF
 								controls.append(MethodLibrary.round(temphash.get(controlarray.get(i)).alleles/(double)temphash.get(controlarray.get(i)).allelenumber,5) +"\t");
 								//OR
-								controls.append(MethodLibrary.round((casefreq/(double)(Main.varsamples*2))/(temphash.get(controlarray.get(i)).alleles/(double)temphash.get(controlarray.get(i)).allelenumber),5)+" (p=" +MethodLibrary.round(VariantHandler.table.fe.getRightTailedP(casefreq, Main.varsamples*2-casefreq, temphash.get(controlarray.get(i)).alleles, temphash.get(controlarray.get(i)).allelenumber-temphash.get(controlarray.get(i)).alleles) ,12) +")\t");
+								controls.append(MethodLibrary.round((casefreq/(double)(Main.varsamples*2-casefreq))/(temphash.get(controlarray.get(i)).alleles/(double)(temphash.get(controlarray.get(i)).allelenumber-temphash.get(controlarray.get(i)).alleles)),5)+" (p=" +MethodLibrary.round(VariantHandler.table.fe.getRightTailedP(casefreq, Main.varsamples*2-casefreq, temphash.get(controlarray.get(i)).alleles, temphash.get(controlarray.get(i)).allelenumber-temphash.get(controlarray.get(i)).alleles) ,12) +")\t");
 							}
 							else {
 								controls.append("N/A\tN/A\t");
 							}
-						}
-						
-			
+						}			
     			 }
-    	
-    			 for(int i = 0; i<entry.getValue().size(); i++) {
-    				
-    				 if(Main.drawCanvas.hideVar(entry.getValue().get(i))) {
-							continue;
-					 }
-    				 mutcount++;
-    			 }
-    			 if(mutcount > 0) {
-    			 for(int i = 0; i<entry.getValue().size(); i++) {
-    				 varnode = entry.getValue().get(i);
-    				 if(Main.drawCanvas.hideVar(varnode)) {
-							continue;
-					 }
-    				 if(varnode.isHomozygous()) {
-    					 genotype = "Hom(" +varnode.getCalls() +"/" +varnode.getCoverage() +")";
-    				 }
-    				 else {
-    					 genotype = "Het(" +varnode.getCalls() +"/" +varnode.getCoverage() +")";
-    				 } 				 
-    				
     			
-    				 try {
-    					 if(output != null) {	    				
-		    					 if(entry.getKey().length() > 1) {
-		    						 output.write(varnode.getSample().getName() +"\t" +
-		 		    						genes +"\t" +mutcount +"\t" +"N/A" +"\t" +uniprot +"\t" +geneIDs +"\t" +transIDs +"\t" +"N/A" +"\t"+
-		 		    						node.getTranscripts().get(0).getChrom() +":" +MethodLibrary.formatNumber((node.getPosition()+1)) +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +entry.getKey() +"\t" +genotype +"\t" +rscode  +controls +"N/A" +"\n");	    
-		 		    					
+	    			 for(int i = 0; i<entry.getValue().size(); i++) {
+	    				
+	    				 if(Main.drawCanvas.hideVar(entry.getValue().get(i))) {
+								continue;
+						 }
+	    				 
+	    				 mutcount++;
+	    			 }
+    			 
+	    			 if(mutcount > 0) {
+	    				 
+		    			for(int i = 0; i<entry.getValue().size(); i++) {
+		    				 varnode = entry.getValue().get(i);
+		    				 if(Main.drawCanvas.hideVar(varnode)) {
+									continue;
+							 }
+		    				 if(onlyselected.isSelected()) {
+		    					 if(!varnode.getSample().equals(Main.drawCanvas.selectedSample)) {
+		    						 continue;
 		    					 }
-		    					 else {
-    						 		output.write(varnode.getSample().getName() +"\t" +
-		    						genes +"\t" +mutcount +"\t" +"N/A" +"\t" +uniprot +"\t" +geneIDs +"\t" +transIDs +"\t" +"N/A" +"\t"+
-		    						node.getTranscripts().get(0).getChrom() +":" +MethodLibrary.formatNumber((node.getPosition()+1)) +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode  +controls +"N/A" +"\n");	    
+		    					 mutcount = 1;
+		    				 }
+		    				 if(varnode.isHomozygous()) {
+		    					 genotype = "Hom(" +varnode.getCalls() +"/" +varnode.getCoverage() +")";
+		    				 }
+		    				 else {
+		    					 genotype = "Het(" +varnode.getCalls() +"/" +varnode.getCoverage() +")";
+		    				 } 				 
+		    				
+		    			
+		    				 try {
+		    					 if(output != null) {	    				
+			    					 if(entry.getKey().length() > 1) {
+			    						output.write(varnode.getSample().getName() +"\t" +
+	 		    						genes +"\t" +mutcount +"\t" +"N/A" +"\t" +geneIDs +"\t" +transIDs +"\t" +"N/A" +"\t"+
+	 		    						node.getTranscripts().get(0).getChrom() +":" +MethodLibrary.formatNumber((node.getPosition()+1)) +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +entry.getKey() +"\t" +genotype +"\t" +rscode +"\t" +clusters +controls +tracks +"N/A" +"\n");	    
+	 		    					
+			    					 }
+			    					 else {
+	    						 		output.write(varnode.getSample().getName() +"\t" +
+			    						genes +"\t" +mutcount +"\t" +"N/A" +"\t" +geneIDs +"\t" +transIDs +"\t" +"N/A" +"\t"+
+			    						node.getTranscripts().get(0).getChrom() +":" +MethodLibrary.formatNumber((node.getPosition()+1)) +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode +"\t"  +clusters +controls +tracks +"N/A" +"\n");	    
+			    					 }
 		    					 }
-    					 }
-    					
-    				 }
-    				 catch(Exception ex) {
-    					 ex.printStackTrace();
-    					 ErrorLog.addError(ex.getStackTrace());
-    				 }
-    			 }
+		    					
+		    				 }
+		    				 catch(Exception ex) {
+		    					 ex.printStackTrace();
+		    					 ErrorLog.addError(ex.getStackTrace());
+		    				 }
+		    			 }
     			 }
     		 }
+    		 
 	 
     		    	
     	 Main.drawCanvas.loadBarSample = (int)((node.getPosition()/(double)Main.drawCanvas.splits.get(0).chromEnd)*100);     
     	 varnode = null;
 		 node = null;
     	 
- 	}
- catch(Exception exc) {
-	 exc.printStackTrace();
-	 ErrorLog.addError(exc.getStackTrace());
- }	
+ 	 }
+	 catch(Exception exc) {
+		 exc.printStackTrace();
+		 ErrorLog.addError(exc.getStackTrace());
+	 }	
+}*/
+
+static void writeNodeToFile(VarNode node, String chrom, BufferedWriter output, BlockCompressedOutputStream outputgz) {
+	try {
+	if(vcf.isSelected()) {
+		
+		 
+		 StringBuffer info = new StringBuffer("");
+		 StringBuffer alts = new StringBuffer("");
+		 StringBuffer refs = new StringBuffer("");
+		// StringBuffer samples = new StringBuffer("");
+		// StringBuffer genotypes = new StringBuffer("");
+		 StringBuffer ADs = new StringBuffer("");
+		 StringBuffer sampleinfos = new StringBuffer("");
+		 double avgquality = 0;
+		 int samplecount = 0;
+		 String rscode = ".";
+		 String ref = Main.getBase.get(node.getRefBase());
+		 int AN= Main.varsamples*2, AC =0, allelenro = 1;
+		 StringBuffer ACs = new StringBuffer("");
+		 StringBuffer AFs = new StringBuffer("");
+		 double AF = 0.0;
+		 Entry<String, ArrayList<SampleNode>> entry;
+		 String sampleinfo = null;
+		
+		 int[] coverages = null;
+		 HashMap<Short, String> samplehash = new HashMap<Short, String>();
+		/*
+		 for(int i = 0 ; i <samples.length; i++) {
+			 samples[i] = null;
+		 }
+		 */
+		
 	
+		boolean set = false, found = false;
+		 
+		 for(int var = 0; var < node.vars.size(); var++) {
+			 
+			 entry = node.vars.get(var);
+			 if(Main.drawCanvas.hideNodeVar(node, entry)) {
+					continue;
+			 }	
+			 AF = 0;
+			 AC = 0;			
+			 
+			 if( node.vars.size() == 1) {
+				 if(node.indel) {
+					 String[] result = MethodLibrary.makeIndelColumns(chrom, node.getPosition(), ref, entry.getKey());
+					 ref = result[0];
+					 alts.append(result[1]+",");
+					 
+				 }
+				 else {
+					
+				 	alts.append(entry.getKey()+",");
+				 }
+			 }
+			 else {
+				
+				 if(node.indel) {
+					 if(!set) {
+						 String[] result = MethodLibrary.makeMultiAlt(chrom, node.getPosition(), ref, node);
+						 set = true;
+						 ref = result[0];
+						 alts.append(result[1]);
+					 }
+					 allelenro = var+1;
+					
+				 }
+				 else {
+					 if(refs.length() == 0) {
+						 refs.append(ref+",");
+						
+					 }
+					 if(alts.length() > 0) {
+						 allelenro++;
+					 }
+					 alts.append(entry.getKey() +",");
+				 }				 
+			 }
+			//AC++;
+			//if(node.vars.size() > 1) {
+				coverages = new int[node.vars.size()+1];
+				for(int i = 0; i<coverages.length; i++) {
+					coverages[i] = 0;
+				}
+		//	}
+			 for(int sample = 0; sample < entry.getValue().size(); sample++) {
+				 ADs = new StringBuffer("");
+				 if(!Main.drawCanvas.hideVar(entry.getValue().get(sample))) {
+					 found = true;
+					 if(samplehash.containsKey(entry.getValue().get(sample).getSample().getMultiIndex())) {
+						 AC++;
+						 coverages[0] = 0;
+						 coverages[Integer.parseInt(""+samplehash.get(entry.getValue().get(sample).getSample().getMultiIndex()).charAt(2))] = entry.getValue().get(sample).getCoverage()-entry.getValue().get(sample).getCalls();
+						 coverages[allelenro] = entry.getValue().get(sample).getCalls();
+						 ADs.append(coverages[0]);
+						 for(int i = 1; i<coverages.length; i++) {
+							 ADs.append(","+coverages[i]);
+						 }
+						 sampleinfo = samplehash.get(entry.getValue().get(sample).getSample().getMultiIndex()).charAt(2) +"/" +allelenro +":"+entry.getValue().get(sample).getCoverage()+":" +ADs+":" +entry.getValue().get(sample).getQuality();
+						 samplehash.put(entry.getValue().get(sample).getSample().getMultiIndex(),sampleinfo);						
+					 }
+					 else if(entry.getValue().get(sample).isHomozygous()) {
+						 AC+=2;
+						 coverages[0] = entry.getValue().get(sample).getCoverage()-entry.getValue().get(sample).getCalls();
+						 coverages[allelenro] = entry.getValue().get(sample).getCalls();
+						 ADs.append(coverages[0]);
+						 for(int i = 1; i<coverages.length; i++) {
+							 ADs.append(","+coverages[i]);
+						 }
+						 sampleinfo = (allelenro) +"/" +allelenro +":"+entry.getValue().get(sample).getCoverage()+":"+ADs+":" +entry.getValue().get(sample).getQuality();
+						 
+						 samplehash.put(entry.getValue().get(sample).getSample().getMultiIndex(),sampleinfo);		
+					 }
+					 else {
+						 AC++;
+						 coverages[0] = entry.getValue().get(sample).getCoverage()-entry.getValue().get(sample).getCalls();
+						 coverages[allelenro] = entry.getValue().get(sample).getCalls();
+						 ADs.append(coverages[0]);
+						 for(int i = 1; i<coverages.length; i++) {
+							 ADs.append(","+coverages[i]);
+						 }
+						
+						 sampleinfo = "0/" +allelenro +":"+entry.getValue().get(sample).getCoverage()+":"+ ADs.toString() +":" +entry.getValue().get(sample).getQuality();
+						 samplehash.put(entry.getValue().get(sample).getSample().getMultiIndex(),sampleinfo);	
+						 
+					 }
+					 samplecount++;
+					 avgquality+= entry.getValue().get(sample).getQuality();
+				 }				 
+			 }
+			 AF = MethodLibrary.round(AC/(double)AN,5);
+			 ACs.append(AC +",");
+			 AFs.append(AF +",");
+		 }		 
+		
+		 if(!found) {
+			 return;
+		 }
+		 if(node.rscode != null) {
+			 rscode = node.rscode;
+		 }
+		
+		 for(Short i = 0 ; i <Main.varsamples; i++) {
+			 if(samplehash.containsKey(i)) {
+				 sampleinfos.append("\t" +samplehash.get(i));
+			 }
+			 else {
+				 sampleinfos.append("\t" +"0/0");
+			 }			
+		 }
+		 
+		
+		 alts.deleteCharAt(alts.length()-1);
+		 AFs.deleteCharAt(AFs.length()-1);
+		 ACs.deleteCharAt(ACs.length()-1);
+		 info.append("AN=" +AN +";AC=" +ACs +";AF=" +AFs);
+		
+		// System.out.println(chrom +"\t" +(node.getPosition()+1) +"\t" +rscode +"\t" +refs +"\t" +alts +"\t" +MethodLibrary.round(avgquality/(double)samplecount,2) +"\t.\t" +info +"\t" +format +sampleinfos );
+		
+		 if(outputgz != null) {
+			
+			 String writeline = chrom +"\t" +(node.getPosition()+1) +"\t" +rscode +"\t" +ref +"\t" +alts +"\t" +MethodLibrary.round(avgquality/(double)samplecount,2) +"\tPASS\t" +info +"\t" +format +sampleinfos+"\n";
+			 outputgz.write(writeline.getBytes());				 
+			 Feature vcf = vcfCodec.decode(writeline);				
+			 FileRead.indexCreator.addFeature(vcf, FileRead.filepointer);
+			 FileRead.filepointer = outputgz.getFilePointer();
+			 /*
+			if(FileRead.bigcalc) {
+				 outputStrings.add(writeline);
+				 if(node.getPosition() - VariantHandler.lastWrittenPos > Settings.windowSize) {
+					
+					 for(int i = 0 ; i<outputStrings.size(); i++) {
+						 outputgz.write(outputStrings.get(i).getBytes());
+						 
+						 Feature vcf = vcfCodec.decode(outputStrings.get(i));
+						
+						 FileRead.indexCreator.addFeature(vcf, FileRead.filepointer);
+						 FileRead.filepointer = outputgz.getFilePointer();
+					 }
+					 outputStrings.clear();
+					 VariantHandler.lastWrittenPos = node.getPosition();
+				 }			
+			}
+			else {
+				 outputgz.write(writeline.getBytes());				 
+				 Feature vcf = vcfCodec.decode(writeline);				
+				 FileRead.indexCreator.addFeature(vcf, FileRead.filepointer);
+				 FileRead.filepointer = outputgz.getFilePointer();
+			}*/
+		 }
+		 else if(output != null) {
+			 output.write(chrom +"\t" +(node.getPosition()+1) +"\t" +rscode +"\t" +ref +"\t" +alts +"\t" +MethodLibrary.round(avgquality/(double)samplecount,2) +"\t.\t" +info +"\t" +format +sampleinfos+"\n" );
+		 }
+		 else {
+		//	 System.out.println(chrom +"\t" +(node.getPosition()+1) +"\t" +rscode +"\t" +ref +"\t" +alts +"\t" +MethodLibrary.round(avgquality/(double)samplecount,2) +"\t.\t" +info +"\t" +format +sampleinfos);
+		 }
+	}
+	 }
+	 catch(Exception e) {
+		 e.printStackTrace();
+	 }
 }
-static void	writeTranscriptToTSVFile(Gene gene, BufferedWriter output) {
-		 try {
+
+static void	writeTranscriptToFile(Gene gene, BufferedWriter output) {
+		 try {			 
+			
 			 Entry<String, ArrayList<SampleNode>> entry;
 			 VarNode node = null;
 			 SampleNode varnode;
 			 String[] row;    	
-	    	 String rscode,strand, aminochange, transcripts, exons;
-	    	
+			 StringBuffer[] bedarray;
+	    	 String rscode,aminochange, transcripts, exons;	    	
+	    	 StringBuffer strand = new StringBuffer("");
 	    	 int casefreq = 0;
-	    	 String genotype = "", biotype = ".";
-	    	 StringBuffer controls = new StringBuffer("\t");
-	    	
+	    	 String genotype = "", biotype = ".", geneID = "", description = "";
+	    	 StringBuffer controls = new StringBuffer(""), tracks = new StringBuffer("");
+	    	 String clusters = "";    	
 	    	 HashMap<ControlFile, SampleNode> temphash = new HashMap<ControlFile, SampleNode>();
     		 table.getAminos(gene);
+    		 StringBuffer samples = new StringBuffer("");
+    		 StringBuffer genotypes = new StringBuffer("");
+    		 StringBuffer qualities = new StringBuffer("");
     		 
 	    	 for(int s = 0; s<table.aminoarray.size(); s++) {
 	    		 row = table.aminoarray.get(s).getRow();
 	    		 node = table.aminoarray.get(s).getNode();
-	    		
+	    		 strand = new StringBuffer("");
 	    		 if(node.isRscode() != null) {
 	    			 rscode = node.isRscode();
 	    		 }
 	    		 else {
 	    			 rscode = "N/A";
 	    		 }
-	    		 strand = "+";
-	    		 if(row[8].length() == 1) {
-	    			 exons = "Exon " +row[8];
+	    		
+	    		 if(row[8].contains("troni")) {
+	    			 exons = "Intronic";
 	    		 }
-	    		 else if(row[8].length() > 1) {
-	    			 exons = "Exons " +row[8];
+	    		 else if(row[8].contains("geni")) {
+	    			 exons = "Intergenic";
 	    		 }
 	    		 else {
-	    			 exons = "";
+	    			 if(row[8].length() == 1) {
+		    			 exons = "Exon " +row[8];
+		    		 }
+		    		 else if(row[8].length() > 1) {
+		    			 exons = "Exons " +row[8];
+		    		 }
+		    		 else {
+		    			 exons = "";
+		    		 }
 	    		 }
-	    		 
-	    		 if(!gene.getStrand()) {
-	    			 strand = "-";
+	    		 if(gene.intergenic) {
+	    			 if(node.getTranscripts().size() == 2) {
+	    				 geneID = gene.getID() +";" +node.getTranscripts().get(1).getGene().getID();
+	    				 description = gene.getDescription() + ";" +node.getTranscripts().get(1).getGene().getDescription();	    				 	    				 
+	    				 strand.append((gene.getStrand()) ? "+;" : "-;");
+	    				 strand.append((node.getTranscripts().get(1).getGene().getStrand()) ? "+" : "-");
+	    			 }
+	    			 else  {
+	    				 geneID = gene.getID();
+	    				 description = gene.getDescription();
+	    			 }
 	    		 }
-	    		
-	    		
+	    		 else {
+		    		 if(!gene.getStrand()) {
+		    			 strand.append("-");
+		    		 }
+		    		 else {
+		    			 strand.append("+");
+		    		 }
+		    		 geneID = gene.getID();
+		    		 description = gene.getDescription();
+	    		 }
 	    		 transcripts = row[6];	    		
 	    		 biotype = row[7];
 	    		
-	    		 
+	    		
+	    		 clusters = "";
+	    		
+	    		 if(commonSlider.getValue() > 1 && clusterSize > 0) {	    		
+	    			if(node.clusterNode != null) {	    			
+	    			 clusters = node.clusterNode.ID+"\t" +node.clusterNode.nodecount +"\t" +node.clusterNode.width +"\t" +MethodLibrary.round(node.clusterNode.nodecount/(double)node.clusterNode.width, 2) +"\t";
+	    			}
+	    			else {
+	    				System.out.println(node.getPosition());
+	    				continue;
+	    			}
+	    		 }
+	    		
+	    		else {
 	    		 for(int var = 0; var < node.vars.size(); var++) {
 	    			 
 	    			 entry = node.vars.get(var);
+	    			 if(Main.drawCanvas.hideNodeVar(node, entry)) {
+							continue;
+					 }	
 	    			 if(!entry.getKey().equals(row[5])) {
 	    				 continue;
 	    			 }
@@ -1222,14 +1734,37 @@ static void	writeTranscriptToTSVFile(Gene gene, BufferedWriter output) {
 	    				 aminochange = "N/A";
 	    			 }
 	    			
-	    			 if(Main.drawCanvas.hideNodeVar(node, entry)) {
-							continue;
-					 }		    			
+	    			 if(Main.bedCanvas.bedOn) {
+	 	    			
+	  				 	tracks = new StringBuffer("");	
+	  				 	
+	  				 	bedarray = MethodLibrary.makeTrackArray(node,entry.getKey());
+	 					if(bedarray != null) {
+	 						for(int b = 0 ; b<bedarray.length; b++) {
+	 							if(!Main.bedCanvas.bedTrack.get(b).intersect) {
+	 								continue;
+	 							}							
+	 							if(bedarray[b] != null) {
+	 								tracks.append(bedarray[b].toString()+"\t");							
+	 							}
+	 							else {
+	 								tracks.append("-\t");		
+	 							}
+	 						}
+	 					}
+	 					else {
+	 						for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
+	 							if(Main.bedCanvas.bedTrack.get(i).intersect) {
+	 								tracks.append("\t");
+	 							}							
+	 						}
+	 					}
+	 	    		 }	    			
 	    			 
 	    			 if(Control.controlData.controlsOn && entry.getValue().size() > 0) {
 					
 							casefreq = 0;
-							controls = new StringBuffer("\t");
+							controls = new StringBuffer("");
 							temphash.clear();
 							for(int e = entry.getValue().size()-1; e> -1;e-- ) {
 								
@@ -1254,20 +1789,75 @@ static void	writeTranscriptToTSVFile(Gene gene, BufferedWriter output) {
 									//AF
 									controls.append(MethodLibrary.round(temphash.get(controlarray.get(i)).alleles/(double)temphash.get(controlarray.get(i)).allelenumber,5) +"\t");
 									//OR
-									controls.append(MethodLibrary.round((casefreq/(double)(Main.varsamples*2))/(temphash.get(controlarray.get(i)).alleles/(double)temphash.get(controlarray.get(i)).allelenumber),5)+" (p=" +MethodLibrary.round(VariantHandler.table.fe.getRightTailedP(casefreq, Main.varsamples*2-casefreq, temphash.get(controlarray.get(i)).alleles, temphash.get(controlarray.get(i)).allelenumber-temphash.get(controlarray.get(i)).alleles) ,12) +")\t");
+									controls.append(MethodLibrary.round((casefreq/(double)(Main.varsamples*2-casefreq))/(temphash.get(controlarray.get(i)).alleles/(double)(temphash.get(controlarray.get(i)).allelenumber-temphash.get(controlarray.get(i)).alleles)),5)+" (p=" +MethodLibrary.round(VariantHandler.table.fe.getRightTailedP(casefreq, Main.varsamples*2-casefreq, temphash.get(controlarray.get(i)).alleles, temphash.get(controlarray.get(i)).allelenumber-temphash.get(controlarray.get(i)).alleles) ,12) +")\t");
 								}
 								else {
 									controls.append("N/A\tN/A\t");
 								}
-							}
-							
-				
+							}				
 	    			 }
-	    	
+    			if(compactTsv.isSelected()) {
+    				 samples = new StringBuffer("");
+    	    		 genotypes = new StringBuffer("");
+    	    		 qualities = new StringBuffer("");
+    	    		 
+    	    		 for(int i = 0; i<entry.getValue().size(); i++) {
+ 	    				
+	    				 if(Main.drawCanvas.hideVar(entry.getValue().get(i))) {
+							continue;
+						 }
+	    				 
+	    				 varnode = entry.getValue().get(i);
+	    				
+	    				 if(varnode.isHomozygous()) {
+	    					 genotypes.append("Hom(" +varnode.getCalls() +"/" +varnode.getCoverage() +");");
+	    				 }
+	    				 else {
+	    					 genotypes.append("Het(" +varnode.getCalls() +"/" +varnode.getCoverage() +");");
+	    				 } 		
+	    				 samples.append(varnode.getSample().getName() +";");
+	    				 qualities.append(varnode.getQuality()+";");
+    	    		 }
+    	    		 
+    	    		genotypes.deleteCharAt(genotypes.length()-1);
+    	    		qualities.deleteCharAt(qualities.length()-1);
+    	    		samples.deleteCharAt(samples.length()-1);
+	    	    		
+    	    		 if(output != null) {
+    	    			
+		    				 if(exons.length() > 0) {
+		    					 if(!aminochange.equals("N/A")) {
+		    						 output.write(samples +"\t" +
+		    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
+						  		  	 row[2] +"\t" +strand	+"\t" +exons +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t" +qualities +"\t"+rscode +"\t" +clusters +controls +tracks +description +"\n");
+		    					 }
+		    					 else {
+		    						 output.write(samples +"\t" +
+		    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
+		    						 row[2] +"\t" +strand	+"\t" +"UTR" +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t"+qualities +"\t" +rscode +"\t"+clusters+controls +tracks +description +"\n");
+		    					 }
+		    				 }
+		    				 else {
+		    					 if(node.getTranscripts() != null && node.isInGene()) {
+		    						 output.write(samples +"\t" +
+		    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
+		    						 row[2] +"\t" +strand	+"\t" +"Intronic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t"+qualities +"\t" +rscode+"\t" +clusters+controls +tracks +description +"\n");	    						 
+		    					 }
+		    					 else {
+		    						 output.write(samples +"\t" +
+		    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
+		    						 row[2] +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t" +qualities +"\t"+rscode+"\t" +clusters +controls +tracks +description +"\n");	    
+		    					 }
+		    				 }
+    	    			 }	    	    		
+	    	    		
+	    			}
+	    			
+	    			else if(tsv.isSelected()) {
 	    			 for(int i = 0; i<entry.getValue().size(); i++) {
 	    				
 	    				 if(Main.drawCanvas.hideVar(entry.getValue().get(i))) {
-								continue;
+							continue;
 						 }
 	    				 
 	    				 varnode = entry.getValue().get(i);
@@ -1277,33 +1867,32 @@ static void	writeTranscriptToTSVFile(Gene gene, BufferedWriter output) {
 	    				 }
 	    				 else {
 	    					 genotype = "Het(" +varnode.getCalls() +"/" +varnode.getCoverage() +")";
-	    				 } 				 
+	    				 } 				 	    				
 	    				
-	    			
 	    				 try {
 	    					 if(output != null) {
 			    				 if(exons.length() > 0) {
 			    					 if(!aminochange.equals("N/A")) {
-				    				  output.write(varnode.getSample().getName() +"\t" +
-							  		  row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +gene.getID() +"\t" +transcripts +"\t" +biotype +"\t"+
-							  		  row[2] +"\t" +strand	+"\t" +exons +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode +controls +gene.getDescription() +"\n");
+			    						 output.write(varnode.getSample().getName() +"\t" +
+			    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
+							  		  	 row[2] +"\t" +strand	+"\t" +exons +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +varnode.getQuality() +"\t"+rscode +"\t" +clusters +controls +tracks +description +"\n");
 			    					 }
 			    					 else {
 			    						 output.write(varnode.getSample().getName() +"\t" +
-			    						  		  row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +gene.getID() +"\t" +transcripts +"\t" +biotype +"\t"+
-			    						  		row[2] +"\t" +strand	+"\t" +"UTR" +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode +controls +gene.getDescription() +"\n");
+			    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
+			    						 row[2] +"\t" +strand	+"\t" +"UTR" +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t"+varnode.getQuality() +"\t" +rscode +"\t"+clusters+controls +tracks +description +"\n");
 			    					 }
 			    				 }
 			    				 else {
 			    					 if(node.getTranscripts() != null && node.isInGene()) {
 			    						 output.write(varnode.getSample().getName() +"\t" +
-			    						  		  row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +gene.getID() +"\t" +transcripts +"\t" +biotype +"\t"+
-			    						  		row[2] +"\t" +strand	+"\t" +"Intronic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode +controls +gene.getDescription() +"\n");	    						 
+			    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
+			    						 row[2] +"\t" +strand	+"\t" +"Intronic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t"+varnode.getQuality() +"\t" +rscode+"\t" +clusters+controls +tracks +description +"\n");	    						 
 			    					 }
 			    					 else {
 			    						 output.write(varnode.getSample().getName() +"\t" +
-			    						  		  row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +gene.getID() +"\t" +transcripts +"\t" +biotype +"\t"+
-			    						  		row[2] +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +rscode  +controls +gene.getDescription() +"\n");	    
+			    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
+			    						 row[2] +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +varnode.getQuality() +"\t"+rscode+"\t" +clusters +controls +tracks +description +"\n");	    
 			    					 }
 			    				 }
 	    					 }
@@ -1338,10 +1927,10 @@ static void	writeTranscriptToTSVFile(Gene gene, BufferedWriter output) {
 	    					 ex.printStackTrace();
 	    					 ErrorLog.addError(ex.getStackTrace());
 	    				 }
-	    			 }
-	    			
+	    			 }	    			
+	    		 }    	 
 	    		 }
-    	 
+	    		}
 	    	 }					    	
 	    	 Main.drawCanvas.loadBarSample = (int)((gene.getStart()/(double)Main.drawCanvas.splits.get(0).chromEnd)*100);     
 	    	 varnode = null;
@@ -1354,16 +1943,64 @@ static void	writeTranscriptToTSVFile(Gene gene, BufferedWriter output) {
 	 }
 		
 	}
+
+void writeGeneListToVCF(ArrayList<Gene> genelist, BufferedWriter output, BlockCompressedOutputStream outputgz) {
+	boolean found = false;
+	VarNode node = VariantHandler.table.genearray.get(0).varnodes.get(0);
+	while(node != null) {
+		
+		if(geneSlider.getValue() > 1) {
+			found = false;
+			if(node.isInGene()) {
+				if(node.getExons() != null) {
+					for(int i = 0 ; i<node.getExons().size(); i++) {
+						if(node.getExons().get(i).getTranscript().getGene().samples.size() >= geneSlider.getValue()) {							
+							found = true;
+						}
+						else {
+							node.getExons().remove(i);
+							i--;
+						}
+					}
+				}
+				else {
+					for(int i = 0 ; i<node.getTranscripts().size(); i++) {
+						if(node.getTranscripts().get(i).getGene().samples.size() >= geneSlider.getValue()) {
+							found = true;
+						}
+						else {
+							node.getTranscripts().remove(i);
+							i--;
+						}
+					}
+				}	
+			}
+			if(found) {
+				writeNodeToFile(node,node.getChrom(), null, outputgz);
+			}
+		}
+		else {
+			writeNodeToFile(node,node.getChrom(), null, outputgz);
+		}
+		 node = node.getNext();
+	}
+	node = null;
+	
+}
+
 	public class OutputRunner extends SwingWorker<String, Object> {
 		BufferedWriter output;
-		public OutputRunner(BufferedWriter output) {
+		BlockCompressedOutputStream outputgz;
+		File outFile;
+		public OutputRunner(BufferedWriter output, BlockCompressedOutputStream outputgz, File outFile) {
 			this.output = output;
-			
+			this.outputgz = outputgz;
+			this.outFile = outFile;
 		}
 		
 		protected String doInBackground() {
 			Main.drawCanvas.loading("Writing output...");
-			writeOutput(output);
+			writeOutput(output, outputgz, outFile);
 			Main.drawCanvas.ready("Writing output...");
 			return "";
 		}
@@ -1371,37 +2008,41 @@ static void	writeTranscriptToTSVFile(Gene gene, BufferedWriter output) {
 	}
 	@Override
 	public void mouseClicked(MouseEvent arg0) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void mouseEntered(MouseEvent arg0) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void mouseExited(MouseEvent arg0) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void mousePressed(MouseEvent event) {
-		if(event.getSource() == tabs) {
-			
+		if(event.getSource() == tabs) {			
 			if(tabs.getSelectedIndex() == 0) {
 				VariantHandler.aminoCount.setText(table.variants +" variants");
+				outputmenu.setText("Variant output");
+				outputmenu.revalidate();
 			}
-			else if(tabs.getSelectedIndex() == 1) {
+			else if(tabs.getSelectedIndex() == tabs.indexOfComponent(statsScroll)) {
 				VariantHandler.aminoCount.setText(stattable.variants +" variants");
+				outputmenu.setText("Stats output");
+				outputmenu.revalidate();
 			}
-			else if(tabs.getSelectedIndex() == 2) {
+			else if(tabs.getSelectedIndex() == tabs.indexOfComponent(clusterScroll)) {
 				VariantHandler.aminoCount.setText(clusterTable.variants +" variants");
+				outputmenu.setText("Variant output");
+				outputmenu.revalidate();
 			}
 			else {
-				VariantHandler.aminoCount.setText(tables.get(tabs.getSelectedIndex()-3).variants +" variants");
+				VariantHandler.aminoCount.setText(tables.get(tabs.getSelectedIndex()-(tabs.indexOfComponent(statsScroll)+1)).variants +" variants");
+				outputmenu.setText("Variant output");
+				outputmenu.revalidate();
 			}
 		}		
 	}
@@ -1449,9 +2090,7 @@ static void	writeTranscriptToTSVFile(Gene gene, BufferedWriter output) {
 				Main.drawCanvas.calcClusters(FileRead.head,1);
 			}
 		}
-		
-		// TODO Auto-generated method stub
-		
+	
 	}
 	void freezeFilters(boolean value) {
 		
@@ -1503,6 +2142,14 @@ static void	writeTranscriptToTSVFile(Gene gene, BufferedWriter output) {
 					clusterSize = Integer.parseInt(clusterBox.getText());
 				
 					Main.drawCanvas.calcClusters(FileRead.head,1);
+					if(tabs.indexOfComponent(clusterScroll) == -1) {						
+						tabs.add(clusterScroll, tabs.indexOfComponent(statsScroll));
+					}
+				}
+				if(clusterSize == 0) {
+					if(tabs.indexOfComponent(clusterScroll) != -1) {						
+						tabs.remove(clusterScroll);
+					}
 				}
 			}
 		}

@@ -25,6 +25,20 @@ public class Gene {
 	int mutations = 0, nonsense=0, missense=0, synonymous=0, intronic = 0, utr =0;
 	ArrayList<Sample> samples = new ArrayList<Sample>();
 	StringBuffer transcriptString = new StringBuffer();
+	boolean intergenic = false;
+	
+	public Gene() {
+		
+	}
+	public Gene(Gene gene) {
+		this.chrom = gene.getChrom();
+		this.name = gene.getName();
+		this.ID = gene.getID();
+		this.start = gene.getStart();
+		this.end = gene.getEnd();			
+		this.description = gene.getDescription();
+		this.strand = gene.getStrand();				
+	}
 	
 	public Gene(String[] line) {
 		this.chrom = line[0];

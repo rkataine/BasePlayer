@@ -21,7 +21,9 @@ public class ReferenceSeq {
 		this.chrom = chrom;
 		wait = false;
 	}
-	
+	public ReferenceSeq() {
+		
+	}
 	public byte[] getSeq() {
 		return this.seq;
 	}

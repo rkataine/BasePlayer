@@ -48,6 +48,7 @@ private static final long serialVersionUID = 1L;
 		int mouseY=0, mouseX=0, pressX=0, pressY=0, dragX =0;
 		FisherExact fe = new FisherExact(2000000);
 	//	VarNode hoverNode;
+		StringBuffer[] bedarray;
 		final JScrollPane tablescroll;
 		Gene hoverNode, selectedNode;
 		String[] posSplit, hoverString;
@@ -65,7 +66,7 @@ private static final long serialVersionUID = 1L;
 		private int listAdd;
 		private String[] selectedString;
 		private int pointer;
-		int headerHover;
+		int headerHover = -1;
 		boolean dot = false;		
 		Polygon sortTriangle = new Polygon();
 		private int hoverSample = -1;
@@ -202,6 +203,7 @@ void drawScreen(Graphics g) {
 		
 		return;
 	}
+	
 	buf.setColor(Color.black);
 	
 	buf.fillRect(0, 0, this.getWidth(), tablescroll.getViewport().getHeight());	
@@ -219,15 +221,12 @@ void drawScreen(Graphics g) {
 		return;
 	}
 	//Header Draw	
-	genemutcount = 0;
-	
-	
-	if(genearray.size() > 0) {		
-		
+		genemutcount = 0;		
 		hoverVar = null;
 		hoverSample = -1;
 		headerHover = -1;
 		geneHeaderHover = -1;
+		
 		if(!mouseDrag) {
 			resizeColumn = -1;
 		}
@@ -237,8 +236,7 @@ void drawScreen(Graphics g) {
 			firstrow = 0;
 		}
 		for(int i = 0; i<genearray.size(); i++) {
-			dot = false;
-			
+			dot = false;			
 			
 			if((i+1+samplecount+aminoarray.size()+listAdd)*rowHeight < tablescroll.getVerticalScrollBar().getValue()) {
 				
@@ -265,8 +263,26 @@ void drawScreen(Graphics g) {
 					buf.setColor(Color.white);
 				}
 				textWidth = (int)fm.getStringBounds(""+(i+1) +".  " +genearray.get(i).getName(), buf).getWidth();
-				buf.drawString((i+1) +".  " +genearray.get(i).getName(), 5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
-		//		buf.setColor(Color.gray);
+				if(genearray.get(i).intergenic) {
+					if(genearray.get(i).varnodes.get(0).getTranscripts() == null) {
+						buf.drawString((i+1) +".  " +genearray.get(i).getName(), 5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+						
+					}
+					else if(genearray.get(i).varnodes.get(0).getTranscripts().size() == 2) {
+						buf.drawString((i+1) +".  " +genearray.get(i).getName() +" ... " +genearray.get(i).varnodes.get(0).getTranscripts().get(1).getGenename(), 5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+					}
+					else if(genearray.get(i).varnodes.get(0).getPosition() < genearray.get(i).getStart()) {
+						buf.drawString((i+1) +".  " +" ... " +genearray.get(i).getName(), 5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+						
+					}
+					else {
+						buf.drawString((i+1) +".  " +genearray.get(i).getName() +" ... " , 5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+						
+					}
+				}
+				else {
+					buf.drawString((i+1) +".  " +genearray.get(i).getName(), 5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+				}
 				buf.setColor(Color.black);
 				buf.fillRect((int)(headerlengths[1][0]+1), (rowHeight*(i+genemutcount+1))-tablescroll.getVerticalScrollBar().getValue()+4, (int)(headerlengths[1][1]), rowHeight-1);	
 				
@@ -283,7 +299,6 @@ void drawScreen(Graphics g) {
 					buf.setColor(Color.red);
 					textWidth = (int)fm.getStringBounds(mutcountbuffer.toString(), buf).getWidth();
 					buf.drawString(""+genearray.get(i).nonsense, (int)(headerlengths[1][0])+5+textWidth, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
-			//		lastpos += Integer.toString(transarray.get(i).nonsense).length();
 					mutcountbuffer.append(genearray.get(i).nonsense);
 					dot = true;
 				}
@@ -343,14 +358,26 @@ void drawScreen(Graphics g) {
 					mutcountbuffer.append(genearray.get(i).intronic);
 					dot = true;
 				}
+				if(genearray.get(i).intergenic) {
+										
+					buf.setColor(Color.gray);
+					textWidth = (int)fm.getStringBounds(mutcountbuffer.toString(), buf).getWidth();
+					buf.drawString(""+genearray.get(i).mutations, (int)(headerlengths[1][0])+5+textWidth, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+					mutcountbuffer.append(""+genearray.get(i).mutations);
+				}
 				buf.setColor(Color.white);
 				textWidth = (int)fm.getStringBounds(mutcountbuffer.toString(), buf).getWidth();
 				buf.drawString(") ", (int)(headerlengths[1][0])+5+textWidth, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
 				
 				buf.setColor(Color.gray);
 				textWidth = (int)fm.getStringBounds(mutcountbuffer.toString() +") ", buf).getWidth();
-				buf.drawString(" " +genearray.get(i).samples.size() +" samples",  (int)(headerlengths[1][0])+5+textWidth, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
-				
+				if(genearray.get(i).samples.size() == 1) {
+					buf.drawString(" 1 sample",  (int)(headerlengths[1][0])+5+textWidth, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+					
+				}
+				else {
+					buf.drawString(" " +genearray.get(i).samples.size() +" samples",  (int)(headerlengths[1][0])+5+textWidth, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+				}
 				buf.setColor(Color.black);
 				buf.fillRect((int)(headerlengths[2][0])+1, (rowHeight*(i+genemutcount+1))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
 		
@@ -360,8 +387,26 @@ void drawScreen(Graphics g) {
 				else {
 					buf.setColor(Color.white);
 				}
-				
-				buf.drawString(genearray.get(i).getChrom() +":"+MethodLibrary.formatNumber(genearray.get(i).getStart()) +"-" +MethodLibrary.formatNumber(genearray.get(i).getEnd()), (int)(headerlengths[2][0])+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+				if(genearray.get(i).intergenic) {
+					if(genearray.get(i).varnodes.get(0).getTranscripts()== null) {
+						buf.drawString(genearray.get(i).getChrom(), (int)(headerlengths[2][0])+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+						
+					}
+					else if(genearray.get(i).varnodes.get(0).getTranscripts().size() == 2) {
+						buf.drawString(genearray.get(i).getChrom() +":" +MethodLibrary.formatNumber(genearray.get(i).getEnd()) +"-" +MethodLibrary.formatNumber(genearray.get(i).varnodes.get(0).getTranscripts().get(1).getStart()), (int)(headerlengths[2][0])+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+					}
+					else if(genearray.get(i).varnodes.get(0).getPosition() < genearray.get(i).getStart()) {
+						buf.drawString(genearray.get(i).getChrom() +":1-" +MethodLibrary.formatNumber(genearray.get(i).varnodes.get(0).getTranscripts().get(1).getStart()), (int)(headerlengths[2][0])+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+						
+					}
+					else {
+						buf.drawString(genearray.get(i).getChrom() +":" +MethodLibrary.formatNumber(genearray.get(i).getEnd()) +"-end", (int)(headerlengths[2][0])+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+						
+					}
+				}
+				else {
+					buf.drawString(genearray.get(i).getChrom() +":"+MethodLibrary.formatNumber(genearray.get(i).getStart()) +"-" +MethodLibrary.formatNumber(genearray.get(i).getEnd()), (int)(headerlengths[2][0])+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+				}
 				buf.setColor(Color.black);
 				buf.fillRect((int)(headerlengths[3][0])+1, (rowHeight*(i+genemutcount+1))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
 				
@@ -372,7 +417,19 @@ void drawScreen(Graphics g) {
 				else {
 					buf.setColor(Color.white);
 				}
-				buf.drawString(genearray.get(i).getDescription(), (int)(headerlengths[3][0])+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+				if(genearray.get(i).intergenic) {
+					if (genearray.get(i).varnodes.get(0).getTranscripts() == null) {
+						buf.drawString("-", (int)(headerlengths[3][0])+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+						
+					}
+					else if(genearray.get(i).varnodes.get(0).getTranscripts().size() == 2) {
+						buf.drawString(genearray.get(i).getDescription() +";" +genearray.get(i).varnodes.get(0).getTranscripts().get(1).getGene().getDescription(), (int)(headerlengths[3][0])+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+						
+					}
+				}
+				else {
+					buf.drawString(genearray.get(i).getDescription(), (int)(headerlengths[3][0])+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+				}
 				buf.setColor(Color.darkGray);
 				buf.drawLine(3, rowHeight+3, 3, (rowHeight*(i+genemutcount+2))-tablescroll.getVerticalScrollBar().getValue()+3);	
 				
@@ -393,10 +450,11 @@ void drawScreen(Graphics g) {
 						buf.setColor(Color.darkGray);
 						buf.drawLine(21, (rowHeight*(i+s+listAdd+3))-tablescroll.getVerticalScrollBar().getValue()+3, this.getWidth(), (rowHeight*(i+s+listAdd+3))-tablescroll.getVerticalScrollBar().getValue()+3);	
 						if(MethodLibrary.aminoEffect(aminoarray.get(s).getRow()[3]).equals("nonsense")) {
+							
 							textcolor = Color.red;
 						}
 						else if (MethodLibrary.aminoEffect(aminoarray.get(s).getRow()[3]).equals("missense")) {
-						
+							
 							textcolor = Color.yellow;
 						}
 						else if (MethodLibrary.aminoEffect(aminoarray.get(s).getRow()[3]).equals("synonymous")) {
@@ -487,14 +545,14 @@ void drawScreen(Graphics g) {
 										buf.drawString("Hom (" +aminoarray.get(s).getNode().vars.get(v).getValue().get(0).getCalls() +"/" +aminoarray.get(s).getNode().vars.get(v).getValue().get(0).getCoverage() +")", (int)geneheader.get(5)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
 										if(Control.controlData.controlsOn) {
 											cases = 2;
-											casefreq = 2/(double)(Main.varsamples*2);
+											casefreq = 2/(double)(Main.varsamples*2-2);
 										}
 									}
 									else {
 										buf.drawString("Het ("+aminoarray.get(s).getNode().vars.get(v).getValue().get(0).getCalls() +"/" +aminoarray.get(s).getNode().vars.get(v).getValue().get(0).getCoverage() +")",  (int)geneheader.get(5)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
 										if(Control.controlData.controlsOn) {
 											cases = 1;
-											casefreq = 1/(double)(Main.varsamples*2);
+											casefreq = 1/(double)(Main.varsamples*2-1);
 										}
 									
 									}
@@ -523,7 +581,7 @@ void drawScreen(Graphics g) {
 											}	
 										}																				
 									}
-									casefreq = cases/(double)(Main.varsamples*2);									
+									casefreq = cases/(double)(Main.varsamples*2-cases);									
 								}								
 							}
 							buf.setColor(textcolor);
@@ -546,11 +604,10 @@ void drawScreen(Graphics g) {
 													break;
 												}
 												controlarray[vararray.get(e).getControlSample().getIndex()] = vararray.get(e);
-											//	controlarray.add(vararray.get(e));
+										
 											}
 										}
-									//		Collections.sort(controlarray, ctrlsort);
-											
+										
 											
 											for(int e = 0; e<controlarray.length;e++ ) {
 												if(Control.controlData.fileArray.get(e).controlOn) {
@@ -567,13 +624,13 @@ void drawScreen(Graphics g) {
 													}
 													else {
 														buf.setColor(Color.black);
-														buf.fillRect((int)geneheader.get(this.geneheaderlength+e*2)[1]+11, (rowHeight*(i+s+listAdd+3))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
+														buf.fillRect((int)geneheader.get(this.geneheaderlength+e*2)[1]+11, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
 														buf.setColor(textcolor);											
 														buf.drawString(""+MethodLibrary.round(controlarray[e].alleles/(double)controlarray[e].allelenumber,3), (int)geneheader.get(this.geneheaderlength+e*2)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
 														buf.setColor(Color.black);
 														buf.fillRect((int)geneheader.get(this.geneheaderlength+e*2+1)[1]+11, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
 														buf.setColor(textcolor);
-														buf.drawString(""+MethodLibrary.round(casefreq/(controlarray[e].alleles/(double)controlarray[e].allelenumber),2) +" (p=" +MethodLibrary.round(fe.getRightTailedP(cases, Main.varsamples*2-cases, controlarray[e].alleles, controlarray[e].allelenumber-controlarray[e].alleles) ,2) +")", (int)geneheader.get(this.geneheaderlength+e*2+1)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
+														buf.drawString(""+MethodLibrary.round(casefreq/(controlarray[e].alleles/(double)(controlarray[e].allelenumber-controlarray[e].alleles)),2) +" (p=" +MethodLibrary.round(fe.getRightTailedP(cases, Main.varsamples*2-cases, controlarray[e].alleles, controlarray[e].allelenumber-controlarray[e].alleles) ,2) +")", (int)geneheader.get(this.geneheaderlength+e*2+1)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
 												
 													}													
 												}
@@ -586,28 +643,54 @@ void drawScreen(Graphics g) {
 													buf.fillRect((int)geneheader.get(this.geneheaderlength+e*2+1)[1]+11, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
 													buf.setColor(Color.darkGray);			
 													buf.drawString("-", (int)geneheader.get(this.geneheaderlength+e*2+1)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
-											
 												}
-											
-											}
-										    
-										}
-										
-										
+											}										    
+										}										
 									}
-								}
-								
-							
+								}						
 							else {
 								buf.setColor(Color.darkGray);
 								
 								for(int e = geneheaderlength; e<geneheader.size();e++ ) {
-									
-									buf.drawString("Apply controls",  (int)geneheader.get(e)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
+									if(geneheader.get(e)[0] instanceof ControlFile) {
+										buf.drawString("Apply controls",  (int)geneheader.get(e)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
+									}
 								}
 								buf.setColor(Color.lightGray);
 							}
 							vararray = null;
+							if(Main.bedCanvas.bedOn) {					
+								
+								for(int a =0;a<aminoarray.size(); a++) {						
+									
+									bedarray = MethodLibrary.makeTrackArray(aminoarray.get(a).getNode(),aminoarray.get(a).getRow()[5]);
+									if(bedarray != null) {
+									for(int b = 0 ; b<bedarray.length; b++) {
+											buf.setColor(Color.black);
+											if(b == bedarray.length-1) {
+												buf.fillRect((int)geneheader.get(geneheaderlength+Control.controlData.fileArray.size()*2+b)[1]+12, (rowHeight*(i+a+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth()-(int)geneheader.get(geneheaderlength+Control.controlData.fileArray.size()*2+b)[1], rowHeight-1);	
+											}
+											else {
+												buf.fillRect((int)geneheader.get(geneheaderlength+Control.controlData.fileArray.size()*2+b)[1]+12, (rowHeight*(i+a+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+4, (int)geneheader.get(geneheaderlength+Control.controlData.fileArray.size()*2+b)[2], rowHeight-1);												
+											}
+											buf.setColor(Color.white);
+											if(bedarray[b] != null) {
+												buf.drawString(bedarray[b].toString(), (int)geneheader.get(geneheaderlength+Control.controlData.fileArray.size()*2+b)[1]+14, (rowHeight*(i+a+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+											
+											}											
+										}
+									}									
+								}
+								
+								
+							
+							/*if(c < header.size()-1-Main.bedCanvas.bedTrack.size()) {
+								buf.setColor(Color.black);
+								buf.fillRect((int)header.get(c+1)[1]+1, (rowHeight*(i+genemutcount+1))-tablescroll.getVerticalScrollBar().getValue()+4, (int)header.get(c)[2], rowHeight-1);	
+											
+							}*/
+							}
+							
 							buf.setColor(Color.darkGray);
 							for(int j = 0; j<geneheader.size(); j++) {								
 								
@@ -643,21 +726,21 @@ void drawScreen(Graphics g) {
 									//	}	
 										
 											buf.setColor(Color.black);
-											buf.fillRect((int)geneheader.get(4)[1]+10, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
+											buf.fillRect((int)geneheader.get(5)[1]+10, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
 											buf.setColor(textcolor);
 										if(aminoarray.get(s).getNode().vars.get(v).getValue().get(l).isHomozygous()) {
-											buf.drawString("Hom (" +aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getCalls() +"/" +aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getCoverage() +")",  (int)geneheader.get(4)[1]+14, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
+											buf.drawString("Hom (" +aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getCalls() +"/" +aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getCoverage() +")",  (int)geneheader.get(5)[1]+14, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
 											
 										}
 										else {
-											buf.drawString("Het ("+aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getCalls() +"/" +aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getCoverage() +")",  (int)geneheader.get(4)[1]+14, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
+											buf.drawString("Het ("+aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getCalls() +"/" +aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getCoverage() +")",  (int)geneheader.get(5)[1]+14, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
 										}
 											buf.setColor(Color.black);
-											buf.fillRect((int)geneheader.get(5)[1]+10, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
+											buf.fillRect((int)geneheader.get(6)[1]+10, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
 											buf.setColor(textcolor);
-											buf.drawString(""+aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getQuality(),  (int)geneheader.get(5)[1]+14, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
+											buf.drawString(""+aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getQuality(),  (int)geneheader.get(6)[1]+14, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
 											buf.setColor(Color.darkGray);
-											for(int j = 4; j<7; j++) {								
+											for(int j = 5; j<7; j++) {								
 												
 												buf.drawLine((int)geneheader.get(j)[1]+11, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue(), (int)geneheader.get(j)[1]+11, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+rowHeight+2);	
 											}
@@ -688,7 +771,7 @@ void drawScreen(Graphics g) {
 		buf.setColor(Color.darkGray);
 		buf.drawLine(4, (rowHeight*(genearray.size()+genemutcount+1))-tablescroll.getVerticalScrollBar().getValue()+3, this.getWidth(), (rowHeight*(genearray.size()+genemutcount+1))-tablescroll.getVerticalScrollBar().getValue()+3);	
 	
-	}
+	
 	
 	drawHeader();
 	if(headerHover == -1 && geneHeaderHover == -1) {		
@@ -709,13 +792,18 @@ void drawScreen(Graphics g) {
 	
 }	
 
-void addRowGeneheader(String columnName) {
-	
+void addRowGeneheader(Object column) {
 		Object[] obj = new Object[3]; 
-		obj[0] = columnName; 	
-		obj[1] = (int)geneheader.get(geneheader.size()-1)[1] + (int)geneheader.get(geneheader.size()-1)[2];
-		obj[2] = 100;
-		geneheader.add(obj);
+		if(Main.bedCanvas.bedTrack.size() == 0 || column instanceof BedTrack) {			
+			obj[0] = column; 	
+			obj[1] = (int)geneheader.get(geneheader.size()-1)[1] + (int)geneheader.get(geneheader.size()-1)[2];
+			obj[2] = 100;
+			geneheader.add(obj);
+		}
+		else {
+			
+		}
+		
 		
 		if((int)obj[1]+(int)obj[2] > this.getWidth()) {
 			if(bufImage.getWidth() < (int)obj[1]+(int)obj[2]) {
@@ -726,6 +814,7 @@ void addRowGeneheader(String columnName) {
 			this.revalidate();
 		}
 }
+
 void drawHeader() { 
 	for(int i = 0; i<header.length; i++) {
 		buf.setColor(Color.darkGray);
@@ -815,7 +904,19 @@ void drawGeneheader(int y) {
 				}
 			}
 		}
-		buf.drawString((String)geneheader.get(i)[0], (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+		if(geneheader.get(i)[0] instanceof String) {
+			buf.drawString((String)geneheader.get(i)[0], (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+		}
+		else if (geneheader.get(i)[0] instanceof ControlFile) {
+			ControlFile ctrlfile = (ControlFile)geneheader.get(i)[0];
+			buf.drawString("AF: " +ctrlfile.getName(), (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+			ctrlfile = null;
+		}
+		else {
+			BedTrack track = (BedTrack)geneheader.get(i)[0];
+			buf.drawString(track.file.getName(), (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+			track = null;
+		}
 		buf.setColor(Color.black);
 		buf.drawLine((int)geneheader.get(i)[1]+10, y, (int)((int)geneheader.get(i)[1])+10, y+rowHeight);
 		
@@ -855,6 +956,9 @@ void clear() {
 		selectedVar = null;
 }
 int getTableSize() {
+	if(genearray == null) {
+		return 0;
+	}
 	return genearray.size();
 }
 
@@ -1082,7 +1186,9 @@ public void mouseExited(MouseEvent arg0) {
 }
 
 void createPolygon() {
-	
+	if(sorter.index > headerlengths.length-1) {
+		return;
+	}
 	if(sorter.ascending) {
 		int[] x = { (int)((headerlengths[sorter.index][0]+headerlengths[sorter.index][1]))-15, (int)((headerlengths[sorter.index][0]+headerlengths[sorter.index][1]))-10, (int)((headerlengths[sorter.index][0]+headerlengths[sorter.index][1]))-5};
 		int[] y = { 12, 4, 12 };
@@ -1102,8 +1208,9 @@ void createPolygon() {
 public void mousePressed(MouseEvent event) {
 	
 	switch(event.getModifiers()) {
-	
-		case InputEvent.BUTTON1_MASK: {		
+		
+		case InputEvent.BUTTON1_MASK: {	
+			
 			if(!this.isEnabled()) {
 				break;
 			}
@@ -1115,14 +1222,11 @@ public void mousePressed(MouseEvent event) {
 					}
 					else {
 						sorter.ascending = true;
-					}
-					
+					}					
 					sorter.index = headerHover;
 					Collections.sort(genearray, sorter);
-					createPolygon();
-					
-				}
-				
+					createPolygon();					
+				}				
 					repaint();
 			}
 			
@@ -1236,15 +1340,11 @@ public void mouseReleased(MouseEvent arg0) {
 
 @Override
 public void mouseDragged(MouseEvent event) {
-	
-
 	mouseDrag = true;
-	if(resizeColumn > 0) {
-		
+	if(resizeColumn > 0) {		
 		resizeTable(resizeColumn, event.getX()-this.dragX);
 		this.dragX = event.getX();	
 	}
-
 }
 /*
 public ArrayList<AminoEntry> getMutations(VarNode vardraw) {
@@ -1325,7 +1425,73 @@ void getAminos(Gene gene) {
 	for(int t = 0; t<gene.varnodes.size(); t++) {
 		
 		varnode = gene.varnodes.get(t);
-		
+		if(gene.intergenic) {
+			
+			for(int v = 0; v<varnode.vars.size(); v++) {
+				entry = varnode.vars.get(v);
+				mutcount = 0;
+					for(int m = 0; m<entry.getValue().size(); m++) {
+						if(entry.getValue().get(m).alleles != null) {							
+							break;
+						}
+						if(!Main.drawCanvas.hideVar(entry.getValue().get(m))) {
+							if(VariantHandler.onlyselected.isSelected()) {
+								if(!entry.getValue().get(m).getSample().equals(Main.drawCanvas.selectedSample)) {
+									entry.getValue().remove(m);
+									m--;
+									continue;
+								}
+							}							
+							mutcount++;
+						}
+						else {							
+							entry.getValue().remove(m);
+							m--;
+						}
+				}
+					
+				if(mutcount == 0) {
+					continue;
+				}
+				
+				base = entry.getKey();
+				String[] addrow = new String[9];					
+					if(varnode.getTranscripts() == null) {
+						addrow[0] = gene.getName();		
+					}
+					else if(varnode.getTranscripts().size() == 2) {
+						addrow[0] = gene.getName() +" ... " +varnode.getTranscripts().get(1).getGenename();		
+					}
+					else if(varnode.getPosition() < gene.getStart()) {
+						addrow[0] = "... " +varnode.getTranscripts().get(1).getGenename();	
+					}
+					else {
+						addrow[0] = gene.getName() +" ...";	
+					}
+				
+								
+				addrow[1] = ""+mutcount;
+				addrow[2] = gene.getChrom() +":"+MethodLibrary.formatNumber((varnode.getPosition()+1));
+				addrow[3] = "Intergenic";
+				if(varnode.isRscode() != null) {
+					addrow[4] = varnode.rscode;
+				}
+				else {
+					addrow[4] = "N/A";
+				}
+				addrow[5] = base;
+				addrow[6] = "Intergenic";
+				addrow[7] = "Intergenic";
+				addrow[8] = "Intergenic";
+				
+				AminoEntry aminoentry = new AminoEntry(addrow, varnode);
+				
+				aminoarray.add(aminoentry);		
+			}
+			
+			
+			continue;
+		}
 		if(varnode.getExons() != null) {
 			
 	//	for(int exon = 0; exon<varnode.getExons().size(); exon++) {
@@ -1336,7 +1502,8 @@ void getAminos(Gene gene) {
 				continue;
 			}
 			*/
-			if(!varnode.coding && !VariantHandler.utr.isSelected()) {				
+			if(!varnode.coding && !VariantHandler.utr.isSelected()) {	
+			
 				continue;
 			}
 			
@@ -1470,7 +1637,7 @@ void getAminos(Gene gene) {
 						addrow[1] = ""+mutcount;
 						addrow[2] = gene.getChrom() +":"+MethodLibrary.formatNumber((varnode.getPosition()+1));					
 						addrow[3] = Main.getBase.get(varnode.getRefBase()) +"->" +base +" (intronic)";							
-				
+						
 						if(varnode.isRscode() != null) {
 							addrow[4] = varnode.rscode;
 						}
@@ -1513,7 +1680,9 @@ void getAminos(Gene gene) {
 												
 					}
 			}
-				
+			
+		
+		
 		//	}
 			
 		}

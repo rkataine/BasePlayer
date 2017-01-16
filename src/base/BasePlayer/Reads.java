@@ -31,7 +31,7 @@ public class Reads implements Serializable{
 	int startpos, endpos;
 	int readwheel = 0;
 	private transient Rectangle scrollbar = new Rectangle(), scroller = new Rectangle();
-	private transient int readstart=0, readend=0, coveragestart = 0, coverageend = 0;
+	private transient Integer readstart=0, readend=0, coveragestart = 0, coverageend = 0;
 	private transient boolean readScroll = false;
 	public boolean complete = false, loading = false, nodraw = false;
 	Font readfont =new Font("SansSerif", Font.BOLD, 10);
@@ -68,7 +68,7 @@ public class Reads implements Serializable{
 	void setCoverages(double[][] coverages) {
 		this.coverages = coverages;
 	}
-	int getReadStart() {
+	Integer getReadStart() {
 		return readstart;
 	}
 	int getCoverageStart() {

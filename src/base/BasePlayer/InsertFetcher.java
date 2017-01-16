@@ -10,6 +10,12 @@
  *  
  */
 package base.BasePlayer;
+import htsjdk.samtools.Cigar;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -25,7 +31,7 @@ import java.util.Map;
 
 
 public class InsertFetcher {
-/*
+
 	byte[] seqresult;
 	private StringBuffer seqBuffer;
 	private RandomAccessFile chromo;
@@ -611,14 +617,10 @@ public class InsertFetcher {
 		
 	}
 	
-void searchInsSites2(SAMFileReader samFileReader, RandomAccessFile reference) {
-		
-			
-						
-			SAMRecord cur;
-			
-			String sequence = "";
-			
+void searchInsSites2(SAMFileReader samFileReader, RandomAccessFile reference) {		
+									
+			SAMRecord cur;			
+			String sequence = "";			
 			String readString = "";
 			int interval = 1000;
 			int seqStart = 0, seqEnd = interval;
@@ -627,8 +629,7 @@ void searchInsSites2(SAMFileReader samFileReader, RandomAccessFile reference) {
 			List<CigarElement> elements;
 			int count = 0, miscount = 0;
 			int readpointer = 0, seqpointer = 0;
-			while (iter.hasNext()) {			
-				
+			while (iter.hasNext()) {						
 				cur = iter.next();
 				
 				if(cur.getReadUnmappedFlag() || cur.getMappingQuality() < 10) {
@@ -639,19 +640,13 @@ void searchInsSites2(SAMFileReader samFileReader, RandomAccessFile reference) {
 				if(count == 50) {
 					break;
 				}
-				if (cur.getUnclippedEnd() > seqEnd) {
-					
-					
+				if (cur.getUnclippedEnd() > seqEnd) {			
 					
 					seqStart = cur.getUnclippedStart()-100;
 					seqEnd = seqStart+interval;
 					sequence = getSeq(cur.getReferenceName(), seqStart, seqEnd, reference); 
 					
-			//		System.out.println(sequence);
-					
-				}
-			
-				
+				}			
 				
 				try {
 					miscount = 0;
@@ -792,5 +787,5 @@ void searchInsSites2(SAMFileReader samFileReader, RandomAccessFile reference) {
 		
 		
 		return resString;			
-	}*/
+	}
 }

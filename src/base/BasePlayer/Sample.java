@@ -20,6 +20,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import javax.swing.JOptionPane;
+
 public class Sample implements Serializable{
 	
 	
@@ -27,7 +29,7 @@ public class Sample implements Serializable{
 	private transient HashMap<SplitClass, Reads> readHash;
 	Short maxCoverage = 0;
 	Short prepixel = 0;
-	boolean reading = false, multiVCF = false, multipart = false;
+	boolean reading = false, multiVCF = false, multipart = false, removed = false;
 	private Short index;
 	private String sampleName;
 	private String tabixfile;
@@ -43,7 +45,7 @@ public class Sample implements Serializable{
 	double callrates = 0.0;
 	double[] mutationTypes;
 	short phred = 33;
-	public boolean MD = false, CRAM = false;
+	public boolean MD = false, CRAM = false, hasMates = false;
 	public int sitioRate = 0, versioRate = 0;
 	
 	Sample(String sampleName, short index, String tabixfile) {		
@@ -98,7 +100,11 @@ public class Sample implements Serializable{
 		}
 		}
 		catch(Exception e) {
+			
+			this.inputStream =null;
 			e.printStackTrace();
+			JOptionPane.showMessageDialog(Main.chromDraw, e.getMessage() , "Error", JOptionPane.ERROR_MESSAGE);
+			
 		}
 	}
 	BufferedReader getVCFReader() {
@@ -115,7 +121,14 @@ public class Sample implements Serializable{
 	void setMates() {
 		this.mates = new HashMap<String, ArrayList<ReadNode>>();
 	}
-	
+	short getMultiIndex() {
+		if(this.multipart) {
+			return (short)(this.index-1);
+		}
+		else {
+			return this.index;
+		}
+	}
 	short getIndex() {
 		return this.index;
 	}

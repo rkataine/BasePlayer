@@ -105,6 +105,7 @@ public class AddGenome  extends JPanel implements ActionListener {
 			File annofile = null;
 			Main.drawCanvas.splits.get(0).getGenes().clear();
 			Boolean ok = false;
+			String annotationUrl = "";
 			String[] urlsplit = null;
 			File fastatest = new File("test");
 			if(this.urls != null) {
@@ -119,16 +120,20 @@ public class AddGenome  extends JPanel implements ActionListener {
 					Main.drawCanvas.loadingtext ="Downloading " +genomeFile.getName();
 					Main.downloadFile(fastafile, targetDir, WelcomeScreen.sizeHash.get(urls)[0]);				
 				}
-				
+				annotationUrl = annotationFile.getName();
 				URL gfffile= urlList[1];
-				targetDir = Main.userDir +"/genomes/" +urlsplit[0] +"/annotation/" +urlsplit[1] +"/";
-				new File(targetDir).mkdirs();
-				File gff = new File(targetDir +FilenameUtils.getName(gfffile.getFile()));				
-				
-				Main.drawCanvas.loadingtext ="Downloading " +gff.getName();
-				Main.downloadFile(gfffile, targetDir, WelcomeScreen.sizeHash.get(urls)[1]);				
+				targetDir = Main.userDir +"/genomes/" +urlsplit[0] +"/annotation/";
 				
 				
+				
+				String filetest = Main.downloadFile(gfffile, targetDir, WelcomeScreen.sizeHash.get(urls)[1]);				
+				if(!filetest.equals(FilenameUtils.getName(gfffile.getFile()))) {
+					annotationUrl = filetest;
+					annotationFile = new File( Main.userDir +"/genomes/" +urlsplit[0] +"/annotation/" +filetest +"/" +filetest);
+				}
+				
+				
+				Main.drawCanvas.loadingtext ="Downloading " +filetest;
 				if(urlList.length == 3) {
 					URL bandFile = urlList[2];
 					targetDir = Main.userDir +"/genomes/" +urlsplit[0] +"/";
@@ -166,7 +171,7 @@ public class AddGenome  extends JPanel implements ActionListener {
 					}
 					
 					if(urls != null) {
-						annofile = new File(genomedir +"annotation/" +urlsplit[1] +"/"+annotationFile.getName().substring(0,annotationFile.getName().indexOf(".gff")) +".bed.gz");
+						annofile = new File(genomedir +"annotation/" +annotationUrl +"/"+annotationFile.getName().substring(0,annotationFile.getName().indexOf(".gff")) +".bed.gz");
 						
 					}
 					else {
@@ -240,7 +245,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			try {
 				
 				SAMSequenceDictionary dict = ReadDict(new File(genomeFile));				
-				System.out.println(dict);
+				
 				FileRead.readGFF(gffFile, outfile.getCanonicalPath(), dict);
 			}
 			catch(Exception e) {

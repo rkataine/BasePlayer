@@ -104,6 +104,9 @@ public class ReadNode {
 		 //TODO MT & M
 			
 			if(record.getReadPairedFlag() && !record.getMateUnmappedFlag()) {
+				if(sample.hasMates == false) {
+					sample.hasMates = true;
+				}
 				if(record.getMateReferenceName().contains("chr")) {
 					if(record.getMateReferenceName().contains("M") ) {
 						this.mateChrom = record.getMateReferenceName().replace("chr", "") +"T";

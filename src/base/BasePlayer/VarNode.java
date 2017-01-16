@@ -31,6 +31,7 @@ public class VarNode {
 	Integer clusterId;
 	private ArrayList<BedNode> bedHits;
 	String rscode;
+	ClusterNode clusterNode;
 	ArrayList<Map.Entry<String, ArrayList<SampleNode>>> vars = new ArrayList<Map.Entry<String, ArrayList<SampleNode>>>();	
 	boolean incluster, indel, found;
 	public String codon;
@@ -82,6 +83,9 @@ public class VarNode {
 	public void setBedhits() {
 		this.bedHits = new ArrayList<BedNode>();
 	}
+	public void remBedhits() {
+		this.bedHits = null;
+	}
 /*	public VarNode clone() throws CloneNotSupportedException {
         return (VarNode) super.clone();
 	}*/	
@@ -101,7 +105,21 @@ public class VarNode {
 		return this.prev;
 	}
 	
-	private VarNode getNextVisible(VarNode node) {
+	public VarNode getNextVisible(VarNode node) {
+		node = node.getNext();
+		while(Main.drawCanvas.hideNodeTotal(node)) {
+			if(node != null) {
+				node = node.next;
+			}
+			else {
+				break;
+			}
+		}
+		return node;	
+		
+	}
+	
+	private VarNode getNextVisibleCluster(VarNode node) {
 		while(Main.drawCanvas.hideNodeCluster(node)) {
 			if(node != null) {
 				node = node.next;
@@ -112,16 +130,29 @@ public class VarNode {
 		}
 		return node;
 	}
+	public String getChrom() {
+		if(getTranscripts() != null) {
+			return getTranscripts().get(0).getChrom();
+		}
+		else if(getExons() != null) {
+			return getExons().get(0).getTranscript().getChrom();
+		}
+		else {
+			return null;
+		}
+		
+	}
 	public VarNode getNext(VarNode node ) {
 		if(Main.drawCanvas.hideNodeCluster(this.next)) {
 			if(this.next != null) {
-				return getNextVisible(this.next.next);
+				return getNextVisibleCluster(this.next.next);
 			}
 			else {
 				return null;
 			}
 		}
 		else {
+			
 			return this.next;
 		}
 	}
@@ -135,8 +166,8 @@ public class VarNode {
 	public void setInGene() {
 		this.inGene = true;
 	}
-	public void setBedhit() {
-		this.bedhit = true;
+	public void setBedhit(boolean value) {
+		this.bedhit = value;
 	}
 	public boolean isBedhit() {
 		return this.bedhit;		
@@ -170,9 +201,7 @@ public class VarNode {
 		}
 		return null;
 	}
-/*	public List<SampleNode> getSamples() {
-		return null;
-	}*/
+
 	public void addSample(String variation, short coverage, short calls, boolean genotype, short quality, Sample sample) {	
 		found = false;	
 		if (variation.length() > 1 ) indel = true;

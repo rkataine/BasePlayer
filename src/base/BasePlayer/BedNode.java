@@ -10,7 +10,7 @@
  *  
  */
 package base.BasePlayer;
-import java.awt.Color;
+
 import java.util.ArrayList;
 
 public class BedNode {
@@ -20,7 +20,7 @@ public class BedNode {
 	private final int length;
 	int level;
 	Double value;
-	Boolean forward;
+	Boolean forward, inVarlist = false;
 	int mutations;
 	private final String chrom;
 	private BedNode next, prev;
@@ -33,21 +33,37 @@ public class BedNode {
 	
 	public BedNode(String chr, int position, int length, BedTrack track) {
 		this.position = position;
-		this.length = length;	
+		if(length < 1) {
+			this.length = 1;
+		}
+		else {
+			this.length = length;	
+		}
 		this.track = track;
 		this.chrom = chr;
 	}
-/*	public BedNode clone() throws CloneNotSupportedException {
-        return (BedNode) super.clone();
-	}*/
+	
 	public String getChrom() {
 		return this.chrom;
 	}
 	public BedTrack getTrack() {
 		return this.track;
 	}
+	public void removeNode() {
+		if(this.getPrev() != null) {
+			this.getPrev().putNext(this.getNext());
+		}
+		if(this.getNext() != null) {
+			this.getNext().putPrev(this.getPrev());
+		}
+		this.putNext(null);
+		this.putPrev(null);
+	}
 	public int getPosition() {
 		return this.position;
+	}
+	public int getDrawPosition() {
+		return this.position+1;
 	}
 	public int getLength() {
 		return this.length;

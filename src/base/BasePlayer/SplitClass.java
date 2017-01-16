@@ -30,7 +30,7 @@ public class SplitClass implements Serializable {
 	//int seqStartPos = 0;	
 	boolean updateReads = false, removed = false, clearedReads = true, clearedCoverages = true;	
 	//public StringBuffer readSequence = null;
-	ReferenceSeq drawReference;
+	private transient ReferenceSeq drawReference;
 	private transient Double divider = 4.0;
 	public boolean splitRead = false;
 	private transient SplitDraw splitDraw; 
@@ -54,6 +54,15 @@ public class SplitClass implements Serializable {
 	void setTranscripts(ArrayList<Transcript> trans) {
 		this.transcripts = trans;
 	}*/
+	ReferenceSeq getReference() {
+		return this.drawReference;
+	}
+	void setReference(ReferenceSeq ref) {
+		this.drawReference = ref;
+	}
+	void nullRef() {
+		this.drawReference = null;
+	}
 	int getMinReadStart() {
 		return this.minReadStart;
 	}

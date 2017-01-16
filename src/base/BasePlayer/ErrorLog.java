@@ -27,7 +27,7 @@ import javax.swing.JTextArea;
 public class ErrorLog extends JPanel implements ActionListener {
 	
 	private static final long serialVersionUID = 1L;
-	static JFrame frame = new JFrame("Error log");    
+	static JFrame frame = new JFrame("BasePlayer log");    
 	static ArrayList<String> errors = new ArrayList<String>();
 
 	JButton save = new JButton("Save");
@@ -55,8 +55,7 @@ public class ErrorLog extends JPanel implements ActionListener {
 				while(errors.size() > 100) {
 					errors.remove(0);
 				}
-			}
-			
+			}			
 		}	
 	}
 	
@@ -65,7 +64,7 @@ public class ErrorLog extends JPanel implements ActionListener {
 	
 		errorField.append(line +"\n");			
 		errorField.setText(errorField.getText()  +"--------------------------\n");
-	
+		
 	}
 	public static void main(String[] args) {
 		

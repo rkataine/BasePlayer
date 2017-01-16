@@ -21,7 +21,10 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JColorChooser;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -37,9 +40,10 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	private static final long serialVersionUID = 1L;
 	static JSlider insertSize = new JSlider(0,2000);
 	static JLabel insertLabel = new JLabel("Maximum insert size: 1000"), readLabel = new JLabel("Read filters:");
+	static Dimension mindimension = new Dimension(200, 15);
 	static JLabel depthLimitLabel;
 	static JLabel coverageDistanceLabel = new JLabel("Coverage draw distance");
-	static JTextField coverageDistanceSlide = new JTextField("1000000");
+	static JTextField coverageDistanceField = new JTextField("1000000");
 	static JSlider depthLimitSlide = new JSlider(1,10000);
 	static JSlider colorSlider = new JSlider(0,720);
 	static JSlider mappingQuality = new JSlider(0,60), baseQuality = new JSlider(0,60);
@@ -47,9 +51,13 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	static JLabel colorLabel = new JLabel("Color slider");
 	static JFrame frame = new JFrame("Settings");
 	static JCheckBox softclips = new JCheckBox("Show bases in softclips");
-	JPanel readPanel = new JPanel(new GridLayout(10,2));
-	static int readDrawDistance = 60000, readDepthLimit = 1000, coverageDrawDistance = 1000000, coverageAlleleFreq = 1;
-//	public static boolean softClips = true;
+	JPanel readPanel = new JPanel(new GridLayout(11,2));
+	JButton colorButton = new JButton("Select color");
+	static int readDrawDistance = 60000, readDepthLimit = 1000, coverageDrawDistance = 1000000, coverageAlleleFreq = 1, windowSize = 1000000, bigFile = 200;
+	static JLabel windowLabel = new JLabel("Window size for large files and processing.");
+	static JTextField windowField = new JTextField("1000000");
+
+	static JColorChooser colorchooser = new JColorChooser();
 	
 	static int getMaxInsertSize() {
 		return insertSize.getValue();
@@ -63,24 +71,31 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	public Settings() {
 		super(new GridLayout());		
 		this.setBackground(Color.black);
+		
 		depthLimitLabel = new JLabel("Read depth limit: " +readDepthLimit);
-		frame.setPreferredSize(new Dimension(400,200));
-		readPanel.setPreferredSize(new Dimension(400,200));
+		depthLimitLabel.setMinimumSize(mindimension);
+		frame.setPreferredSize(new Dimension(400,300));
+		readPanel.setPreferredSize(new Dimension(400,300));
 		readPanel.add(readLabel);
+		readLabel.setMinimumSize(mindimension);
 		readPanel.add(new JLabel());
 		readPanel.add(new JSeparator());
 		readPanel.add(new JSeparator());
 		reloadReads.setForeground(Color.red);
 		reloadReads.setVisible(false);
+		reloadReads.setMinimumSize(mindimension);
 		readPanel.add(new JLabel());
 		readPanel.add(reloadReads);
 		reloadReads.addMouseListener(this);
+		insertSize.setMinimumSize(mindimension);
 		readPanel.add(insertSize);
 		insertSize.setValue(1000);
 		insertSize.setOpaque(false);
+		mappingQuality.setMinimumSize(mindimension);
 		mappingQuality.setValue(10);
 		mappingQuality.setOpaque(false);
 		baseQuality.setOpaque(false);
+		baseQuality.setMinimumSize(mindimension);
 		insertSize.addChangeListener(this);
 		mappingQuality.addChangeListener(this);
 		baseQuality.addChangeListener(this);
@@ -88,11 +103,15 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		depthLimitSlide.addChangeListener(this);
 		depthLimitSlide.setValue(readDepthLimit);
 		depthLimitSlide.setOpaque(false);
+		softclips.addActionListener(this);
+		softclips.setOpaque(false);
 		colorSlider.addChangeListener(this);
-		colorSlider.setValue(696);
+		colorSlider.setValue(411);
 		colorLabel.setText("Color slider: " +colorSlider.getValue());
-		coverageDistanceSlide.setOpaque(false);
-		coverageDistanceSlide.addKeyListener(this);
+		coverageDistanceField.setOpaque(false);
+		coverageDistanceField.addKeyListener(this);
+		windowField.setOpaque(false);
+		windowField.addKeyListener(this);
 		readPanel.add(insertLabel);		
 		readPanel.add(mappingQuality);
 		readPanel.add(mappingLabel);
@@ -105,11 +124,18 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		readPanel.add(colorSlider);
 		readPanel.add(colorLabel);
 		colorSlider.setOpaque(false);
-		readPanel.add(coverageDistanceSlide);
+		colorButton.setPreferredSize(new Dimension(Main.buttonWidth, Main.buttonHeight));
+		colorButton.addActionListener(this);
+		//readPanel.add(colorButton);
+		//readPanel.add(new JSeparator());
+		readPanel.add(coverageDistanceField);
 		readPanel.add(coverageDistanceLabel);
+		readPanel.add(windowField);
+		readPanel.add(windowLabel);
 		add(readPanel);
 		readPanel.setBackground(Color.white);
 		setBackground(Color.white);
+		
 	}
 	
 	private static void createAndShowGUI() {	
@@ -140,7 +166,11 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	          }
 	      });	
 	}
-	public void actionPerformed(ActionEvent arg0) {		
+	public void actionPerformed(ActionEvent event) {		
+		if(event.getSource() == softclips) {
+			reloadReads.setVisible(true);
+			return;
+		}
 		
 	}
 	@Override
@@ -150,33 +180,33 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 			reloadReads.setVisible(true);
 			return;
 		}
-		if(event.getSource() == colorSlider) {
+		else if(event.getSource() == colorSlider) {
 			if(colorSlider.getValue() <= 120) {
-				Draw.sidecolor = new Color(200, 80+colorSlider.getValue(), 150);				
+				Draw.sidecolor = new Color(200, 80+colorSlider.getValue(), 120);				
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 			}
 			
 			else if(colorSlider.getValue() <= 240) {
-				Draw.sidecolor = new Color(200-(colorSlider.getValue()-120), 200, 150);
+				Draw.sidecolor = new Color(200-(colorSlider.getValue()-120), 200, 120);
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 				
 			}
 			else if(colorSlider.getValue() <= 360) {
-				Draw.sidecolor = new Color(150, 200, 80+(colorSlider.getValue()-240));
+				Draw.sidecolor = new Color(120, 200, 80+(colorSlider.getValue()-240));
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 				
 			}
 			else if(colorSlider.getValue() <= 480) {
-				Draw.sidecolor = new Color(150, 200-(colorSlider.getValue()-360), 200);
+				Draw.sidecolor = new Color(120, 200-(colorSlider.getValue()-360), 200);
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 				
 			}
 			else if(colorSlider.getValue() <= 600) {
-				Draw.sidecolor = new Color(80+(colorSlider.getValue()-480),150, 200);	
+				Draw.sidecolor = new Color(80+(colorSlider.getValue()-480),120, 200);	
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 			}
 			else {
-				Draw.sidecolor = new Color(200, 150, 200-(colorSlider.getValue()-600));	
+				Draw.sidecolor = new Color(200, 120, 200-(colorSlider.getValue()-600));	
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
 			}
 			colorLabel.setText("Color slider: " +colorSlider.getValue());
@@ -221,6 +251,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 			
 			return;
 		}
+		
 		/*if(event.getSource() == coverageDistanceSlide) {
 			coverageDrawDistance = coverageDistanceSlide.getValue();
 			coverageDistanceLabel.setText("Coverage draw distance: " +coverageDrawDistance +"bp");
@@ -281,9 +312,17 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	}
 	@Override
 	public void keyPressed(KeyEvent e) {
-		if(e.getSource() == coverageDistanceSlide) {
+		if(e.getSource() == coverageDistanceField) {
 			try {
-				Settings.coverageDrawDistance = Integer.parseInt(coverageDistanceSlide.getText());
+				Settings.coverageDrawDistance = Integer.parseInt(coverageDistanceField.getText());
+			}
+			catch(Exception ex) {
+				Settings.coverageDrawDistance = Integer.MAX_VALUE;
+			}
+		} 
+		if(e.getSource() == windowField) {
+			try {
+				Settings.windowSize = Integer.parseInt(windowField.getText());
 			}
 			catch(Exception ex) {
 				Settings.coverageDrawDistance = Integer.MAX_VALUE;
