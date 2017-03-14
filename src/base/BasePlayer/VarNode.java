@@ -13,6 +13,7 @@ package base.BasePlayer;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 
+import java.util.HashMap;
 //import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -37,10 +38,9 @@ public class VarNode {
 	public String codon;
 	boolean controlled;
 	private Entry<String, ArrayList<SampleNode>> entry;
-
 	public boolean coding = false;
 	
-	public VarNode(int position, byte ref, String variation, short coverage, short calls, boolean genotype, short quality, String rscode, Sample sample, VarNode prev, VarNode next) {
+	public VarNode(int position, byte ref, String variation, short coverage, short calls, boolean genotype, Float quality, Float gq, HashMap<String, Float> advquals, String rscode, Sample sample, VarNode prev, VarNode next) {
 		this.position = position;
 		this.rscode = rscode;
 		this.refBase = ref; //Main.bases.get(ref);
@@ -48,14 +48,15 @@ public class VarNode {
 		if(vars.size() == 0) {
 			Map.Entry<String, ArrayList<SampleNode>> entry = new AbstractMap.SimpleEntry<String, ArrayList<SampleNode>>(variation, new ArrayList<SampleNode>());
 			
-			entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, sample));
+			entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, gq, advquals,sample));
+			
 			vars.add(entry);
 		}
 		else {
 			found = false;
 			for(Map.Entry<String, ArrayList<SampleNode>> entry : vars) {
 				if(entry.getKey().equals(variation)) {
-					entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, sample));
+					entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, gq, advquals,sample));
 					found = true;
 					break;
 				}
@@ -63,7 +64,7 @@ public class VarNode {
 			}
 			if(!found) {
 				Map.Entry<String, ArrayList<SampleNode>> entry = new AbstractMap.SimpleEntry<String, ArrayList<SampleNode>>(variation, new ArrayList<SampleNode>());
-				entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, sample));
+				entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, gq,advquals, sample));
 				
 				vars.add(entry);
 			}
@@ -202,19 +203,19 @@ public class VarNode {
 		return null;
 	}
 
-	public void addSample(String variation, short coverage, short calls, boolean genotype, short quality, Sample sample) {	
+	public void addSample(String variation, short coverage, short calls, boolean genotype, Float quality, Float gq, HashMap<String, Float> advquals, Sample sample) {	
 		found = false;	
 		if (variation.length() > 1 ) indel = true;
 		for(Map.Entry<String, ArrayList<SampleNode>> entry : vars) {
 			if(entry.getKey().equals(variation)) {
-				entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, sample));
+				entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, gq, advquals, sample));
 				found = true;
 				break;
 			}			
 		}
 		if(!found) {
 			Map.Entry<String, ArrayList<SampleNode>> entry = new AbstractMap.SimpleEntry<String, ArrayList<SampleNode>>(variation, new ArrayList<SampleNode>());
-			entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, sample));
+			entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, gq, advquals,sample));
 			vars.add(entry);
 		}
 

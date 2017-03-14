@@ -256,7 +256,7 @@ void drawSidebar() {
 		buf.setColor(Color.black);
 		buf.setStroke(Draw.basicStroke);
 		
-		if(hoverIndex > -1 && this.remoBox.getBounds().y != (int)(trackDivider.get(hoverIndex)*this.getHeight())-11 || this.remoBox.getBounds().x != Main.sidebarWidth-11) {
+		if(hoverIndex > -1 && (this.remoBox.getBounds().y != (int)(trackDivider.get(hoverIndex)*this.getHeight())-11 || this.remoBox.getBounds().x != Main.sidebarWidth-11)) {
 			this.remoBox.setBounds(Main.sidebarWidth-11, (int)(trackDivider.get(hoverIndex)*this.getHeight())-11, 8, 8);
 		}
 	
@@ -352,70 +352,78 @@ public void paint(Graphics g) {
 }
 
 public void mouseClicked(MouseEvent event) {
-	if(this.selectedBox > -1) {
-		this.requestFocus();
-		typing  = true;
-		typeBox = this.selectedBox;
-		if(event.getClickCount() == 2) {
-			Control.controlData.fileArray.get(selectedBox).alleletext = new StringBuffer("");
-			typeTextWidth = 0;
-			cursorPosition = 0;
-		}
-		else {
-			typeTextWidth = (int)fm.getStringBounds(Control.controlData.fileArray.get(typeBox).alleletext.toString(), buf).getWidth();
-			if(event.getX() > 12+typeTextWidth) {
-				cursorPosition = Control.controlData.fileArray.get(selectedBox).alleletext.length();
-				
+	switch(event.getModifiers()) {	
+	case InputEvent.BUTTON1_MASK: {	
+		if(this.selectedBox > -1) {
+			this.requestFocus();
+			typing  = true;
+			typeBox = this.selectedBox;
+			if(event.getClickCount() == 2) {
+				Control.controlData.fileArray.get(selectedBox).alleletext = new StringBuffer("");
+				typeTextWidth = 0;
+				cursorPosition = 0;
 			}
 			else {
-				int pos = 0;
-				while((int)fm.getStringBounds(Control.controlData.fileArray.get(typeBox).alleletext.toString().substring(0,pos), buf).getWidth()+12 <= event.getX()) {
-					pos++;
-				}				
-				cursorPosition = pos;
-				typeTextWidth = (int)fm.getStringBounds(Control.controlData.fileArray.get(typeBox).alleletext.substring(0, cursorPosition), buf).getWidth();
-			}			
-		}	
-	}
-	else {
-		typing = false;
-	}
-	if(this.selectedPlay > -1 && Control.controlData.fileArray.get(selectedPlay).playbox.intersects(sideMouseRect)) {
-		
-		if(!Control.controlData.fileArray.get(selectedPlay).controlOn) {
-			Control.controlData.fileArray.get(selectedPlay).alleleFreq = Double.parseDouble(Control.controlData.fileArray.get(selectedPlay).alleletext.toString());
-			Control.controlData.fileArray.get(selectedPlay).controlOn = true;
-			Control.controlData.controlsOn = true;
-		
-			Control.runner runner = new Control.runner();
-			runner.execute();
+				typeTextWidth = (int)fm.getStringBounds(Control.controlData.fileArray.get(typeBox).alleletext.toString(), buf).getWidth();
+				if(event.getX() > 12+typeTextWidth) {
+					cursorPosition = Control.controlData.fileArray.get(selectedBox).alleletext.length();
+					
+				}
+				else {
+					int pos = 0;
+					while((int)fm.getStringBounds(Control.controlData.fileArray.get(typeBox).alleletext.toString().substring(0,pos), buf).getWidth()+12 <= event.getX()) {
+						pos++;
+					}				
+					cursorPosition = pos;
+					typeTextWidth = (int)fm.getStringBounds(Control.controlData.fileArray.get(typeBox).alleletext.substring(0, cursorPosition), buf).getWidth();
+				}			
+			}	
 		}
 		else {
-			Control.controlData.fileArray.get(selectedPlay).controlOn = false;
-			boolean allfalse = true;
-			for(int i = 0; i<Control.controlData.fileArray.size(); i++) {
-				if(Control.controlData.fileArray.get(i).controlOn) {
-					allfalse = false;
-					break;
-				}
-			}
-			if(allfalse) {
-				Control.controlData.controlsOn = false;
-			}
-			if(VariantHandler.commonSlider.getValue() > 1 && VariantHandler.clusterSize > 0) {
-		    	Main.drawCanvas.calcClusters(FileRead.head);
-			}
-		//	Control.useCheck.setSelected(false);
-			Draw.updatevars = true;
-			Main.drawCanvas.repaint();
+			typing = false;
 		}
-		
+		if(this.selectedPlay > -1 && Control.controlData.fileArray.get(selectedPlay).playbox.intersects(sideMouseRect)) {
+			
+			if(!Control.controlData.fileArray.get(selectedPlay).controlOn) {
+				Control.controlData.fileArray.get(selectedPlay).alleleFreq = Double.parseDouble(Control.controlData.fileArray.get(selectedPlay).alleletext.toString());
+				Control.controlData.fileArray.get(selectedPlay).controlOn = true;
+				Control.controlData.controlsOn = true;
+			
+				Control.runner runner = new Control.runner();
+				runner.execute();
+			}
+			else {
+				Control.controlData.fileArray.get(selectedPlay).controlOn = false;
+				boolean allfalse = true;
+				for(int i = 0; i<Control.controlData.fileArray.size(); i++) {
+					if(Control.controlData.fileArray.get(i).controlOn) {
+						allfalse = false;
+						break;
+					}
+				}
+				if(allfalse) {
+					Control.controlData.controlsOn = false;
+				}
+				if(VariantHandler.commonSlider.getValue() > 1 && VariantHandler.clusterSize > 0) {
+			    	Main.drawCanvas.calcClusters(FileRead.head);
+				}
+			//	Control.useCheck.setSelected(false);
+				Draw.updatevars = true;
+				Main.drawCanvas.repaint();
+			}
+			
+		}
+		if(removeControl > -1) {			
+			removeControl(removeControl);
+		}
+		repaint();	
+		break;
 	}
-	if(removeControl > -1) {
-		
-		removeControl(removeControl);
-	}
-	repaint();	
+	case InputEvent.BUTTON3_MASK: {			
+		Control.controlData.fileArray.get(hoverIndex).menu.show(this, mouseX, mouseY);
+		//this.bedTrack.get(hoverIndex).getPopup().show(this, mouseX, mouseY);
+	}	
+	}	
 }	
 
 public void removeControl(int removeControl) {
@@ -578,7 +586,7 @@ switch(event.getModifiers()) {
 										this.trackDivider.set(i,1-((1-this.tempDivider.get(i))/(this.getHeight()-preresize))*(this.getHeight()-mouseY));
 									}
 									catch(Exception e) {
-										System.out.println(this.tempDivider.get(i));
+									//	System.out.println(this.tempDivider.get(i));
 										e.printStackTrace();
 									}
 								}
@@ -647,6 +655,7 @@ switch(event.getModifiers()) {
 }	
 public void mouseMoved(MouseEvent event) {
 	mouseY = event.getY();
+	mouseX = event.getX();
 	this.mouseRect.setBounds(event.getX()-Main.sidebarWidth, event.getY(), 1, 1);	
 	this.sideMouseRect.setBounds(event.getX(), event.getY(), 1, 1);
 	

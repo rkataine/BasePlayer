@@ -41,11 +41,12 @@ public class Sample implements Serializable{
 	long vcfEndPos = 0;
 	Integer longestRead = 0;
 	String chr = "", vcfchr = "";
+	Short somaticColumn = null;
 	private transient HashMap<String, ArrayList<ReadNode>> mates;
 	double callrates = 0.0;
 	double[] mutationTypes;
 	short phred = 33;
-	public boolean MD = false, CRAM = false, hasMates = false;
+	public boolean MD = false, CRAM = false, hasMates = false,complete = false;
 	public int sitioRate = 0, versioRate = 0;
 	
 	Sample(String sampleName, short index, String tabixfile) {		

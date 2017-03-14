@@ -12,12 +12,11 @@
 package base.BasePlayer;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -30,19 +29,20 @@ import java.util.Hashtable;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.JSlider;
 import javax.swing.JTextField;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 
 import base.BBfile.BBFileHeader;
-import base.BasePlayer.BedCanvas.Annotator;
 
-public class BedTrack implements Serializable, ActionListener, KeyListener, MouseListener, PopupMenuListener, DocumentListener {
+
+public class BedTrack implements Serializable, ActionListener, KeyListener, MouseListener, PopupMenuListener, DocumentListener, ChangeListener {
 	
 	private static final long serialVersionUID = 1L;
 	final File file;
@@ -60,7 +60,8 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	double maxvalue = 0, minvalue = Double.MAX_VALUE, scale = 0;
 	boolean negatives = false, first = true, used = false, loading = false, waiting = false, hasvalues = false, updated = false;
 	String chr = "";
-	short iszerobased = 0;
+	private transient BedNode drawNode = null;
+	short iszerobased = 0, nodeHeight = 10;
 	private transient BBFileHeader bbfileheader = null;
 	public boolean nulled = false;
 	private transient JPopupMenu menu;
@@ -69,7 +70,43 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	private transient JButton columnSelector;
 	Double limitValue = (double)Integer.MIN_VALUE;
 	private transient ColumnSelector selector = null;
+	private transient JSlider sizeSlider;
+	private transient base.BBfile.BBFileHeader fileheader;
+	private transient base.BBfile.BBZoomLevels zoomlevels;
+	private transient BBFileReader bbfileReader;
+	private transient Integer zoomLevel = null;
 	
+	public Integer getZoomlevel() {
+		return this.zoomLevel;
+	}
+	public void setZoomlevel(Integer i) {
+		this.zoomLevel = i; 
+	}
+	public BedNode getDrawNode() {
+		return this.drawNode;
+	}
+	public void setDrawNode(BedNode node) {
+		this.drawNode = node;
+	}
+	
+	public BBFileReader getBBfileReader() {
+		return this.bbfileReader;
+	}
+	public void setBBfileReader(BBFileReader reader) {
+		this.bbfileReader = reader;
+	}
+	public base.BBfile.BBFileHeader getFileHeader() {
+		return this.fileheader;
+	}
+	public void setFileHeader(base.BBfile.BBFileHeader header) {
+		this.fileheader = header;
+	}
+	public base.BBfile.BBZoomLevels getZoomlevels() {
+		return this.zoomlevels;
+	}
+	public void setZoomlevels(base.BBfile.BBZoomLevels levels) {
+		this.zoomlevels = levels;
+	}
 	public ColumnSelector getSelector() {
 		return this.selector;
 	}
@@ -121,6 +158,11 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 		affinityChange.setVisible(false);
 		zerobased.setSelected(true);
 		menu = new JPopupMenu("Options");
+		sizeSlider = new JSlider(1,20);
+		nodeHeight = (short)sizeSlider.getValue();
+		sizeSlider.addChangeListener(this);
+		sizeSlider.setValue(nodeHeight);
+		sizeSlider.setPreferredSize(new Dimension(30,18));
 		limitField = new JTextField("Value limit");
 		intersectBox.setSelected(true);
 		menu.add(intersectBox);
@@ -130,8 +172,9 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 		menu.add(affinityChange);
 		menu.add(limitField);
 		menu.add(columnSelector);
-		
+		menu.add(sizeSlider);
 		menu.addPopupMenuListener(this);
+		collapseBox.addActionListener(this);
 		collapseBox.setSelected(true);
 		limitField.addMouseListener(this);
 		intersectBox.addActionListener(this);
@@ -218,6 +261,9 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 		else if(e.getSource() == columnSelector) {
 			selector.frame.setVisible(true);
 		}
+		/*else if(e.getSource() == collapseBox) {
+			
+		}*/
 		Main.bedCanvas.repaint();
 		
 	}
@@ -256,7 +302,7 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 					updated = true;
 				}
 				catch(Exception ex ) {
-					
+					limitValue = (double)Integer.MIN_VALUE;
 				}
 			}
 		}
@@ -344,6 +390,7 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			
 		}
 		catch(Exception ex) {
+			
 			limitValue = (double)Integer.MIN_VALUE;
 		
 			limitField.setForeground(Color.red);
@@ -438,5 +485,16 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 		
 		
 	
+	}
+	@Override
+	public void stateChanged(ChangeEvent e) {
+		if(e.getSource() == sizeSlider) {
+			Main.bedCanvas.heightchanged = true;
+			nodeHeight = (short)sizeSlider.getValue();
+			Main.bedCanvas.updateTrack = this;
+			Main.bedCanvas.repaint();
+			Main.bedCanvas.updateTrack = null;
+		}
+		
 	}
 }

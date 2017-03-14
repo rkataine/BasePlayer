@@ -388,6 +388,36 @@ public class MethodLibrary {
 		return -1;
 	}
 	
+	public static int getControlBaseLength(String ref, String alt, int baselength) {
+		if(ref.length() == 1) {
+			return 0;
+		}
+		else if(!alt.contains(",")) {
+			return ref.length() -alt.length();
+		}
+		else {
+			String[] altsplit = alt.split(",");
+			int len = 0;
+			String altbase;
+			for(int i = 0; i<altsplit.length; i++) {
+				altbase = FileRead.getVariant(ref,altsplit[i]);
+				if(altbase.length() < 2 || altbase.startsWith("i")) {
+					continue;
+				}	
+				if(Character.isDigit(altbase.charAt(3))) {
+					len = Integer.parseInt(altbase.substring(3));
+					if(baselength < len) {					
+						baselength = len;
+						
+					}	
+				}
+			}
+			return baselength;
+		}
+		
+		
+	}
+	
 	public static int getBaseLength(ArrayList<Map.Entry<String, ArrayList<SampleNode>>> vars, int baselength ) {
 		int len = 1;
 		for(Map.Entry<String, ArrayList<SampleNode>> entry : vars) {			
@@ -403,19 +433,13 @@ public class MethodLibrary {
 			}
 			else {
 				continue;
-			}
-			//f(entry.getKey().substring(3).matches("\\d+")) {
-						
-			//}
-		/*	else {
-				if(baselength < entry.getKey().substring(3).length()) {
-					baselength = entry.getKey().substring(3).length();
-				}
-			}*/				
+			}		
+			
 		}
 		
 		return baselength;	
 	}
+	
 	public static double round(double value, int places) {
 	    if (places < 0) throw new IllegalArgumentException();
 	   
@@ -438,6 +462,7 @@ public class MethodLibrary {
 	public static void removeHeaderColumns(Object column) {		
 		
 		for(int i = VariantHandler.table.geneheader.size()-1; i>0; i--) {
+			
 			if(VariantHandler.table.geneheader.get(i)[0].equals(column)) {
 				if(VariantHandler.table.geneheader.get(i)[0] instanceof ControlFile) {
 					VariantHandler.table.geneheader.remove(i);
@@ -481,6 +506,7 @@ public class MethodLibrary {
 		for(int j = 0 ; j<VariantHandler.tables.size(); j++) {
 			
 			for(int i = VariantHandler.tables.get(j).geneheader.size()-1; i>0; i--) {
+				
 				if(VariantHandler.tables.get(j).geneheader.get(i)[0].equals(column)) {
 					if(VariantHandler.tables.get(j).geneheader.get(i)[0] instanceof ControlFile) {
 						VariantHandler.tables.get(j).geneheader.remove(i);
@@ -531,6 +557,7 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 		if(node.getBedHits() == null) {
 			return null;
 		}
+		
 		StringBuffer[] bedarray = new StringBuffer[Main.bedCanvas.bedTrack.size()];
 		for(int v = 0; v < node.getBedHits().size(); v++) {
 			
@@ -812,18 +839,16 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 	static void createBEDIndex(File file) {
 		try {
 		 BlockCompressedInputStream reader = new BlockCompressedInputStream(file);
-    	 
-	   	  String line;
+		
+	   	 String line;
 		
 		  TabixIndexCreator indexCreator;	
 		  SAMSequenceDictionary dict = AddGenome.ReadDict(Main.ref);
 		  indexCreator = new TabixIndexCreator(dict, TabixFormat.BED);	
 		
 	
-		BEDCodecMod bedCodec= new BEDCodecMod();		       
-		      
-		long filepointer = 0;
-		
+		BEDCodecMod bedCodec= new BEDCodecMod();		      
+		long filepointer = 0;		
 		boolean cancelled = false;
 		
 	    while((line = reader.readLine()) != null) {
@@ -832,17 +857,14 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 	    	filepointer =  reader.getFilePointer();
 	    		continue;
 	    	}
-	    	Feature bed = bedCodec.decode(line);
-	    	
-	    	
+	    	Feature bed = bedCodec.decode(line);	    	
 			indexCreator.addFeature(bed, filepointer);
 			filepointer = reader.getFilePointer();
 	    	}
 		    catch(Exception ex) {
 		    	ex.printStackTrace();
 		    }
-	    }
-	   
+	    }	   
 	   
 	    if(!cancelled) {
 	    	 Index index = indexCreator.finalizeIndex(filepointer);
@@ -881,23 +903,37 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 		
 	
 		BEDCodecMod bedCodec= new BEDCodecMod();		       
-		      
+	  
 		long filepointer = 0;
 		
 		boolean cancelled = false;
-		
+		boolean isChr = false, first = true;
 	    while((line = reader.readLine()) != null) {
 	    	try {
 	    	
 	    	if(line.startsWith("#")) {
-	    	filepointer +=  line.length()+addbyte;
+	    		filepointer +=  line.length()+addbyte;
 	    		continue;
 	    	}
-	    	Feature bed = bedCodec.decode(line);
+	    	if(first) {
+	    		if(line.startsWith("chr")) {
+	    			isChr = true;
+	    		}
+	    		first = false;
+	    	}
+	    	if(isChr) {
+	    		Feature bed = bedCodec.decode(line.substring(3));
+	    		indexCreator.addFeature(bed, filepointer);
+	    	}
+	    	else {
+	    		Feature bed = bedCodec.decode(line);
+	    		indexCreator.addFeature(bed, filepointer);
+	    	}
 	    	
 	    	
-			indexCreator.addFeature(bed, filepointer);
+			
 			filepointer +=  line.length()+addbyte;
+			
 	    	}
 		    catch(Exception ex) {
 		    	
@@ -1149,7 +1185,8 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 	}
 	
 	public static String aminoEffect(String amino) {
-		if(amino.length() < 4) {			
+		if(amino.length() < 4) {
+			
 			return "";
 		}
 	
@@ -1182,7 +1219,7 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 		}
 		else {
 			
-			if(!amino.contains("UTR") && (amino.contains("fs") ||amino.contains("spl") ||  (amino.matches(".*Met1\\w+.*") && !amino.matches(".*Met1Met.*")))) {
+			if(!amino.contains("UTR") && (amino.contains("fs") ||amino.contains("spl") ||  (amino.matches(".*Met1\\D+.*") && !amino.matches(".*Met1Met.*")))) {
 				return "nonsense";
 			}
 			String[] aminoTable = amino.split(";");

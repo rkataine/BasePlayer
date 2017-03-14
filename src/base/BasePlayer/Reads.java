@@ -33,7 +33,7 @@ public class Reads implements Serializable{
 	private transient Rectangle scrollbar = new Rectangle(), scroller = new Rectangle();
 	private transient Integer readstart=0, readend=0, coveragestart = 0, coverageend = 0;
 	private transient boolean readScroll = false;
-	public boolean complete = false, loading = false, nodraw = false;
+	public boolean loading = false, nodraw = false;
 	Font readfont =new Font("SansSerif", Font.BOLD, 10);
 	int readHeight = 10;
 	//public ReferenceSeq reference;

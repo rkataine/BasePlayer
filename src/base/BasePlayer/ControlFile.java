@@ -12,9 +12,14 @@
 package base.BasePlayer;
 import java.awt.Polygon;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.Serializable;
 
-public class ControlFile implements Serializable{
+import javax.swing.JCheckBox;
+import javax.swing.JPopupMenu;
+
+public class ControlFile implements Serializable, ActionListener {
 	
 	private static final long serialVersionUID = 1L;
 	public boolean controlled = false;
@@ -24,7 +29,8 @@ public class ControlFile implements Serializable{
 	double alleleFreq = 0.01;
 	int varcount = 0;
 	Rectangle alleleBox = new Rectangle(), playbox = new Rectangle();
-	
+	JCheckBox remOverlaps;
+	JPopupMenu menu;
 	Polygon playTriangle = new Polygon();
 	
 	boolean controlOn = false;
@@ -34,8 +40,15 @@ public class ControlFile implements Serializable{
 		this.tabixfile = tabixfile;
 		this.sampleName = sampleName;
 		this.index = index;		
+		setMenu();
 	}
 
+	void setMenu() {
+		remOverlaps = new JCheckBox("Overlap indels");
+		menu = new JPopupMenu("Options");
+		menu.add(remOverlaps);
+		remOverlaps.addActionListener(this);
+	}
 	String getTabixFile() {
 		return this.tabixfile;
 	}	
@@ -47,5 +60,13 @@ public class ControlFile implements Serializable{
 	}	
 	String getName() {
 		return this.sampleName;
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if(e.getSource() == remOverlaps) {
+			
+			Control.dismissControl(FileRead.head, this);
+		}		
 	}
 }

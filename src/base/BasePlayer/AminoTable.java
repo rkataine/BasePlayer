@@ -32,6 +32,8 @@ import java.util.Map;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+
+import org.apache.commons.io.FilenameUtils;
 public class AminoTable extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener {
 	
 private static final long serialVersionUID = 1L;
@@ -269,6 +271,7 @@ void drawScreen(Graphics g) {
 						
 					}
 					else if(genearray.get(i).varnodes.get(0).getTranscripts().size() == 2) {
+						
 						buf.drawString((i+1) +".  " +genearray.get(i).getName() +" ... " +genearray.get(i).varnodes.get(0).getTranscripts().get(1).getGenename(), 5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
 					}
 					else if(genearray.get(i).varnodes.get(0).getPosition() < genearray.get(i).getStart()) {
@@ -914,7 +917,12 @@ void drawGeneheader(int y) {
 		}
 		else {
 			BedTrack track = (BedTrack)geneheader.get(i)[0];
-			buf.drawString(track.file.getName(), (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+			if(track.file != null) {
+				buf.drawString(track.file.getName(), (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+			}
+			else {
+				buf.drawString(FilenameUtils.getName(track.url.getFile()), (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+			}
 			track = null;
 		}
 		buf.setColor(Color.black);

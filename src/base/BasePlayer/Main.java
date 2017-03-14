@@ -99,6 +99,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
+import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 
@@ -106,9 +107,21 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 
-import base.BBfile.BBFileReader;
+
+
+
+
+
+
+
+
+
+import base.BBfile.BedFeature;
+//import base.BBfile.BBFileReader;
 import base.BBfile.BigBedIterator;
 import base.BBfile.BigWigIterator;
+import base.BBfile.ZoomDataRecord;
+import base.BBfile.ZoomLevelIterator;
 
 
 	public class Main extends JPanel implements ActionListener, ChangeListener, ComponentListener, MouseListener, PropertyChangeListener, KeyListener, MouseMotionListener {
@@ -173,8 +186,7 @@ import base.BBfile.BigWigIterator;
 	    public static boolean nothread = false, noreadthread = false;	
 	    static Hashtable<String, String[]> searchTable = new Hashtable<String, String[]>();
 	    static Hashtable<String, String> geneIDMap = new Hashtable<String, String>();
-	    JMenuItem addGenome = new JMenuItem("Add new genome...");
-	   
+	    JMenuItem addGenome = new JMenuItem("Add new genome...");	   
 	    JButton zoomout = new JButton("Zoom out");
 	    JButton dosomething = new JButton("Do stuff!");
 	    JButton back = new JButton("<"), forward = new JButton(">");
@@ -200,6 +212,7 @@ import base.BBfile.BigWigIterator;
 		static JMenuItem opensamples = new JMenuItem("Open samples");
 		static JMenuItem addtracks = new JMenuItem("Add tracks");
 		static JMenuItem addcontrols = new JMenuItem("Add controls");
+		static JMenuItem pleiadesButton = new JMenuItem("PLEIADES");
 		static JMenuItem saveProject = new JMenuItem("Save project");
 		static JMenuItem saveProjectAs = new JMenuItem("Save project as...");
 		static JMenuItem openProject = new JMenuItem("Open project");
@@ -224,11 +237,11 @@ import base.BBfile.BigWigIterator;
 	    		
 	    	  try {
 	    		
-	    	  if (actionEvent.getActionCommand() == "comboBoxChanged") {
-	    		 
+	    	  if (actionEvent.getActionCommand() == "comboBoxChanged") {	    		 
 	    		  if(chromosomeDropdown.getItemCount() == 1) {
 	    			  return;
 	    		  }
+	    		  
 	    		  chromosomeDropdown.validate();
 	    		  chromosomeDropdown.revalidate();
 	    		  chromosomeDropdown.repaint();	    
@@ -249,39 +262,31 @@ import base.BBfile.BigWigIterator;
 	    		  drawCanvas.splits.get(0).chromEnd = chromIndex.get(Main.refchrom + Main.chromosomeDropdown.getSelectedItem().toString())[1].intValue();
 	    		  FileRead filereader = new FileRead();
 	    		  filereader.chrom = Main.chromosomeDropdown.getSelectedItem().toString();	    		  
-	    		  drawCanvas.setStartEnd(1.0,(double)drawCanvas.splits.get(0).chromEnd);
-	    		  
+	    		 	    		  
 	    		  
 	    		  if(!FileRead.search) {
 	    			 
 	    			  FileRead.searchStart = 1;
 	    			  FileRead.searchEnd = drawCanvas.splits.get(0).chromEnd;
+	    			  drawCanvas.setStartEnd(1.0,(double)drawCanvas.splits.get(0).chromEnd);
 	    		  }
 	    		  try {
-	    		  for (int i = 0; i<Control.controlData.fileArray.size(); i++) {
-	    			  Control.controlData.fileArray.get(i).controlled = false;
-	    		  }
-	    		  }
-	    		  catch(Exception ex) {
-	    			  Control.controlData.fileArray = Collections.synchronizedList(new ArrayList<ControlFile>());
-	    		  }
-	    		  if(nothread) {	    		
-	    			 
-	    			  filereader.changeChrom(filereader.chrom);
-	    			 
-	    			  nothread = false;
-	    		  }
-	    		  else {
-	    			  
-	    			  filereader.changeChrom = true;
-	 	        	  filereader.execute();
-	 	        	
-	    		  }
-	    		 
-	        //	  drawCanvas.repaint();
-	    		 
-	    		 
-	    	  }   	  			
+		    		  for (int i = 0; i<Control.controlData.fileArray.size(); i++) {
+		    			  Control.controlData.fileArray.get(i).controlled = false;
+		    		  }
+		    		  }
+		    		  catch(Exception ex) {
+		    			  Control.controlData.fileArray = Collections.synchronizedList(new ArrayList<ControlFile>());
+		    		  }
+		    		  if(nothread) {		    			 
+		    			  filereader.changeChrom(filereader.chrom);		    			 
+		    			  nothread = false;
+		    		  }
+		    		  else {	    			  
+		    			  filereader.changeChrom = true;
+		 	        	  filereader.execute();	 	        	
+		    		  }
+	    	  		}   	  			
     			}
     			catch(Exception e) {
     			
@@ -301,6 +306,8 @@ import base.BBfile.BigWigIterator;
 		private JTextField chooserTextField;
 
 		private Image iconImage;
+
+		private boolean pleiades = false;
 
 		static String savedir = "";
 
@@ -370,8 +377,8 @@ import base.BBfile.BigWigIterator;
 						  g.setColor(Color.white);
 					  }
 					  else {
-						  if(getCursor().getType() != Cursor.DEFAULT_CURSOR) {
-								setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+						  if(getCursor().getType() != Cursor.WAIT_CURSOR) {
+								setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 							}
 						  g.setColor(Color.black);
 					  }
@@ -474,7 +481,14 @@ import base.BBfile.BigWigIterator;
 	catch(Exception e) {
 		e.printStackTrace();
 	}
+	FileSystemView fsv = FileSystemView.getFileSystemView();
+	File[] paths = File.listRoots();
 	
+	for(File path:paths){
+		if(fsv.getSystemDisplayName(path).contains("merit")) {
+			pleiades = true;
+		}					    			  
+	}
 	
 	screenSize = new Dimension(width, height);
 	drawWidth = (int)screenSize.getWidth()-200;
@@ -1063,6 +1077,11 @@ import base.BBfile.BigWigIterator;
 		filemenu.add(opensamples);
 		filemenu.add(addtracks);
 		filemenu.add(addcontrols);
+		if(pleiades) {
+			pleiadesButton.addActionListener(this);
+			pleiadesButton.setBackground(Color.green);
+			filemenu.add(pleiadesButton);
+		}
 		filemenu.add(new JSeparator());
 		filemenu.add(openProject);
 		filemenu.add(saveProject);
@@ -1434,6 +1453,7 @@ import base.BBfile.BigWigIterator;
 	    opensamples.addActionListener(this);
 	    addtracks.addActionListener(this);
 	    addcontrols.addActionListener(this);
+	   
 	    openProject.addActionListener(this);
 	    saveProject.addActionListener(this);
 	    saveProjectAs.addActionListener(this);
@@ -1483,15 +1503,12 @@ import base.BBfile.BigWigIterator;
 	  */  
 	    zoomout.addActionListener(this);
 	     
-	    FileRead.head = new VarNode(0,  (byte)0,"N", (short)0, (short)0, false,(short)0,null, null, null, null);     
+	    FileRead.head = new VarNode(0,  (byte)0,"N", (short)0, (short)0, false,(float)0,(float)0,null,null, null, null, null);     
 	    drawCanvas.current = FileRead.head;
-	  
-	//  splitPane.addComponentListener(this);
+	
 	    splitPane.addPropertyChangeListener(this);
 	    trackPane.addPropertyChangeListener(this);
-	    varpane.addPropertyChangeListener(this);
-	  //  drawScroll.getVerticalScrollBar().addAdjustmentListener(this);
-//	    frame.addPropertyChangeListener(this);
+	    varpane.addPropertyChangeListener(this);	
 	    frame.addComponentListener(this);
 	    frame.addMouseListener(this);	    	   
 	    frame.setGlassPane(glassPane);
@@ -1623,13 +1640,13 @@ import base.BBfile.BigWigIterator;
 				if (file.isDirectory()) {
 					return true;
 			    }	
-				if (file.getName().endsWith(".bed.gz") || file.getName().endsWith(".bed")) {
+				if (file.getName().toLowerCase().endsWith(".bed.gz") || file.getName().toLowerCase().endsWith(".bed")) {
 					return true;
 				}					
-				if (file.getName().endsWith(".bedgraph.gz")) {
+				if (file.getName().toLowerCase().endsWith(".bedgraph.gz")) {
 					return true;
 				}	
-				if(file.getName().endsWith(".gff.gz")) {
+				if(file.getName().toLowerCase().endsWith(".gff.gz")) {
 					return true;
 				}
 				if(file.getName().toLowerCase().endsWith(".bigwig")) {
@@ -1742,6 +1759,11 @@ import base.BBfile.BigWigIterator;
 	//	if(drawScroll.getViewport().getHeight() > 0) {
 	//		Main.drawCanvas.resizeCanvas(drawCanvas.getWidth(), drawScroll.getViewport().getHeight());
 	//	}
+			if(Main.bedCanvas.bedTrack.size() > 0) {
+				for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
+					Main.bedCanvas.getMoreBeds(Main.bedCanvas.bedTrack.get(i));
+				}
+			}
 			bedCanvas.repaint();
 			Main.chromDraw.updateExons = true;
 			drawCanvas.repaint();
@@ -1753,7 +1775,11 @@ import base.BBfile.BigWigIterator;
 	public void actionPerformed(ActionEvent e) {
 		Logo.frame.setVisible(false);
 		
-		if(e.getSource() == manage) {			
+		if(e.getSource() == pleiadesButton) {	
+			gotoURL("http://kaptah.local.lab.helsinki.fi/pleiades/");
+		
+		}
+		else if(e.getSource() == manage) {			
 			
 			VariantHandler.frame.setLocation(frame.getLocationOnScreen().x+10, frame.getLocationOnScreen().y+10);
 			VariantHandler.frame.setState(JFrame.NORMAL);
@@ -1798,8 +1824,10 @@ import base.BBfile.BigWigIterator;
 			
 		}
 		else if(e.getSource() == clearMemory) {
+			FileRead.nullifyVarNodes();
 			
-		
+			
+			//FileRead.removeNonListVariants();f
 			System.gc();
 			chromDraw.repaint();
 		}
@@ -1838,10 +1866,9 @@ import base.BBfile.BigWigIterator;
 		}
 		
 		else if (e.getSource() == opensamples) {
-			 try {					    	
-	
-				 JFileChooser chooser = new JFileChooser(path);	 
-				 getText(chooser.getComponents());
+			 try {			
+				  JFileChooser chooser = new JFileChooser(path);	 
+				  getText(chooser.getComponents());
 		    	  chooser.setMultiSelectionEnabled(true);
 		    	  chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 		    	  chooser.setAcceptAllFileFilterUsed(false);
@@ -1861,15 +1888,26 @@ import base.BBfile.BigWigIterator;
 		        		  if(Main.chooserText.contains("`")) {
 		        			  Main.chooserText.replace("`", "?");		        			  
 		        		  }
+		        		  if(Main.chooserText.contains(" ")) {
+		        			  Main.chooserText.replace(" ", "%20");
+		        		  }
 		        		  if(Main.chooserText.contains("pleiades")) {
+		        			 try {
 		        			  URL url = new URL(Main.chooserText);
-		        			  HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
+		        			  System.out.println(Main.chooserText);
+		        			  HttpURLConnection httpConn = (HttpURLConnection)url.openConnection();
+		        			  httpConn.connect();
+		        			  
 		        			  String fileURL = url.getPath();
+		        			 
 		        				int responseCode = httpConn.getResponseCode();
 		        				int BUFFER_SIZE = 4096;
 		        				// always check HTTP response code first
+		        				
 		        				if (responseCode == HttpURLConnection.HTTP_OK) {
+		        					
 		        					String fileName = "";
+		        					
 		        					String disposition = httpConn.getHeaderField("Content-Disposition");
 		        					String contentType = httpConn.getContentType();
 		        					int contentLength = httpConn.getContentLength();
@@ -1889,7 +1927,7 @@ import base.BBfile.BigWigIterator;
 		        					long downloaded = 0;
 					      			int bytesRead = -1, counter=0;
 					      			
-					      		
+					      			
 					      			String loading = drawCanvas.loadingtext;
 					      			InputStream inputStream = httpConn.getInputStream();
 					      			BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -1897,6 +1935,8 @@ import base.BBfile.BigWigIterator;
 					      			String line;
 					      			StringBuffer buffer = new StringBuffer("");
 					      			while((line=reader.readLine()) != null) {
+					      				
+					      				
 					      				buffer.append(line);
 					      			}
 					      			inputStream.close();
@@ -1905,21 +1945,40 @@ import base.BBfile.BigWigIterator;
 					      			String[] split = buffer.toString().split("request");
 					      			String location;
 					      			ArrayList<File> array = new ArrayList<File>();
-					      			
+					      			File[] paths;
+					    			FileSystemView fsv = FileSystemView.getFileSystemView();
+					    			paths = File.listRoots();
+					    			String loc = "/mnt";
+					    			
+					    			for(File path:paths){
+					    				if(fsv.getSystemDisplayName(path).contains("merit")) {
+					    					loc = path.getCanonicalPath();
+					    				}					    			  
+					    			}
+					    			
 					      			for(int i = 0; i<split.length; i++) {
-					      				if(!split[i].contains("lastLocation")) {
-					      					
+					      				
+					      				if(!split[i].contains("lastLocation")) {					      					
 					      					continue;
 					      				}
 					      				
 					      				split2 = split[i].split("\"lastLocation\":\"")[1];
 					      				location = split2.substring(0,split2.indexOf("\"}"));
 					      				String filename = location.substring(location.lastIndexOf("/"))+".snps_indels.vcf.gz";
-					      				location = location.replace("/mnt", "X:") +"/wgspipeline/align/" +filename;
-					      				array.add(new File(location));
-					      				/*if(new File(location).exists()) {
+					      				
+					      				location = location.replace("/mnt", loc) +"/wgspipeline/align/" +filename;
+					      				
+					      				if(!new File(location).exists()) {
+					      					location = split2.substring(0,split2.indexOf("\"}"));
+						      				filename = location.substring(location.lastIndexOf("/"))+".snps_indels.hc.vcf.gz";
+					      					location = location.replace("/mnt", loc) +"/wgspipeline/" +filename;
 					      					
-					      				}*/
+					      					array.add(new File(location));
+					      				}
+					      				else {
+					      					array.add(new File(location));
+					      				}
+					      				
 					      			}
 					      			
 					      			File[] files = new File[array.size()];
@@ -1929,13 +1988,14 @@ import base.BBfile.BigWigIterator;
 					      			
 					      			 FileRead filereader = new FileRead(files);
 					      			 filereader.start = (int)drawCanvas.selectedSplit.start;
-					        		  filereader.end = (int)drawCanvas.selectedSplit.end;
-					        		  filereader.readVCF = true;
-					        		  filereader.execute();
-					      			
-					      		
-					      			
+					        		 filereader.end = (int)drawCanvas.selectedSplit.end;
+					        		 filereader.readVCF = true;
+					        		 filereader.execute();					      			
 		        				}
+			        		  }
+			        		  catch(Exception ex) {
+			        			  ex.printStackTrace();
+			        		  }
 		        		  	}
 		        		  	
 		        		  return;
@@ -1943,7 +2003,7 @@ import base.BBfile.BigWigIterator;
 		        	  path = vcffiles[0].getParent();
 		        	  writeToConfig("DefaultDir=" +path);
 		        	  FileRead filereader = new FileRead(vcffiles);
-		        	  
+		        	 
 		        	  if(chooser.getFileFilter().equals(chooser.getChoosableFileFilters()[0])) {
 		        		  filereader.start = (int)drawCanvas.selectedSplit.start;
 		        		  filereader.end = (int)drawCanvas.selectedSplit.end;
@@ -2059,7 +2119,7 @@ import base.BBfile.BigWigIterator;
 	        	  else { 		  
 	        		 
 	        		  
-	        		  if(Main.chooserText.length() > 5 && Main.chooserText.endsWith(".bed.gz") || Main.chooserText.endsWith(".gff.gz") || Main.chooserText.endsWith(".bedgraph.gz")) {	        			  
+	        		  if(Main.chooserText.length() > 5 && Main.chooserText.endsWith(".bed.gz")  ||  Main.chooserText.endsWith(".gff.gz") || Main.chooserText.endsWith(".bedgraph.gz")) {	        			  
 	        			 
 		        		  if(Main.chooserText.startsWith("http://") || Main.chooserText.startsWith("ftp://")) {
 		        			 
@@ -2095,27 +2155,29 @@ import base.BBfile.BigWigIterator;
 			        			
 		        			  URL url = new URL(Main.chooserText);	
 		        			
-		      		      	  SeekableStream stream = SeekableStreamFactory.getInstance().getStreamFor(url);
-		      		      	
-		      		    //  	  BBFileReader bbreader = null;
+		      		      //	  SeekableStream stream = SeekableStreamFactory.getInstance().getStreamFor(url);
+		      		      	  
+		      		      //	  BBFileReader bbreader = null;
 		      		      	
 		      		      	  try {
 		      		      //		  bbreader = new BBFileReader(Main.chooserText, stream);
+		      		      		
 		      		      		
 		      		      	  }
 		      		      	  catch(Exception ex) {
 		      		      		 ex.printStackTrace();
 		      		      	  }
 		      		      	 
-		      		      	FileRead filereader = new FileRead(bedfiles);
-	        				  filereader.readBED(Main.chooserText, "nan");
-		        		/*	  if(bbreader != null) {
-		        				  System.out.println(Main.chooserText);
+		      		      
+		        			//  if(bbreader != null) {
+		        				  
+		        				  FileRead filereader = new FileRead(bedfiles);
+		        				  filereader.readBED(Main.chooserText, "nan");
 		        				  
 		        				  
-		        				 
-		        			  }*/
-		      		      	  stream.close();
+		        				
+		        		//	  }
+		      		      //	  stream.close();
 		        		  }
 	        		  }
 	        	  }
@@ -2188,7 +2250,7 @@ import base.BBfile.BigWigIterator;
 			@Override
 			public void keyTyped(KeyEvent e) {
 			
-				Main.chooserText = chooserTextField.getText().replace(" ", "");
+				Main.chooserText = chooserTextField.getText().trim();
 				if(Main.chooserText.contains("?")) {
 					chooserTextField.setText(Main.chooserText.replace("?", "`"));						
 				}
@@ -2245,6 +2307,7 @@ void clearData() {
 	for(int i = 0 ; i<bedCanvas.bedTrack.size(); i++) {
 		bedCanvas.bedTrack.get(i).getHead().putNext(null);
 		bedCanvas.bedTrack.get(i).setCurrent(null);
+		bedCanvas.bedTrack.get(i).setDrawNode(null);
 		MethodLibrary.removeHeaderColumns(bedCanvas.bedTrack.get(i));
 		FileRead.removeTable(bedCanvas.bedTrack.get(i));
 		
@@ -2280,7 +2343,9 @@ void clearData() {
 	bedCanvas.bedTrack.clear();
 	Main.bedCanvas.trackDivider.clear();
 	Main.controlDraw.trackDivider.clear();
-	bedCanvas.drawNode = null;
+	if(Main.drawCanvas.drawVariables.advQualities != null) {
+		VariantHandler.removeMenuComponents();
+	}
 	bedCanvas.track = null;
 	bedCanvas.infoNode = null;
 	bedCanvas.preInfoNode = null;
@@ -2463,7 +2528,7 @@ void clearData() {
 			  Main.drawCanvas.ready("all");
 		  }
 		  else if(drawCanvas.loadingtext.contains("Loading variants")) {
-			  
+			  Main.drawCanvas.ready("all");
 			  Main.drawCanvas.ready("Loading variants...");
 			  drawCanvas.current = null;
 			   drawCanvas.currentDraw = null;
@@ -2477,8 +2542,7 @@ void clearData() {
 			   FileRead.cancelfileread = true;
 		  }
 		  else if(drawCanvas.loadingtext.contains("Processing variants")) {
-			  Main.drawCanvas.ready("Processing variants...");
-			 
+			   Main.drawCanvas.ready("Processing variants...");			 
 			   FileRead.cancelvarcount = true;
 			   drawCanvas.current = null;
 			   drawCanvas.currentDraw = null;
@@ -2497,37 +2561,32 @@ void clearData() {
 			  Iterator<Map.Entry<SplitClass, Reads>> it;
 			  Map.Entry<SplitClass, Reads> pair;
 		      Reads reads;
-			   for(int i = 0; i<drawCanvas.sampleList.size(); i++) {
+		      for(int i = 0; i<drawCanvas.sampleList.size(); i++) {
 				   if(drawCanvas.sampleList.get(i).getreadHash() != null) {				
 						it = drawCanvas.sampleList.get(i).getreadHash().entrySet().iterator();
 					    while (it.hasNext()) {
 					    	pair = (Map.Entry<SplitClass, Reads>)it.next();
 					        reads = pair.getValue();
 					        reads.loading = false;
-					    }
-						  
+					    }						  
 				   }
-			   }
-			   Main.drawCanvas.clearReads();
-			   Main.drawCanvas.ready("Loading reads");
-			//   Main.drawCanvas.timer = System.currentTimeMillis();
-			   Draw.updateReads = true;
-			   Draw.updateCoverages = true;
-			   for(int i = 0; i<drawCanvas.splits.size(); i++) {
-				   drawCanvas.splits.get(i).updateReads = true;
-				 
-			   }
+		      }
+			  FileRead.cancelfileread = true;
+			  Main.drawCanvas.clearReads();
+			  Main.drawCanvas.ready("Loading reads");
+			  Draw.updateReads = true;
+			  Draw.updateCoverages = true;
+			  for(int i = 0; i<drawCanvas.splits.size(); i++) {
+				  drawCanvas.splits.get(i).updateReads = true;				 
+			  }			  
 			  
-			   FileRead.cancelfileread = true;
 		  }
 		  else if(drawCanvas.loadingtext.contains("Processing variants")) {
-			 
-			  
 			   FileRead.cancelfileread = true;
 			   Main.drawCanvas.ready("all");
 		  }
 		  else if(drawCanvas.loadingtext.contains("BED")) { 
-			  FileRead.cancelfileread = true;
+			   FileRead.cancelfileread = true;
 			   Main.drawCanvas.ready("all");
 		  }
 		  else if(drawCanvas.loadingtext.contains("samples")) {
@@ -2584,8 +2643,6 @@ void clearData() {
 		   for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
 			   Main.bedCanvas.removeBeds(Main.bedCanvas.bedTrack.get(i));
 		   }
-		//   Main.drawCanvas.timer = System.currentTimeMillis();
-		  
 		   drawCanvas.current = null;
 		   drawCanvas.currentDraw = null;
 		   chromDraw.vardraw = null;
@@ -2594,15 +2651,10 @@ void clearData() {
 		   FileRead.cancelvarcount = true;
 		   FileRead.cancelfileread = true;
 		   FileRead.cancelreadread = true;
-	//	   Main.drawCanvas.readyQueue.clear();
-	//	   JOptionPane.showMessageDialog(Main.glassPane, "Try to search more specific region to visualize all data", "Information", JOptionPane.ERROR_MESSAGE);
 		   Main.drawCanvas.variantsStart = 0;
 			Main.drawCanvas.variantsEnd = 1;
 		   cancel = false;
-		//   chromDraw.repaint();
-		   
-		   
-		   
+  
 	}
 	
 	public static void writeToConfig(String attribute) {
@@ -2783,7 +2835,7 @@ void clearData() {
 			    HttpURLConnection httpCon = (HttpURLConnection) file.openConnection();	 
 			    File homefile = new File(userDir +"/BasePlayer.jar");
 			   
-			   
+			    httpCon.connect();
 			    if(httpCon.getLastModified() != homefile.lastModified()) {
 			    	putMessage("Updates available. Please click File->Update to get the most recent version.");
 			    	
@@ -2797,7 +2849,8 @@ void clearData() {
 			    httpCon.disconnect();
 			    file = new URL("https://www.cs.helsinki.fi/u/rkataine/BasePlayer/update/Launcher.jar");
 			    homefile = new File(userDir +"/Launcher.jar");
-			    httpCon = (HttpURLConnection) file.openConnection();	 
+			    httpCon = (HttpURLConnection) file.openConnection();
+			    httpCon.connect();
 			    if(!homefile.exists() || httpCon.getLastModified() != homefile.lastModified()) {
 			    	updatelauncher = true;					
 			    }
@@ -2880,7 +2933,7 @@ void clearData() {
 		
 			int BUFFER_SIZE = 4096;
 		// always check HTTP response code first
-		
+		httpConn.connect();
 			String fileName = "";
 			
 			String disposition = httpConn.getHeaderField("Content-Disposition");
@@ -2998,16 +3051,20 @@ void clearData() {
 		
 		
 		public void downloadFile(String fileURL, String saveDir) throws IOException {
+			System.out.println("Updating file from: " +fileURL +"\nSaving to: " +saveDir);
+			System.out.println("Opening connection...");
+			try {
 			URL url = new URL(fileURL);
 			HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
-			
+			httpConn.connect();
 			int responseCode = httpConn.getResponseCode();
 			int BUFFER_SIZE = 4096;
+			System.out.println("Ready.");
 			// always check HTTP response code first
 			if (responseCode == HttpURLConnection.HTTP_OK) {
 				String fileName = "";
 				String disposition = httpConn.getHeaderField("Content-Disposition");
-				String contentType = httpConn.getContentType();
+			//	String contentType = httpConn.getContentType();
 				int contentLength = httpConn.getContentLength();
 
 				if (disposition != null) {
@@ -3023,10 +3080,10 @@ void clearData() {
 							fileURL.length());
 				}
 
-				System.out.println("Content-Type = " + contentType);
-				System.out.println("Content-Disposition = " + disposition);
-				System.out.println("Content-Length = " + contentLength);
-				System.out.println("fileName = " + fileName);
+		//		System.out.println("Content-Type = " + contentType);
+		//		System.out.println("Content-Disposition = " + disposition);
+		//		System.out.println("Content-Length = " + contentLength);
+		//		System.out.println("fileName = " + fileName);
 
 				// opens input stream from the HTTP connection
 				InputStream inputStream = httpConn.getInputStream();
@@ -3079,15 +3136,17 @@ void clearData() {
 				System.out.println("No file to download. Server replied HTTP code: " + responseCode);
 				ErrorLog.addError("No file to download. Server replied HTTP code: " + responseCode);
 			}
-			httpConn.disconnect();
+				httpConn.disconnect();
+			}
+			catch(Exception ex) {
+				ex.printStackTrace();
+			}
 		}
 		
 		protected String doInBackground() {
 			
 			try {
-				Main.drawCanvas.loading("Updating BasePlayer...");
-				   
-			    
+				Main.drawCanvas.loading("Updating BasePlayer...");			    
 			  
 			    downloadFile("https://www.cs.helsinki.fi/u/rkataine/BasePlayer/update/BasePlayer.jar", userDir);
 				if(updatelauncher) {
@@ -3202,9 +3261,10 @@ void clearData() {
 		}
 		else if(event.getSource() == drawScroll.getVerticalScrollBar()) {
 			
-		//	drawCanvas.scrollbar = true;
+			
 			Draw.setGlasspane(true);			
 			if(drawCanvas.drawVariables.visiblestart != (short)(Main.drawScroll.getVerticalScrollBar().getValue()/drawCanvas.drawVariables.sampleHeight)) {
+			
 				drawCanvas.drawVariables.visiblestart = (short)(Main.drawScroll.getVerticalScrollBar().getValue()/drawCanvas.drawVariables.sampleHeight);					
 			
 				if(drawCanvas.splits.size() > 1) {
@@ -3394,11 +3454,13 @@ void clearData() {
 		}
 		drawCanvas.scrolldrag = false;
 		
-		
+		if(Main.bedCanvas.bedTrack.size() > 0) {
+			for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
+				
+				Main.bedCanvas.getMoreBeds(Main.bedCanvas.bedTrack.get(i));
+			}
+		}
 	}
-
-
-
 	@Override
 	public void componentHidden(ComponentEvent arg0) {
 		
@@ -3693,13 +3755,10 @@ void clearData() {
 							drawCanvas.sampleList.get(i).resetreadHash();
 							if(drawCanvas.sampleList.get(i).getTabixFile() != null || drawCanvas.sampleList.get(i).multipart) {		
 								if(!new File(drawCanvas.sampleList.get(i).getTabixFile()).exists()) {
-									//Main.samples--;
+									
 									ErrorLog.addError(drawCanvas.sampleList.get(i).getTabixFile() +" not found.");
 									missing = true;
-									drawCanvas.removeSample(drawCanvas.sampleList.get(i));
-									//System.out.println(drawCanvas.sampleList.size());
-									//drawCanvas.sampleList.remove(i);
-									//System.out.println(drawCanvas.sampleList.size());
+									drawCanvas.removeSample(drawCanvas.sampleList.get(i));									
 									i--;
 									continue;
 								}
@@ -3710,8 +3769,10 @@ void clearData() {
 									if(drawCanvas.sampleList.get(i).getVCFInput() == null) {
 										drawCanvas.sampleList.get(i).setInputStream();
 									}
-								}
+								}							
+								
 								Main.varsamples++;
+								FileRead.checkMulti(drawCanvas.sampleList.get(i));
 							}
 							if(drawCanvas.sampleList.get(i).longestRead == null) {
 								
@@ -3758,11 +3819,9 @@ void clearData() {
 										 missing = true;
 										 continue;
 									 }
-									  VariantHandler.table.addRowGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
-									  VariantHandler.table.addRowGeneheader("OR");
-									  VariantHandler.clusterTable.addColumnGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
-									  VariantHandler.clusterTable.addColumnGeneheader("OR");
-									  
+									  Control.controlData.fileArray.get(i).setMenu();
+						//			  MethodLibrary.addHeaderColumns(Control.controlData.fileArray.get(i));
+								
 								  }
 							}
 							else {									
@@ -3808,27 +3867,40 @@ void clearData() {
 								bedCanvas.bedTrack.get(i).setBedLevels();
 								bedCanvas.bedTrack.get(i).setmenu();
 								FileRead.setTable(bedCanvas.bedTrack.get(i));
-								 if(bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith(".bedgraph") || bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith(".bedgraph.gz") || bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith("bigwig") || bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith("bw")) {
+								if(bedCanvas.bedTrack.get(i).file == null) {
+									//SeekableStream stream = SeekableStreamFactory.getInstance().getStreamFor(bedCanvas.bedTrack.get(i).url);									
+									//bedCanvas.bedTrack.get(i).setBBfileReader(new BBFileReader(bedCanvas.bedTrack.get(i).url.toString(), stream, bedCanvas.bedTrack.get(i)));
+								}
+								else if(bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith("bigwig") || bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith("bw")) {									
+									bedCanvas.bedTrack.get(i).setZoomlevel(1);									
+									bedCanvas.bedTrack.get(i).setBBfileReader(new BBFileReader(bedCanvas.bedTrack.get(i).file.getCanonicalPath(), bedCanvas.bedTrack.get(i)));
+									
+								}
+								else if(bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith(".bedgraph") || bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith(".bedgraph.gz")) {
 							    	
 							    	  
-							      }
-								 else {
+							    }
+								else {
 									 
 									 bedCanvas.bedTrack.get(i).setSelector();
 									 bedCanvas.bedTrack.get(i).getSelectorButton().setVisible(true);
-								 }
-								 if(bedCanvas.bedTrack.get(i).file.length() / 1048576 < Settings.bigFile) {
+								}
+								if((bedCanvas.bedTrack.get(i).file != null &&bedCanvas.bedTrack.get(i).file.length() / 1048576 < Settings.bigFile) || bedCanvas.bedTrack.get(i).getZoomlevel() != null) {
 									 bedCanvas.bedTrack.get(i).small = true;		    	
 							    	  	    	 
-							      }	
-							      else {
-							    	  bedCanvas.bedTrack.get(i).small = false;	
-							    	  FileRead.setBedTrack(bedCanvas.bedTrack.get(i));
-							      }
+							    }	
+							    else {
+							    	 bedCanvas.bedTrack.get(i).small = false;	
+							    	 FileRead.setBedTrack(bedCanvas.bedTrack.get(i));
+							    }
 							}
 							
 						}
-						
+						 for(int i = 0 ; i<Control.controlData.fileArray.size(); i++) {							 
+							 
+						  MethodLibrary.addHeaderColumns(Control.controlData.fileArray.get(i));
+					
+					  }
 					}
 					catch(Exception ex) {
 						ex.printStackTrace();
@@ -4010,8 +4082,11 @@ void clearData() {
 	public void mouseDragged(MouseEvent event) {
 		
 		if(event.getSource() == drawScroll.getVerticalScrollBar()) {
+			drawCanvas.drawVariables.visiblestart = (short)(Main.drawScroll.getVerticalScrollBar().getValue()/drawCanvas.drawVariables.sampleHeight);		
+		//	if(drawCanvas.drawVariables.visiblestart + drawCanvas.drawVariables.visiblesamples < Main.samples-1) {
+		//		System.out.println("jou");
 			drawCanvas.scrolldrag = true;
-			drawCanvas.drawVariables.visiblestart = (short)(Main.drawScroll.getVerticalScrollBar().getValue()/drawCanvas.drawVariables.sampleHeight);					
+						
 			if(drawCanvas.splits.size() > 1) {
 				for(int i = 0; i<drawCanvas.splits.size(); i++) {
 					drawCanvas.splits.get(i).updateReads = true;					
@@ -4021,12 +4096,12 @@ void clearData() {
 				Draw.updateReads = true;
 				Draw.updatevars = true;
 			}
+			Draw.updatevars = true;
 			
-		}
-		Draw.updatevars = true;
-		drawCanvas.repaint();
+//		}
+			drawCanvas.repaint();
 		// TODO Auto-generated method stub
-		
+		}
 	}
 	@Override
 	public void mouseMoved(MouseEvent event) {
@@ -4476,6 +4551,36 @@ void clearData() {
 			Draw.updatevars = true;
 			Main.drawCanvas.repaint();
 	
+		}
+		else if(keyCode == KeyEvent.VK_F10) {
+			try {
+				BBFileReader reader = new BBFileReader( Main.bedCanvas.bedTrack.get(0).file.getCanonicalPath(),  Main.bedCanvas.bedTrack.get(0));
+			//	System.out.println(reader.getZoomLevels().getZoomLevelHeader(1).getReductionLevel());
+				//	ZoomLevelIterator iterator = reader.getZoomLevelIterator(7, "chr1", 0, "chr1", Main.drawCanvas.splits.get(0).chromEnd, false);
+				int zoomlevel = 1;
+				for(int i =2;i<reader.getZoomLevels().getZoomHeaderCount();i++) {
+					if(reader.getZoomLevels().getZoomLevelHeader(i).getReductionLevel() < (Main.drawCanvas.splits.get(0).viewLength/(Main.drawCanvas.splits.get(0).pixel*Main.drawCanvas.splits.get(0).viewLength))) {
+						zoomlevel = i;
+					}
+					else {
+						break;
+					}
+				}
+				System.out.println(zoomlevel);
+			//	 ZoomDataRecord features;
+					/*
+				   while(iterator.hasNext()) {
+				    	
+							//split = line.split("\t");
+				    			    		
+				    		features = iterator.next();
+				    		System.out.println((features.getChromEnd()-features.getChromStart()) +" " +features.getMaxVal());
+				   }*/
+				   
+			}
+			catch(Exception ex) {
+				ex.printStackTrace();
+			}
 		}
 		else if(keyCode == KeyEvent.VK_F12) {
 			/*VarNode next = Main.drawCanvas.current.getNext();

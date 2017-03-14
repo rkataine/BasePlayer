@@ -51,19 +51,13 @@ public class WelcomeScreen  extends JPanel implements ActionListener {
 		try {
 		makeGenomes();
 		this.setBackground(Color.black);
-		
-		
-		//ep.setText("<html><body style='color: #ffffff; background-image: url(" + url.toString() + ");'>Boo</body></html>");
-//		dontShow.setBackground(new Color(162,216,235));
-//		dontShow.addActionListener(this);
-	//	add(dontShow, BorderLayout.NORTH);
-		
+				
 		StringBuffer html = new StringBuffer("<html><body style='color:black;background:rgb(162,216,235);'><h1>Welcome to BasePlayer</h1>");
 				if(editorial) {
 					html.append("<p>This is editors/reviewers version of BasePlayer for testing purposes.<br>"
 							+ "Check http://baseplayer.fi for instructions<br>"
 							+ "This package includes following items:"
-							+ "<ul><li> human reference sequence and Ensembl gene annotation for chromosome 22.</li>"
+							+ "<ul><li> human reference sequence and Ensembl gene annotation for chromosome 20.</li>"
 							+ "<li>6 whole-genome samples from 1000 Genomes Project, including variants (vcf.gz) and read sequences (cram). File->Open samples</li>"
 							+ "<li>Variant data from ExAC for allele frequency filtering. File->Add controls</li>"
 							+ "<li>Additional tracks for ENCODE regulatory regions, transcription factor binding sites from Ensembl Biomart and replication timing. File->Add tracks</li>"

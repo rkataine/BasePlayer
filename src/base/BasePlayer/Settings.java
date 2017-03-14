@@ -38,7 +38,7 @@ import javax.swing.event.ChangeListener;
 public class Settings  extends JPanel implements ActionListener, ChangeListener, MouseListener, KeyListener{
 
 	private static final long serialVersionUID = 1L;
-	static JSlider insertSize = new JSlider(0,2000);
+	static JSlider insertSize = new JSlider(0,10000);
 	static JLabel insertLabel = new JLabel("Maximum insert size: 1000"), readLabel = new JLabel("Read filters:");
 	static Dimension mindimension = new Dimension(200, 15);
 	static JLabel depthLimitLabel;

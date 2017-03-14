@@ -14,7 +14,6 @@ package base.BasePlayer;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Polygon;
@@ -30,11 +29,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Map;
-
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import org.apache.commons.io.FilenameUtils;
 
-import base.BasePlayer.StatsTable.ListSorter;
 
 public class ClusterTable  extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener{
 
@@ -82,12 +80,12 @@ public class ClusterTable  extends JPanel implements MouseMotionListener, MouseL
 	private double casefreq;
 	VarNode varAdd;
 	Map.Entry<String, ArrayList<SampleNode>>  entry;
-	private int textWidth = 0;
+	
 	MethodLibrary.controlsorter ctrlsort = new MethodLibrary.controlsorter();
 
 	private Color linecolor;
 	private ClusterNode cluster;
-	private Sample sample;
+	
 	private int geneHeaderHover;
 	private boolean mouseDrag;
 	private int resizeColumn;
@@ -738,7 +736,13 @@ void drawHeader() {
 		}
 		else if (header.get(i)[0] instanceof BedTrack) {
 			BedTrack track =  (BedTrack)header.get(i)[0];
-			buf.drawString(track.file.getName(), (int)((int)header.get(i)[1])+4, rowHeight-2);
+			
+			if(track.file != null) {
+				buf.drawString(track.file.getName(), (int)((int)header.get(i)[1])+4, rowHeight-2);
+			}
+			else {
+				buf.drawString(FilenameUtils.getName(track.url.getFile()),  (int)((int)header.get(i)[1])+4, rowHeight-2);
+			}
 			track = null;
 		}
 		

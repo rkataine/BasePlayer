@@ -20,38 +20,21 @@ import java.util.Map.Entry;
 import java.util.zip.GZIPInputStream;
 public class Control {
 	private static final long serialVersionUID = 1L;
-	
    
     static String path = Launcher.ctrldir;
 	static String offsetString ="";
-
 	static boolean hold = false;
-
-	
-	static int row = 1;
-	
-	
+	static int row = 1;		
 	static int runIndex = -1;
-
 	static boolean isCancel;	
-
-	private static TabixReader tabixreader;
-	
+	private static TabixReader tabixreader;	
 	//private 
 	static ControlData controlData = new ControlData();
-
 	private static int index;
-
 	private static int refindex;
-
 	private static int allelenumber;
-
-
 	private static String[] infosplit;
-
-
-	private static String[] coverages;
-	
+	private static String[] coverages;	
 	
 public Control() {	
 	    
@@ -83,7 +66,9 @@ static void applyControl() {
 			 TabixReader.Iterator iterator=null; 		
 		    
 			 VarNode current = FileRead.head.getNext();	     
-			
+			if (current == null) {
+				return;
+			}
 		     try {
 		    	
 		    	 
@@ -146,8 +131,13 @@ static void applyControl() {
 		    	 return;
 		     }
 		     */
-		     if(controlData.fileArray.get(c).getTabixFile().endsWith(".vcf.gz")) {		    	
-		    	useVCF(iterator, current, c, teststring);				  
+		     if(controlData.fileArray.get(c).getTabixFile().endsWith(".vcf.gz")) {	
+		    	 if(!controlData.fileArray.get(c).remOverlaps.isSelected()) {
+		    		 useVCFstrict(iterator, current, c, teststring);				  
+		    	 }
+		    	 else {
+		    		 useVCFoverlap(iterator, current, c, teststring);
+		    	 }
 			 }
 		     else {
 		    	 useCTRL(iterator, current, c);		    	 
@@ -160,7 +150,7 @@ static void applyControl() {
 		/*if(VariantHandler.commonSlider.getValue() > 1 && VariantHandler.clusterSize > 0) {
 	    	Main.drawCanvas.calcClusters(FileRead.head);
 		}*/
-		
+		Draw.calculateVars = true;
 		Draw.updatevars = true;
 		Main.drawCanvas.repaint();
 		VariantHandler.table.repaint();
@@ -266,29 +256,170 @@ static void useCTRL(TabixReader.Iterator iterator, VarNode current, int c) {
 		e.printStackTrace();
 	}
 }
-static void useVCF(TabixReader.Iterator iterator, VarNode current, int c, String firstline) {
+
+static void useVCFoverlap(TabixReader.Iterator iterator, VarNode current, int c, String firstline) {
+	try {
+		String line = firstline, controlvar = "";
+		String[] split, templist = null;
+		int position, count = 0, ref= 0, alt = 0, endindex=-1, acendindex =-1;
+		ArrayList<SampleNode> samplelist = null;
+		int alleles = 0, baselength = 0;		 
+		
+		   while(line !=null) {	    	 
+		    	 if(!Main.drawCanvas.loading) {
+		    		 break;
+		    	 }
+		    	 split = line.split("\t");	    	
+		    	 baselength = MethodLibrary.getControlBaseLength(split[3], split[4], 0);
+		    	
+		    	 position = Integer.parseInt(split[1])-1;
+		    	 while(current != null && current.getPosition() < position) {	    		
+		    		 current = current.getNext();		    		 
+		    	 }
+		    	 if(current == null) {
+					break;
+				 }
+		    	 if(position+baselength < current.getPosition()) {
+		    		 line = iterator.next();
+		    		 continue;
+		    	 }	    	
+		    	
+		    	 if(current.getPosition() >= position && current.getPosition() <= position+baselength) { 
+		    		 if(!split[4].contains(",")) {
+			    		 controlvar = FileRead.getVariant(split[3], split[4]);		    	
+			    	 }
+			    	 else {
+			    		 templist = split[4].split(",");
+			    		
+			    		 for(int i = 0; i<templist.length; i++) {
+			    			 templist[i] = FileRead.getVariant(split[3], templist[i]);		    			 
+			    		 }	    		
+			    	 }
+		    		 current.controlled = true;
+		    		 index = split[7].indexOf(";AC=")+4;
+		    		 if(index < 0) {
+		    			 index = split[7].indexOf("AC=")+3;
+		    		 }
+		    		 acendindex = split[7].indexOf(";", index);
+		    		 if(acendindex == -1) {
+		    			 acendindex = split[7].length();
+		    		 }
+		    		 refindex = split[7].indexOf(";AN=")+4;
+		    		
+		    		 endindex = split[7].indexOf(";", refindex);
+		    		 if(endindex == -1) {
+		    			 endindex = split[7].length();
+		    		 }
+		    		 
+		    		 for(int i = 0; i<current.vars.size(); i++) {
+		    			 count++;
+		    			 if(split[4].contains(",")) {
+		    				 
+		    				 for(int t = 0; t<templist.length; t++) {
+		    					 if(current.vars.get(i).getKey().equals(templist[t]) || baselength > 1) {
+		    						 if(controlData.fileArray.get(c).varcount > 2) {
+		    							 alleles = Integer.parseInt(split[7].substring(index, acendindex).split(",")[t]);	    							 					    		
+		 					    		 allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
+		    						 }
+		    						 else {
+		    							 infosplit = split[split.length-1].split(":");		    							 
+		    							 coverages = infosplit[split[8].indexOf("AD")/3].split(",");
+		    							 ref = Integer.parseInt(coverages[0]);
+		    							 alt = Integer.parseInt(coverages[1]);
+		    							 
+		    							 alleles = alt;				 	
+		    							 allelenumber = ref+alt;
+		    						 }
+		    	    				 samplelist = current.vars.get(i).getValue();		    				
+		    	    				 samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	
+		    	    				 break;
+		    					 }	    					
+		    	    		 }
+		    				 
+		    				 continue;
+		    			 }
+		    			 else if(current.vars.get(i).getKey().equals(controlvar) || baselength > 1) {
+		    				 
+	    					 if(controlData.fileArray.get(c).varcount > 2) {
+	    						 allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
+	    						 alleles = Integer.parseInt(split[7].substring(index, acendindex));  					 
+	    					 
+	    					 }
+	    					 else {
+	    						 infosplit = split[split.length-1].split(":");
+								 if(infosplit[0].length() > 2 ) { 
+	    							 if(infosplit[0].charAt(0) != infosplit[0].charAt(2)) {
+	    								 alleles = 1;
+	    							 }
+	    							 else {
+	    								 alleles = 2;
+	    							 }
+							 	 }
+								 else {
+									 alleles = 0;
+								 }
+								 allelenumber = 2;
+								/* coverages = infosplit[split[8].indexOf("AD")/3].split(",");
+								 ref = Integer.parseInt(coverages[0]);
+								 alt = Integer.parseInt(coverages[1]);
+								 
+								 alleles = alt;				 	
+								 allelenumber = ref+alt;
+	    					 */
+	    					 }
+		    				
+		    				 
+		    				 samplelist = current.vars.get(i).getValue();		   
+		    				
+		    				 samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	    				
+		    				 continue;
+		    			 }
+		    		 }	    		 
+		    	 }
+		    	 
+				if(count % 10 == 0) {
+					 Main.drawCanvas.loadBarSample = (int)((current.getPosition()/(double)(Main.drawCanvas.splits.get(0).chromEnd))*100);     
+					 Draw.updatevars = true;
+					 Main.drawCanvas.repaint();
+				}
+					try {
+						line = iterator.next();
+					}
+					catch(htsjdk.samtools.FileTruncatedException e) {
+						
+					}
+			}
+		   if(samplelist != null) {
+				 samplelist = null;
+			}
+		   current = null;
+		}
+		catch(Exception e) {
+			
+			e.printStackTrace();
+		}
+}
+
+static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, String firstline) {
 	try {
 	String line = firstline, controlvar = "";
 	String[] split, templist = null;
-	int position, count = 0, ref= 0, alt = 0;
+	int position, count = 0, ref= 0, alt = 0, endindex = -1, acendindex = -1;
 	ArrayList<SampleNode> samplelist = null;
 	int alleles = 0;
 	 
 	
-	   while(line !=null) {	 
-		  
-	    	 
+	   while(line !=null) {	    	 
 	    	 if(!Main.drawCanvas.loading) {
 	    		 break;
 	    	 }
 	    	 split = line.split("\t");	    	
 	    	 position = Integer.parseInt(split[1])-1;
-	    	 while(current != null && current.getPosition() < position) {
-	    		
+	    	 while(current != null && current.getPosition() < position) {	    		
 	    		 current = current.getNext();		    		 
 	    	 }
 	    	 if(current == null) {
-					break;
+				break;
 			 }
 	    	 if(position < current.getPosition()) {
 	    		 line = iterator.next();
@@ -310,10 +441,22 @@ static void useVCF(TabixReader.Iterator iterator, VarNode current, int c, String
 	    		
 	    		 index = split[7].indexOf(";AC=")+4;
 	    		 if(index < 0) {
-	    			 index = split[7].indexOf("\tAC=")+4;
+	    			 index = split[7].indexOf("AC=")+3;
+	    		 }
+	    		 acendindex = split[7].indexOf(";", index);
+	    		 if(acendindex == -1) {
+	    			 acendindex = split[7].length();
 	    		 }
 	    		 refindex = split[7].indexOf(";AN=")+4;
 	    		 
+	    		/* if(refindex == 3) {
+	    			 refindex = split[7].indexOf("AN=")+3;
+	    			 
+	    		 }*/
+	    		 endindex = split[7].indexOf(";", refindex);
+	    		 if(endindex == -1) {
+	    			 endindex = split[7].length();
+	    		 }
 	    		 for(int i = 0; i<current.vars.size(); i++) {
 	    			 count++;
 	    			 if(split[4].contains(",")) {
@@ -321,8 +464,12 @@ static void useVCF(TabixReader.Iterator iterator, VarNode current, int c, String
 	    				 for(int t = 0; t<templist.length; t++) {
 	    					 if(current.vars.get(i).getKey().equals(templist[t])) {
 	    						 if(controlData.fileArray.get(c).varcount > 2) {
-	    							 alleles = Integer.parseInt(split[7].substring(index, split[7].indexOf(";", index)).split(",")[t]);
-	    							 allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
+	    							 alleles = Integer.parseInt(split[7].substring(index, acendindex).split(",")[t]);	    							 					    		
+	 					    		 allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
+	 					    		 
+	    					//		 allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
+	    							
+	 					    		
 	    						 }
 	    						 else {
 	    							 infosplit = split[split.length-1].split(":");
@@ -355,8 +502,8 @@ static void useVCF(TabixReader.Iterator iterator, VarNode current, int c, String
 	    			 else if(current.vars.get(i).getKey().equals(controlvar)) {
 	    				 
     					 if(controlData.fileArray.get(c).varcount > 2) {
-    						 allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
-    						 alleles = Integer.parseInt(split[7].substring(index, split[7].indexOf(";", index)));    					 
+    						 allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
+    						 alleles = Integer.parseInt(split[7].substring(index, acendindex));    					 
     					 
     					 }
     					 else {
@@ -591,11 +738,26 @@ static void addFiles(File[] filestemp) {
 					samplecount = 0;
 					GZIPInputStream gzip = new GZIPInputStream(new FileInputStream(filestemp[i]));
 					BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));				
-					String line = reader.readLine();
-					
+					String line = reader.readLine(), population = "";
+					int idindex = 0, dotindex = 0;
 					while(line.startsWith("#")) {
-					
-						if(line.startsWith("#CHROM")) {
+						if(line.contains("##INFO")) {
+							if(line.contains("ID=")) {
+								idindex = line.indexOf("ID=");
+								dotindex = line.indexOf(",");
+								if(idindex > 0 && dotindex > 0) {
+									if(line.substring(idindex, dotindex).contains("AC")) {
+										population = line.substring(idindex+3, dotindex).replace("AC", "").replace("_", "");
+										if(population.length() == 0) {
+											population = "ALL";
+										}
+										
+										
+									}
+								}								
+							}
+						}
+						else if(line.startsWith("#CHROM")) {
 							if(line.split("\t").length -9 < 0) {
 								samplecount = 0;
 							}
@@ -609,15 +771,22 @@ static void addFiles(File[] filestemp) {
 					}
 					addSample.varcount = samplecount*2;
 					if(samplecount == 0) {
-						int count =0, maxnumber = 0;
+						int count =0, maxnumber = 0, endindex = -1;
 						String[] split = line.split("\t");
 						if(line.contains("AN=")) {
 							while(count < 1000) {
 								
 								refindex = split[7].indexOf(";AN=")+4;
-					    		 
+					    		if(refindex == -1) {
+					    			refindex = split[7].indexOf("AN=")+3;
+					    		}
+					    		endindex = split[7].indexOf(";", refindex);
+					    		if(endindex == -1) {
+					    			endindex = split[7].length();					    			
+					    		}				
 					    		
-					    		allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
+					    		allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
+					    		
 					    		if(allelenumber > maxnumber) {
 					    			maxnumber = allelenumber;
 					    		}
@@ -694,7 +863,7 @@ static void addFiles(File[] filestemp) {
   		 e.printStackTrace();
   	 }
 }
-void clearControls() {
+static void clearControls() {
 	Entry<String, ArrayList<SampleNode>> entry;	
 	 VarNode current = FileRead.head.getNext();
 	 while(current != null) {
@@ -746,6 +915,43 @@ static void dismissControls(VarNode head) {
 		
 		 current = current.getNext();
 	 }
+	for(int i = 0 ; i<controlData.fileArray.size(); i++) {
+		controlData.fileArray.get(i).controlled = false;
+	}
+	entry = null;
+	current = null;
+	head = null;
+}
+static void dismissControl(VarNode head, ControlFile sample) {
+	VarNode current = head;
+	Entry<String, ArrayList<SampleNode>> entry;
+	sample.controlOn = false;
+	Main.controlDraw.repaint();
+	sample.controlled = false;
+	while(current != null) {
+		 if(current.controlled) {
+			 for(int v = 0; v<current.vars.size(); v++) {
+					entry = current.vars.get(v);
+					
+					for(int i = entry.getValue().size()-1; i> -1;i-- ) {
+						if(entry.getValue().get(i).alleles == null) {
+							break;
+						}
+						if(entry.getValue().get(i).getControlSample().equals(sample)) {
+							entry.getValue().remove(i);
+						}
+					}							
+			 }
+			
+		 }
+		
+		 current = current.getNext();
+	 }
+	for(int i = 0 ; i<controlData.fileArray.size(); i++) {
+		controlData.fileArray.get(i).controlled = false;
+	}
+	
+	Control.applyControl();
 	
 	entry = null;
 	current = null;

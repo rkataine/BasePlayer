@@ -33,6 +33,8 @@ import java.util.Map;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
+import org.apache.commons.io.FilenameUtils;
+
 
 public class BedTable extends JPanel implements MouseMotionListener, MouseListener, MouseWheelListener {
 
@@ -75,7 +77,7 @@ public class BedTable extends JPanel implements MouseMotionListener, MouseListen
 		private Color textcolor;
 		private double casefreq;		
 		Map.Entry<String, ArrayList<SampleNode>>  entry;
-		private int textWidth = 0;
+		//private int textWidth = 0;
 		MethodLibrary.controlsorter ctrlsort = new MethodLibrary.controlsorter();
 		private int geneHeaderHover;
 		private boolean mouseDrag;
@@ -100,10 +102,10 @@ public class BedTable extends JPanel implements MouseMotionListener, MouseListen
 					 
 					
 			geneheaderlength = geneheader.size();
-			 for(int i = 0 ; i<Control.controlData.fileArray.size(); i++) {							
+			/* for(int i = 0 ; i<Control.controlData.fileArray.size(); i++) {							
 				  addRowGeneheader("AF: " +Control.controlData.fileArray.get(i).getName());
 				  addRowGeneheader("OR");						 
-			  }
+			  }*/
 			bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width, (int)height, BufferedImage.TYPE_INT_ARGB));	
 			buf = (Graphics2D)bufImage.getGraphics();
 			this.addMouseListener(this);
@@ -275,11 +277,11 @@ void drawScreen(Graphics g) {
 		//TODO		textWidth = (int)fm.getStringBounds("", buf).getWidth();
 				
 				
-				textWidth = (int)fm.getStringBounds(mutcountbuffer.toString(), buf).getWidth();
+			//	textWidth = (int)fm.getStringBounds(mutcountbuffer.toString(), buf).getWidth();
 			//	buf.drawString("  ", headerlengths[1][0]+5+textWidth, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
 				
-				buf.setColor(Color.gray);
-				textWidth = (int)fm.getStringBounds(mutcountbuffer.toString() , buf).getWidth();
+			//	buf.setColor(Color.gray);
+			//	textWidth = (int)fm.getStringBounds(mutcountbuffer.toString() , buf).getWidth();
 			//	buf.drawString(" " +bedarray.get(i).varnodes.size() +" samples",  headerlengths[1][0]+5+textWidth, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
 				
 				buf.setColor(Color.black);
@@ -328,50 +330,54 @@ void drawScreen(Graphics g) {
 					buf.setColor(Color.white);
 				}
 				firstvisible = 0;
-				for(int f = 0 ;f<bedarray.get(i).varnodes.size(); f++) {
-					if(!Main.drawCanvas.hideNode(bedarray.get(i).varnodes.get(f))) {
-						firstvisible = f;
-						break;
-					}
-				}
-				if(bedarray.get(i).varnodes.get(firstvisible).getExons() != null) {
+				if(bedarray.get(i).varnodes != null) {
 					
-					if(bedarray.get(i).varnodes.get(firstvisible).coding) {
-						buf.setColor(Color.red);
-						buf.drawString(bedarray.get(i).varnodes.get(firstvisible).getExons().get(0).getTranscript().getGenename() +" (Coding)", headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
-						
+				
+					for(int f = 0 ;f<bedarray.get(i).varnodes.size(); f++) {
+						if(!Main.drawCanvas.hideNode(bedarray.get(i).varnodes.get(f))) {
+							firstvisible = f;
+							break;
+						}
 					}
-					else {
-						buf.setColor(Color.lightGray);
-						buf.drawString(bedarray.get(i).varnodes.get(firstvisible).getExons().get(0).getTranscript().getGenename() +" (UTR)", headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+					if(bedarray.get(i).varnodes.get(firstvisible).getExons() != null) {
 						
-					}
-				}
-				else if(bedarray.get(i).varnodes.get(firstvisible).isInGene()) {
-					
-					buf.setColor(Color.lightGray);
-					buf.drawString(bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).getGenename() +" (Intronic)", headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
-					
-				}
-				else {
-					buf.setColor(Color.gray);
-					if(!bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).equals(bedarray.get(i).varnodes.get(0).getTranscripts().get(1))) {
-						
-						buf.drawString(bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).getGenename() +" ... " +bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(1).getGenename(), headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
-						
-					}
-					else {
-						if(bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).getEnd() > bedarray.get(i).varnodes.get(firstvisible).getPosition()) {
+						if(bedarray.get(i).varnodes.get(firstvisible).coding) {
+							buf.setColor(Color.red);
+							buf.drawString(bedarray.get(i).varnodes.get(firstvisible).getExons().get(0).getTranscript().getGenename() +" (Coding)", headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
 							
-							buf.drawString(" ... " +bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).getGenename(), headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
 						}
 						else {
-							buf.drawString(bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).getGenename() +" ... ", headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+							buf.setColor(Color.lightGray);
+							buf.drawString(bedarray.get(i).varnodes.get(firstvisible).getExons().get(0).getTranscript().getGenename() +" (UTR)", headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
 							
 						}
 					}
+					else if(bedarray.get(i).varnodes.get(firstvisible).isInGene()) {
+						
+						buf.setColor(Color.lightGray);
+						buf.drawString(bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).getGenename() +" (Intronic)", headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+						
+					}
+					else {
+						buf.setColor(Color.gray);
+						
+						if(!bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).equals(bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(1))) {
+							
+							buf.drawString(bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).getGenename() +" ... " +bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(1).getGenename(), headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+							
+						}
+						else {
+							if(bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).getEnd() > bedarray.get(i).varnodes.get(firstvisible).getPosition()) {
+								
+								buf.drawString(" ... " +bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).getGenename(), headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+							}
+							else {
+								buf.drawString(bedarray.get(i).varnodes.get(firstvisible).getTranscripts().get(0).getGenename() +" ... ", headerlengths[5][0]+5, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
+								
+							}
+						}
+					}	
 				}
-				
 				
 				buf.setColor(Color.darkGray);
 				buf.drawLine(3, rowHeight+3, 3, (rowHeight*(i+genemutcount+2))-tablescroll.getVerticalScrollBar().getValue()+3);	
@@ -827,7 +833,14 @@ void drawGeneheader(int y) {
 		}
 		else {
 			BedTrack track =  (BedTrack)geneheader.get(i)[0];
-			buf.drawString(track.file.getName(), (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+			
+			
+			if(track.file != null) {
+				buf.drawString(track.file.getName(), (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+			}
+			else {
+				buf.drawString(FilenameUtils.getName(track.url.getFile()), (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+			}
 			track = null;
 		}
 		buf.setColor(Color.black);
