@@ -71,9 +71,8 @@ public class MethodLibrary {
 	        }
 	        else {
 	        	return 0;
-	        }        
-	       
-	}  
+	        }       	       
+		}  
 	}
 	public static class ChromSorter implements Comparator<String> {
 
@@ -345,7 +344,7 @@ public class MethodLibrary {
 			else if (cg && record.getMateNegativeStrandFlag() != record.getReadNegativeStrandFlag()) {
 				return true;
 			}
-			else if (Math.abs(record.getInferredInsertSize()) > Settings.getMaxInsertSize()) {
+			else if (Math.abs(record.getInferredInsertSize()) > Settings.insertSize) {
 				return true;			
 			}
 		}
@@ -448,7 +447,7 @@ public class MethodLibrary {
 	    }
 	    
 	    BigDecimal bd = new BigDecimal(value);
-	//    System.out.println(bd +" " +(int)-Math.log10(bd.doubleValue()));
+
 	    if(bd.setScale(places, RoundingMode.HALF_UP).doubleValue() == 0.0) {
 	    	
 	    	return bd.setScale((int)-Math.log10(bd.doubleValue())+places, RoundingMode.HALF_UP).doubleValue();
@@ -456,8 +455,7 @@ public class MethodLibrary {
 	    }
 	    else {
 	    	return bd.setScale(places, RoundingMode.HALF_UP).doubleValue();
-	    }
-	    	
+	    }	    	
 	}
 	public static void removeHeaderColumns(Object column) {		
 		

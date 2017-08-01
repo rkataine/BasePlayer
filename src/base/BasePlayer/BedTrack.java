@@ -13,6 +13,8 @@ package base.BasePlayer;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
@@ -51,15 +53,16 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	private transient BedNode current, head = new BedNode("",0,0, this);
 	int prepixel = 0, mouseWheel = 0, bedstart=0, bedend=0, trackIndex;
 	private transient ArrayList<Integer> bedLevelMatrix= new ArrayList<Integer>();
-//	private transient Hashtable<String, String> names = new Hashtable<String, String>();
 	private transient Hashtable<Integer, Color> colors = new Hashtable<Integer, Color>();
 	boolean selex = false, small = false, cleared = false, intersect = false, graph = false;
-	Rectangle playbox = new Rectangle(), graphBox = new Rectangle();	
+	Rectangle playbox = new Rectangle(), graphBox = new Rectangle(), settingsButton = new Rectangle();	
 	Polygon playTriangle = new Polygon();
 	private transient BedTable table;
 	double maxvalue = 0, minvalue = Double.MAX_VALUE, scale = 0;
 	boolean negatives = false, first = true, used = false, loading = false, waiting = false, hasvalues = false, updated = false;
 	String chr = "";
+
+	ArrayList<JCheckBox> menuBoxes;
 	private transient BedNode drawNode = null;
 	short iszerobased = 0, nodeHeight = 10;
 	private transient BBFileHeader bbfileheader = null;
@@ -75,6 +78,8 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	private transient base.BBfile.BBZoomLevels zoomlevels;
 	private transient BBFileReader bbfileReader;
 	private transient Integer zoomLevel = null;
+	
+	
 	
 	public Integer getZoomlevel() {
 		return this.zoomLevel;
@@ -149,47 +154,97 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	}
 	
 	public void setmenu() {
-		intersectBox = new JCheckBox("Intersect");
-		zerobased = new JCheckBox("Zero Based");
-		logscale = new JCheckBox("Log Scale");
-		columnSelector = new JButton("File format");
-		collapseBox = new JCheckBox("Auto collapse");
-		affinityChange = new JCheckBox("Report affinity changes");
-		affinityChange.setVisible(false);
-		zerobased.setSelected(true);
-		menu = new JPopupMenu("Options");
-		sizeSlider = new JSlider(1,20);
-		nodeHeight = (short)sizeSlider.getValue();
-		sizeSlider.addChangeListener(this);
-		sizeSlider.setValue(nodeHeight);
-		sizeSlider.setPreferredSize(new Dimension(30,18));
-		limitField = new JTextField("Value limit");
-		intersectBox.setSelected(true);
-		menu.add(intersectBox);
-		menu.add(zerobased);
-		menu.add(logscale);
-		menu.add(collapseBox);
-		menu.add(affinityChange);
-		menu.add(limitField);
-		menu.add(columnSelector);
-		menu.add(sizeSlider);
-		menu.addPopupMenuListener(this);
-		collapseBox.addActionListener(this);
-		collapseBox.setSelected(true);
-		limitField.addMouseListener(this);
-		intersectBox.addActionListener(this);
-		zerobased.addActionListener(this);
-		logscale.addActionListener(this);
-		limitField.addKeyListener(this);
-		limitField.getDocument().addDocumentListener(this);
-		columnSelector.addActionListener(this);
+		try {
+			if(menuBoxes == null) {
+				intersectBox = new JCheckBox("Intersect");				
+				zerobased = new JCheckBox("Zero Based");
+				logscale = new JCheckBox("Log Scale");				
+				collapseBox = new JCheckBox("Auto collapse");
+				affinityChange = new JCheckBox("Report affinity changes");
+				menuBoxes = new ArrayList<JCheckBox>();
+				menuBoxes.add(intersectBox);
+				menuBoxes.add(zerobased);
+				menuBoxes.add(logscale);
+				menuBoxes.add(collapseBox);
+				menuBoxes.add(affinityChange);
+				zerobased.setSelected(true);
+				intersectBox.setSelected(true);
+				affinityChange.setVisible(false);
+			}
+			else {				
+				intersectBox = menuBoxes.get(0);
+				zerobased = menuBoxes.get(1);
+				logscale = menuBoxes.get(2);
+				collapseBox = menuBoxes.get(3);
+				affinityChange = menuBoxes.get(4);
+				
+			}
+			
+			columnSelector = new JButton("File format");
+			
+			menu = new JPopupMenu("Options");
+			menu.setLayout(new GridBagLayout());
+			GridBagConstraints con = new GridBagConstraints();
+			
+			limitField = new JTextField("Value limit");
+			
+			sizeSlider = new JSlider(JSlider.VERTICAL,1,20,nodeHeight);
+			sizeSlider.setInverted(true);
+			nodeHeight = (short)sizeSlider.getValue();
+			sizeSlider.addChangeListener(this);
+			sizeSlider.setValue(nodeHeight);
+			con.anchor = GridBagConstraints.NORTHWEST;
+			//sizeSlider.setPreferredSize(new Dimension(30,18));
+			
+			con.gridheight = 7;
+			menu.add(sizeSlider,con);
+			con.gridx = 1;
+			con.gridy++;
+			con.gridheight = 1 ;
+			menu.add(intersectBox,con);
+			con.gridy++;
+			menu.add(zerobased,con);
+			con.gridy++;
+			menu.add(logscale,con);
+			con.gridy++;
+			menu.add(collapseBox,con);
+			con.gridy++;
+			menu.add(affinityChange,con);	
+			con.gridy++;
+			menu.add(limitField,con);
+			con.gridy++;
+			menu.add(columnSelector,con);
+			
+		
+			if(limitValue != (double)Integer.MIN_VALUE) {
+				limitField.setText(""+limitValue);
+			}
+			
+			menu.addPopupMenuListener(this);
+			collapseBox.addActionListener(this);
+			collapseBox.setSelected(true);
+			limitField.addMouseListener(this);
+			intersectBox.addActionListener(this);
+			zerobased.addActionListener(this);
+			logscale.addActionListener(this);
+			limitField.addKeyListener(this);
+			limitField.getDocument().addDocumentListener(this);
+			columnSelector.addActionListener(this);
+			for(int c = 0 ; c<getPopup().getComponentCount(); c++) {
+				getPopup().getComponent(c).setFont(Main.menuFont);
+			}
+			
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
 		
 	}
 	void setTable(BedTable table) {
 		this.table = table;
 	}
 	void setSelector() {
-		this.selector = new ColumnSelector(this);
+		this.selector = new ColumnSelector(this);	
 	}
 	
 	public JButton getSelectorButton() {
@@ -259,9 +314,13 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			Main.drawCanvas.repaint();;
 		}
 		else if(e.getSource() == columnSelector) {
-			selector.frame.setVisible(true);
+			if(selector != null) {
+				selector.frame.setVisible(true);
+			}
+			
 		}
 		/*else if(e.getSource() == collapseBox) {
+			
 			
 		}*/
 		Main.bedCanvas.repaint();

@@ -1178,7 +1178,7 @@ void getAminos(ClusterNode transcript) {
 						if(entry.getValue().get(m).alleles != null) {
 							break;
 						}
-						if(!Main.drawCanvas.hideVar(entry.getValue().get(m))) {
+						if(!Main.drawCanvas.hideVar(entry.getValue().get(m), entry.getKey().length() > 1)) {
 							mutcount++;
 						}
 						else {

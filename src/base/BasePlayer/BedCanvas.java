@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
+
 import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.seekablestream.SeekableStreamFactory;
 import htsjdk.tribble.annotation.Strand;
@@ -47,8 +48,10 @@ import htsjdk.tribble.bed.BEDFeature;
 import htsjdk.tribble.index.Block;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.IndexFactory;
+
 import javax.swing.JPanel;
 import javax.swing.SwingWorker;
+
 import org.apache.commons.io.FilenameUtils;
 
 public class BedCanvas extends JPanel implements MouseMotionListener, MouseListener, KeyListener {
@@ -58,31 +61,26 @@ private static final long serialVersionUID = 1L;
 	BufferedImage bufImage, nodeImage;
 	Graphics2D buf, nodebuf;
 	int width, height, bedwidth;
-//	private TabixReader tabixReader;
-	Color zoomColor = new Color(115,115,100,50);
-	//ArrayList<BedNode> bednodes = new ArrayList<BedNode>();
+	Color zoomColor = new Color(145,145,130,50);
 	ArrayList<String> infolist = new ArrayList<String>();
 	Composite backupComposite;
 	ArrayList<BedTrack> bedTrack = new ArrayList<BedTrack>();
 	TabixReaderMod.Iterator iterator = null;
 	TabixReaderMod.Iterator bedIterator = null;
-	//BBFileReader bbfileReader = null;
 	ArrayList<Double> trackDivider = new ArrayList<Double>();
-	ArrayList<Double> tempDivider;
-	
+	ArrayList<Double> tempDivider;	
 	BedTrack track;
 	static int counter = 0;
 	Rectangle remoBox = new Rectangle();
 	private int bedEndPos;
 	private boolean foundlevel;
-//	BEDCodec bedcodec = null;
 	private int[][] matrix;
 	private int sum;
 	private int prevY;
 	private Color bedcolor;
 	private int bedcounter;
 	private int trackstart;
-	private FontMetrics fm;
+	FontMetrics fm;
 	private Rectangle2D textWidth;
 	private int lettercount;
 	private int mouseY;
@@ -98,7 +96,7 @@ private static final long serialVersionUID = 1L;
 	private boolean overlap = false;
 	private boolean sidebar = false;
 	private int removeTrack = -1;
-	public boolean graph = false;
+	//public boolean graph = false;
 	private int bedheight=0;
 	private int mouseX =0;
 	private boolean zoomDrag=false;
@@ -125,16 +123,18 @@ private static final long serialVersionUID = 1L;
 	public boolean annotator = false;
 	private boolean found;
 	
+	static BedTrack annoTrack = null;
+	
 	BedCanvas(int width, int height) {	
 		
 		this.width = width;
 		this.height = height;
 		bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)Main.screenSize.getWidth(), (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB));	
 		buf = (Graphics2D)bufImage.getGraphics();
-		buf.setRenderingHints(Draw.rh);
+	//	buf.setRenderingHints(Draw.rh);
 		nodeImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)Main.screenSize.getWidth(), (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB));
 		nodebuf = (Graphics2D)nodeImage.getGraphics();
-		nodebuf.setRenderingHints(Draw.rh);
+	//	nodebuf.setRenderingHints(Draw.rh);
 		backupComposite = nodebuf.getComposite();
 		buf.setFont(Draw.defaultFont);
 		//nodebuf.setFont(Draw.defaultFont);
@@ -166,12 +166,15 @@ void drawScreen(Graphics g) {
 	drawSidebar();
 	buf.setStroke(Draw.doubleStroke);
 	
-	buf.drawImage(Draw.image, Main.sidebarWidth, 0, this.getWidth(),(int)Main.screenSize.getHeight(), this);
+	//buf.drawImage(Draw.image, Main.sidebarWidth, 0, this.getWidth(),(int)Main.screenSize.getHeight(), this);
+	
 	buf.setColor(Draw.backColor);
 	buf.fillRect(Main.sidebarWidth, 0, this.getWidth(), nodeImage.getHeight());	
-	buf.setColor(Color.gray);
 	
-	if(!zoomDrag && !resize) {		
+	//buf.setColor(Color.gray);
+	
+	if(!zoomDrag && !resize) {	
+		
 		try {
 			drawNodes();
 		}
@@ -180,8 +183,6 @@ void drawScreen(Graphics g) {
 		}
 	}	
 	
-	buf.setColor(Color.black);
-	buf.drawLine(Main.sidebarWidth-2, 0, Main.sidebarWidth-2, this.getHeight());	
 	
 	if(resize) {		
 		buf.drawImage(nodeImage, Main.sidebarWidth, 0, nodeImage.getWidth(),(int)(Main.vardivider*Main.varPaneDivider.getY()), null);
@@ -189,13 +190,19 @@ void drawScreen(Graphics g) {
 	else {		
 		buf.drawImage(nodeImage, Main.sidebarWidth, 0, null);
 	}
+	
 	if(resizer && !mouseDrag) {
 		resizer = false;
 	}
 	for(int i = 0 ; i<bedTrack.size(); i++) {
 		if(i <bedTrack.size()-1) {
+			buf.setColor(Color.lightGray);
 			buf.drawLine(0, (int)(trackDivider.get(i)*this.getHeight()), this.getWidth(), (int)(trackDivider.get(i)*this.getHeight()));
-			if(!lineZoomer && mouseY < (int)(trackDivider.get(i)*this.getHeight())+4 && mouseY > (int)(trackDivider.get(i)*this.getHeight())-4) {
+			
+			buf.setColor(Color.gray);
+			buf.drawLine(0, (int)(trackDivider.get(i)*this.getHeight())+1, this.getWidth(), (int)(trackDivider.get(i)*this.getHeight())+1);
+			
+				if(!lineZoomer && mouseY < (int)(trackDivider.get(i)*this.getHeight())+4 && mouseY > (int)(trackDivider.get(i)*this.getHeight())-4) {
 				resizer = true;
 				if(getCursor().getType() != Cursor.N_RESIZE_CURSOR) {
 					resizeDivider = i;
@@ -231,7 +238,13 @@ void drawScreen(Graphics g) {
 		buf.drawLine((int)((Main.drawCanvas.getDrawWidth())/2+Main.drawCanvas.splits.get(0).pixel+Main.sidebarWidth+2), 0, (int)(((Main.drawCanvas.getDrawWidth()))/2+Main.drawCanvas.splits.get(0).pixel+Main.sidebarWidth+2), Main.bedScroll.getViewport().getHeight());
 		buf.setStroke(Draw.basicStroke);
 	}	
-	
+	for(int i = 1; i<Main.drawCanvas.splits.size(); i++) {
+		buf.setColor(Color.gray);
+		buf.fillRect(Main.drawCanvas.splits.get(i).offset-3, 0, 5, this.getHeight());
+		buf.setColor(Color.lightGray);
+		buf.fillRect(Main.drawCanvas.splits.get(i).offset-1, 0, 2, this.getHeight());
+		
+	}
 	if(getCursor().getType() != Cursor.N_RESIZE_CURSOR) {
 		
 		drawZoom();
@@ -241,10 +254,10 @@ void drawScreen(Graphics g) {
 
 void drawSidebar() {
 	
-	buf.setColor(Draw.sidecolor);
+	buf.setColor(Draw.sidecolor.darker());
 	buf.fillRect(0, 0, Main.sidebarWidth, this.getHeight());
-	buf.setColor(Draw.softColor);
-	buf.fillRect(0, 0, Main.sidebarWidth, this.getHeight());
+//	buf.setColor(Draw.softColor);
+//	buf.fillRect(0, 0, Main.sidebarWidth, this.getHeight());
 	buf.setColor(Color.black);
 	
 	if(bedTrack.size() > 0) {
@@ -255,16 +268,17 @@ void drawSidebar() {
 				buf.setColor(Color.black);
 			}
 			if(i == 0) {
-				trackstart = 10;
+				trackstart = Main.defaultFontSize;
 				trackheight = (int)(trackDivider.get(i)*this.getHeight());
 			}
 			else {
 				
-				trackstart = 10+(int)(trackDivider.get(i-1)*this.getHeight());
+				trackstart = Main.defaultFontSize+(int)(trackDivider.get(i-1)*this.getHeight());
 				trackheight = (int)(trackDivider.get(i)*this.getHeight())-(int)(trackDivider.get(i-1)*this.getHeight());
 			}
 			
 			if(bedTrack.get(i).file != null) {
+				
 				buf.drawString(bedTrack.get(i).file.getName(), 10, trackstart);
 			}
 			else {
@@ -272,45 +286,58 @@ void drawSidebar() {
 				buf.drawString(FilenameUtils.getName(bedTrack.get(i).url.getFile()), 10, trackstart);
 			}
 			
-			if(trackheight > 40) {
-				if((int)bedTrack.get(i).playbox.getBounds().getY() != trackstart+10) {
+			if(trackheight > Main.defaultFontSize+Main.defaultFontSize+(int)(Main.defaultFontSize*1.4)) {
+				
+				if((int)bedTrack.get(i).playbox.y != trackstart+Main.defaultFontSize) {
 					
-					bedTrack.get(i).playbox.setBounds(10, trackstart+10, 20, 20);
+					bedTrack.get(i).playbox.setBounds(10, trackstart+Main.defaultFontSize, (int)(Main.defaultFontSize*1.4), (int)(Main.defaultFontSize*1.4));
 					bedTrack.get(i).playTriangle.reset();					
-					bedTrack.get(i).playTriangle.addPoint(14, trackstart+14);
-					bedTrack.get(i).playTriangle.addPoint(14, trackstart+26);
-					bedTrack.get(i).playTriangle.addPoint(26, trackstart+20);						
-					bedTrack.get(i).graphBox.setBounds(bedTrack.get(i).playbox.x+30, trackstart+10, 20, 20);
+					bedTrack.get(i).playTriangle.addPoint(bedTrack.get(i).playbox.x+(Main.defaultFontSize/5), bedTrack.get(i).playbox.y+(Main.defaultFontSize/5));
+					bedTrack.get(i).playTriangle.addPoint(bedTrack.get(i).playbox.x+(Main.defaultFontSize/5), bedTrack.get(i).playbox.y+(bedTrack.get(i).playbox.width-(Main.defaultFontSize/5)));
+					bedTrack.get(i).playTriangle.addPoint(bedTrack.get(i).playbox.x+(bedTrack.get(i).playbox.width-(Main.defaultFontSize/5)),bedTrack.get(i).playbox.y +bedTrack.get(i).playbox.height/2);						
+					bedTrack.get(i).graphBox.setBounds(bedTrack.get(i).playbox.x+(int)(Main.defaultFontSize*1.4)+Main.defaultFontSize, trackstart+Main.defaultFontSize, (int)(Main.defaultFontSize*1.4), (int)(Main.defaultFontSize*1.4));
+					bedTrack.get(i).settingsButton.setBounds(Main.sidebarWidth-(int)(this.remoBox.width*(1.8)),trackstart-Main.defaultFontSize , (int)(this.remoBox.width*(1.5))+2, (int)(this.remoBox.height*(1.5)));
+					
+					
+				}
+				if(bedTrack.get(i).settingsButton.y == 0 || bedTrack.get(i).settingsButton.x != Main.sidebarWidth-(int)(this.remoBox.width*(1.8)) || bedTrack.get(i).settingsButton.width !=  (int)(this.remoBox.width*(1.5))+2) {
+					bedTrack.get(i).settingsButton.setBounds(Main.sidebarWidth-(int)(this.remoBox.width*(1.8)),trackstart-Main.defaultFontSize , (int)(this.remoBox.width*(1.5))+2, (int)(this.remoBox.height*(1.5)));
+					
 				}
 				if(Main.varsamples > 0) {
 					if(bedTrack.get(i).getCurrent() != null || (!bedTrack.get(i).small || bedTrack.get(i).getZoomlevel() != null)) {
-						buf.setColor(Color.lightGray);
-						buf.fillRect(bedTrack.get(i).playbox.getBounds().x,bedTrack.get(i).playbox.getBounds().y,bedTrack.get(i).playbox.getBounds().width,bedTrack.get(i).playbox.getBounds().height );
+					//	buf.setColor(Color.lightGray);
+					//	buf.fillRect(bedTrack.get(i).playbox.getBounds().x,bedTrack.get(i).playbox.getBounds().y,bedTrack.get(i).playbox.getBounds().width,bedTrack.get(i).playbox.getBounds().height );
 						
-						if(bedTrack.get(i).intersect) {
-							buf.setColor(Color.green);
-							buf.fillRect(bedTrack.get(i).playTriangle.getBounds().x, bedTrack.get(i).playTriangle.getBounds().y, 12,12);
-						}
-						else {
-							buf.setColor(Color.red);
-							buf.fillPolygon(bedTrack.get(i).playTriangle);
-						}
+						
+						buf.setColor(Color.white);
+						buf.fillRoundRect(bedTrack.get(i).playbox.getBounds().x-1,bedTrack.get(i).playbox.getBounds().y-1,bedTrack.get(i).playbox.getBounds().width, bedTrack.get(i).playbox.getBounds().height,2,2 );
+						buf.setColor(Color.gray);
+						buf.fillRoundRect(bedTrack.get(i).playbox.getBounds().x+1,bedTrack.get(i).playbox.getBounds().y+1,bedTrack.get(i).playbox.getBounds().width, bedTrack.get(i).playbox.getBounds().height,2,2 );
 						if(sideMouseRect.intersects(bedTrack.get(i).playbox)) {
-							
 							overlapping = true;
-							selectedPlay = i;
 							if(getCursor().getType() != Cursor.HAND_CURSOR) {
-								
+								selectedPlay = i;
 								setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 							}	
 							buf.setColor(Color.white);
-							buf.drawRect(bedTrack.get(i).playbox.getBounds().x-1,bedTrack.get(i).playbox.getBounds().y-1,bedTrack.get(i).playbox.getBounds().width+1, bedTrack.get(i).playbox.getBounds().height+1);
+						//	buf.drawRect(bedTrack.get(i).playbox.getBounds().x-1,bedTrack.get(i).playbox.getBounds().y-1,bedTrack.get(i).playbox.getBounds().width+1, bedTrack.get(i).playbox.getBounds().height+1);
+							buf.fillRoundRect(bedTrack.get(i).playbox.getBounds().x,bedTrack.get(i).playbox.getBounds().y,bedTrack.get(i).playbox.getBounds().width, bedTrack.get(i).playbox.getBounds().height,2,2 );
 							
 						}
-					}
-					else {
-						bedTrack.get(i).intersect = false;
-					}					
+						else {
+							buf.setColor(Draw.sidecolor);
+							buf.fillRoundRect(bedTrack.get(i).playbox.getBounds().x,bedTrack.get(i).playbox.getBounds().y,bedTrack.get(i).playbox.getBounds().width, bedTrack.get(i).playbox.getBounds().height,2,2 );
+						}
+						if(bedTrack.get(i).intersect) {
+							buf.setColor(Draw.greenColor);
+							buf.fillRect(bedTrack.get(i).playTriangle.getBounds().x, bedTrack.get(i).playTriangle.getBounds().y, bedTrack.get(i).playTriangle.getBounds().width,bedTrack.get(i).playTriangle.getBounds().height);
+						}
+						else {
+							buf.setColor(Draw.redColor);
+							buf.fillPolygon(bedTrack.get(i).playTriangle);
+						}
+					}						
 				}
 				
 				if(bedTrack.get(i).hasvalues) {
@@ -318,26 +345,43 @@ void drawSidebar() {
 					if(bedTrack.get(i).getCurrent() != null || !bedTrack.get(i).small) {
 					buf.setColor(Color.lightGray);
 					buf.fillRect(bedTrack.get(i).graphBox.getBounds().x,bedTrack.get(i).graphBox.getBounds().y,bedTrack.get(i).graphBox.getBounds().width,bedTrack.get(i).graphBox.getBounds().height );
-					
-					if(bedTrack.get(i).graph) {
+					buf.setColor(Color.white);
+					buf.fillRoundRect(bedTrack.get(i).graphBox.getBounds().x-1,bedTrack.get(i).graphBox.getBounds().y-1,bedTrack.get(i).graphBox.getBounds().width, bedTrack.get(i).graphBox.getBounds().height,2,2 );
+					buf.setColor(Color.gray);
+					buf.fillRoundRect(bedTrack.get(i).graphBox.getBounds().x+1,bedTrack.get(i).graphBox.getBounds().y+1,bedTrack.get(i).graphBox.getBounds().width, bedTrack.get(i).graphBox.getBounds().height,2,2 );
+					if(sideMouseRect.intersects(bedTrack.get(i).graphBox)) {
+						overlapping = true;
+						if(getCursor().getType() != Cursor.HAND_CURSOR) {
+							selectedPlay = i;
+							setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+						}	
 						buf.setColor(Color.white);
-						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x, bedTrack.get(i).graphBox.getBounds().y+20, bedTrack.get(i).graphBox.getBounds().x+4, bedTrack.get(i).graphBox.getBounds().y+10);
-						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x+4, bedTrack.get(i).graphBox.getBounds().y+10, bedTrack.get(i).graphBox.getBounds().x+10, bedTrack.get(i).graphBox.getBounds().y+16);
-						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x+10, bedTrack.get(i).graphBox.getBounds().y+16, bedTrack.get(i).graphBox.getBounds().x+16, bedTrack.get(i).graphBox.getBounds().y+6);
-						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x+16, bedTrack.get(i).graphBox.getBounds().y+6, bedTrack.get(i).graphBox.getBounds().x+20, bedTrack.get(i).graphBox.getBounds().y+12);
+					//	buf.drawRect(bedTrack.get(i).graphBox.getBounds().x-1,bedTrack.get(i).graphBox.getBounds().y-1,bedTrack.get(i).graphBox.getBounds().width+1, bedTrack.get(i).graphBox.getBounds().height+1);
+						buf.fillRoundRect(bedTrack.get(i).graphBox.getBounds().x,bedTrack.get(i).graphBox.getBounds().y,bedTrack.get(i).graphBox.getBounds().width, bedTrack.get(i).graphBox.getBounds().height,2,2 );
 						
 					}
 					else {
-						buf.setColor(Color.black);
-						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x, bedTrack.get(i).graphBox.getBounds().y+20, bedTrack.get(i).graphBox.getBounds().x+4, bedTrack.get(i).graphBox.getBounds().y+10);
-						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x+4, bedTrack.get(i).graphBox.getBounds().y+10, bedTrack.get(i).graphBox.getBounds().x+10, bedTrack.get(i).graphBox.getBounds().y+16);
-						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x+10, bedTrack.get(i).graphBox.getBounds().y+16, bedTrack.get(i).graphBox.getBounds().x+16, bedTrack.get(i).graphBox.getBounds().y+6);
-						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x+16, bedTrack.get(i).graphBox.getBounds().y+6, bedTrack.get(i).graphBox.getBounds().x+20, bedTrack.get(i).graphBox.getBounds().y+12);
+						buf.setColor(Draw.sidecolor);
+						buf.fillRoundRect(bedTrack.get(i).graphBox.getBounds().x,bedTrack.get(i).graphBox.getBounds().y,bedTrack.get(i).graphBox.getBounds().width, bedTrack.get(i).graphBox.getBounds().height,2,2 );
+					}
+					if(bedTrack.get(i).graph) {
+						buf.setColor(Draw.greenColor);
+						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x, bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height, bedTrack.get(i).graphBox.getBounds().x +bedTrack.get(i).graphBox.getBounds().width/4, bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height/2);
+						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width/4, bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height/2, bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width/2, bedTrack.get(i).graphBox.getBounds().y+(int)(bedTrack.get(i).graphBox.getBounds().height*0.66));
+						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width/2, bedTrack.get(i).graphBox.getBounds().y+(int)(bedTrack.get(i).graphBox.getBounds().height*0.66), (int)(bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width*0.66), bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height/4);
+						buf.drawLine((int)(bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width*0.66), bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height/4, bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width, bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height/2);
+						
+					}
+					else {
+						buf.setColor(Draw.redColor);
+						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x, bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height, bedTrack.get(i).graphBox.getBounds().x +bedTrack.get(i).graphBox.getBounds().width/4, bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height/2);
+						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width/4, bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height/2, bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width/2, bedTrack.get(i).graphBox.getBounds().y+(int)(bedTrack.get(i).graphBox.getBounds().height*0.66));
+						buf.drawLine(bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width/2, bedTrack.get(i).graphBox.getBounds().y+(int)(bedTrack.get(i).graphBox.getBounds().height*0.66), (int)(bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width*0.66), bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height/4);
+						buf.drawLine((int)(bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width*0.66), bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height/4, bedTrack.get(i).graphBox.getBounds().x+bedTrack.get(i).graphBox.getBounds().width, bedTrack.get(i).graphBox.getBounds().y+bedTrack.get(i).graphBox.getBounds().height/2);
 						
 					
 					}
-					
-					if(sideMouseRect.intersects(bedTrack.get(i).graphBox)) {
+					/*if(sideMouseRect.intersects(bedTrack.get(i).graphBox)) {
 						
 						overlapping = true;
 						selectedPlay = i;
@@ -348,12 +392,23 @@ void drawSidebar() {
 						buf.setColor(Color.white);
 						buf.drawRect(bedTrack.get(i).graphBox.getBounds().x-1,bedTrack.get(i).graphBox.getBounds().y-1,bedTrack.get(i).graphBox.getBounds().width+1, bedTrack.get(i).graphBox.getBounds().height+1);
 						
+					}*/
 					}
-					}
+				}				
+			}
+			if(trackheight > bedTrack.get(i).settingsButton.height) {
+				if(this.sideMouseRect.intersects(bedTrack.get(i).settingsButton)) {								
+					buf.setColor(Color.white);
+				}
+				else {			
+					buf.setColor(Draw.sidecolor.darker());
 				}
 				
+				buf.fillRect(bedTrack.get(i).settingsButton.x, bedTrack.get(i).settingsButton.y,bedTrack.get(i).settingsButton.width,bedTrack.get(i).settingsButton.height);
+				buf.drawImage(Main.settingsIcon.getImage(),Main.sidebarWidth-(int)(this.remoBox.width*(1.8)),trackstart-Main.defaultFontSize , (int)(this.remoBox.width*(1.5)), (int)(this.remoBox.height*(1.5)), this);
 			}
 		}
+		
 		if(!overlapping && !resizer) {			
 			
 			if(getCursor().getType() != Cursor.DEFAULT_CURSOR) {
@@ -374,18 +429,30 @@ void drawSidebar() {
 			}
 			else {				
 				removeTrack = -1;
-				if(this.remoBox.getBounds().y != (int)(trackDivider.get(hoverIndex)*this.getHeight())-11|| this.remoBox.getBounds().x != Main.sidebarWidth-11) {
-					this.remoBox.setBounds(Main.sidebarWidth-11, (int)(trackDivider.get(hoverIndex)*this.getHeight())-11, 8, 8);
+				if(this.remoBox.getBounds().x != Main.sidebarWidth-(Main.defaultFontSize+10) || this.remoBox.getBounds().y != (int)(trackDivider.get(hoverIndex)*this.getHeight()) -(Main.defaultFontSize+6)) {
+					this.remoBox.setBounds(Main.sidebarWidth-(Main.defaultFontSize+10), (int)(trackDivider.get(hoverIndex)*this.getHeight()) -(Main.defaultFontSize+6), Main.defaultFontSize+3, Main.defaultFontSize+3);
 				}
+			/*	if(this.remoBox.getBounds().y != (int)(trackDivider.get(hoverIndex)*this.getHeight())-11|| this.remoBox.getBounds().x != Main.sidebarWidth-11) {
+					this.remoBox.setBounds(Main.sidebarWidth-11, (int)(trackDivider.get(hoverIndex)*this.getHeight())-11, 8, 8);
+				}*/
 			}
 		
 			buf.setColor(Color.black);
-			buf.drawRect(this.remoBox.x-1, this.remoBox.y, this.remoBox.width, this.remoBox.height);
-			buf.drawLine(this.remoBox.x-1,this.remoBox.y,this.remoBox.x+7, this.remoBox.y +8);
-			buf.drawLine(this.remoBox.x-1,this.remoBox.y+8,this.remoBox.x+7, this.remoBox.y);
+			buf.drawRect(this.remoBox.x, this.remoBox.y, this.remoBox.width, this.remoBox.height);
+			buf.drawLine(this.remoBox.x, this.remoBox.y, this.remoBox.x+this.remoBox.width, this.remoBox.y+(int)this.remoBox.getHeight());
+			buf.drawLine(this.remoBox.x, this.remoBox.y+(int)this.remoBox.getHeight(), this.remoBox.x+this.remoBox.width,this.remoBox.y);
 		
 		}
+		buf.setStroke(Draw.doubleStroke);
+		buf.setColor(Color.gray);
+		buf.drawLine(Main.sidebarWidth-1, 0, Main.sidebarWidth-1, Main.drawScroll.getViewport().getHeight());
+		buf.drawLine(1, 0, 1, Main.drawScroll.getViewport().getHeight());
+		buf.setColor(Color.lightGray);
+		buf.drawLine(3, 0,3, Main.drawScroll.getViewport().getHeight());
+		buf.drawLine(Main.sidebarWidth-3, 0, Main.sidebarWidth-3, Main.drawScroll.getViewport().getHeight());
+		buf.setStroke(Draw.basicStroke);
 	}
+	
 	
 }
 
@@ -403,11 +470,11 @@ void drawZoom() {
 	else if(zoomDrag) {
 		
 		
-		buf.setStroke(Draw.dashed);
-		buf.setColor(Color.black);
-		buf.setFont(ChromDraw.seqFont);
+//		buf.setStroke(Draw.dashed);
+		buf.setColor(Color.white);
+	//	buf.setFont(ChromDraw.seqFont);
 		if(this.mouseX-Main.drawCanvas.pressX >= 0) {
-			buf.drawRect(Main.drawCanvas.pressX, 0, this.mouseX-Main.drawCanvas.pressX, this.getHeight());	
+			buf.drawRect(Main.drawCanvas.pressX+1, 0, this.mouseX-Main.drawCanvas.pressX-2, this.getHeight());	
 			if(Main.drawCanvas.getDrawWidth()-this.mouseX > 200) {
 				buf.drawString("" +MethodLibrary.formatNumber((int)((this.mouseX-Main.drawCanvas.pressX)/Main.drawCanvas.selectedSplit.pixel)) +"bp", Main.drawCanvas.pressX+(this.mouseX-Main.drawCanvas.pressX)+4, this.mouseY-35);
 				buf.drawString("Right click to cancel zoom" , Main.drawCanvas.pressX+(this.mouseX-Main.drawCanvas.pressX)+4, this.mouseY-6);
@@ -509,12 +576,17 @@ void drawNodes() {
 	nodebuf.setComposite(this.backupComposite);	
 	
 	for(int i = 0; i<bedTrack.size(); i++) {
+		
 		track = bedTrack.get(i);
 		if(updateTrack != null) {
 			if(!updateTrack.equals(track)) {
 				continue;
 			}
+			else {
+				updateTrack = null;
+			}
 		}
+		
 		track.prepixel = -1;
 		if(i ==0) {
 			trackstart = 5;
@@ -527,7 +599,7 @@ void drawNodes() {
 		if(trackheight < 22) {			
 			continue;
 		}
-	
+		
 		if(!annotator) {
 			if(Main.drawCanvas.splits.get(0).viewLength < Settings.windowSize && !track.small) {
 				
@@ -604,25 +676,25 @@ void drawNodes() {
 			
 			if(Main.drawCanvas.splits.get(0).viewLength > 100000 ) {
 				if(!this.heightchanged) {
-					if(track.nodeHeight != 4) {
-						track.nodeHeight = 4;
+					if(track.nodeHeight != (short)Main.defaultFontSize/3) {
+						track.nodeHeight = (short)(Main.defaultFontSize/3);
 					}
 				}
 			}
 			else {
 				if(!this.heightchanged) {
-					if(track.nodeHeight != 10) {
-						track.nodeHeight = 10;
+					if(track.nodeHeight != (short)(Main.defaultFontSize)) {
+						track.nodeHeight = (short)(Main.defaultFontSize);
 					}
 				}
 			}
 			
-			bedwidth = (int)((track.getDrawNode().getLength())*Main.drawCanvas.selectedSplit.pixel);
+			bedwidth = (int)((track.getDrawNode().getLength())*Main.drawCanvas.splits.get(0).pixel);
 			if(bedwidth < 1) {
 				bedwidth = 1;
 			}
 			
-			if(track.getCollapseBox().isSelected() && (bedwidth == 1 && (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.selectedSplit.start)*Main.drawCanvas.selectedSplit.pixel) == track.prepixel)) {
+			if(track.getCollapseBox().isSelected() && (bedwidth == 1 && (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel) == track.prepixel)) {
 				
 				track.setDrawNode(track.getDrawNode().getNext());
 				continue;
@@ -645,12 +717,12 @@ void drawNodes() {
 			if(track.graph) {
 				if(!track.negatives) {
 					if(track.getDrawNode().value == null || Double.isNaN(track.getDrawNode().value)) {
-						track.prepixel = (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.selectedSplit.start)*Main.drawCanvas.selectedSplit.pixel);
+						track.prepixel = (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel);
 						testRect.setBounds(track.prepixel,trackstart,bedwidth,track.nodeHeight);						
 						nodebuf.fillRect(track.prepixel, trackstart,bedwidth,track.nodeHeight);	
 					}
 					else {
-						track.prepixel = (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.selectedSplit.start)*Main.drawCanvas.selectedSplit.pixel);
+						track.prepixel = (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel);
 						if(track.getLogscale().isSelected()) {
 							bedheight = (int)((Math.log(track.getDrawNode().value*this.trackheight)/(double)Math.log((track.scale*this.trackheight)))*this.trackheight-10);
 							
@@ -665,7 +737,7 @@ void drawNodes() {
 					}
 				}
 				else if(track.getDrawNode().value!=null) {
-					track.prepixel = (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.selectedSplit.start)*Main.drawCanvas.selectedSplit.pixel);
+					track.prepixel = (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel);
 					if(!Double.isNaN(track.getDrawNode().value) && track.getDrawNode().value >= 0) {
 						if(track.getLogscale().isSelected()) {
 							bedheight = (int)((Math.log(track.getDrawNode().value*this.trackheight)/(Math.log((track.scale*2*this.trackheight))))*this.trackheight-10);
@@ -748,7 +820,7 @@ void drawNodes() {
 				else {
 						*/
 				
-						track.prepixel = (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.selectedSplit.start)*Main.drawCanvas.selectedSplit.pixel);
+						track.prepixel = (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel);
 						bedEndPos = track.getDrawNode().getPosition()+track.getDrawNode().getLength();
 						
 						if(track.getBedLevels().isEmpty()) {
@@ -875,12 +947,18 @@ void drawNodes() {
 				}
 	//		}
 			}
+			
 			//System.out.println(drawNode.getNext().getPosition());	
 			track.setDrawNode(track.getDrawNode().getNext());
 		}
 		
 		if(overlap ) {
 			drawInfo();
+		}
+		if(Main.drawCanvas.splits.size() > 1) {
+			nodebuf.setComposite( Main.drawCanvas.composite);		
+			nodebuf.fillRect(Main.drawCanvas.splits.get(1).chromOffset,0, bufImage.getWidth(),this.getHeight());	
+			nodebuf.setComposite(this.backupComposite);	
 		}
 		//drawNode = null;
 		/*if(Main.drawCanvas.splits.get(0).viewLength <= 300 && track.selex) {
@@ -961,8 +1039,8 @@ void drawInfo() {
 			
 		}
 		
-		nodebuf.setColor(Draw.loadColor);
-		nodebuf.fillRect(10, trackstart+10, boxmetrics.width+8, boxmetrics.height*infolist.size());
+		nodebuf.setColor(Color.white);
+		nodebuf.fillRoundRect(10, trackstart+10, boxmetrics.width+8, boxmetrics.height*infolist.size(),10,10);
 		nodebuf.setColor(Color.black);
 		for(int i = 0; i<infolist.size(); i++) {
 			nodebuf.drawString(infolist.get(i), 14, (trackstart+6)+(boxmetrics.height*(i+1)));
@@ -990,7 +1068,7 @@ public class Annotator extends SwingWorker<String, Object> {
 		counter = 0;
 		VarNode node = FileRead.head.getNextVisible(FileRead.head), first = null, last = null;
 		
-		boolean isfirst = true, cancelled = false, found = false;
+		boolean isfirst = true, cancelled = false; //, found = false;
 	
 		/*while(node != null) {
 			if(Main.drawCanvas.hideNode(node)) {
@@ -1022,7 +1100,7 @@ public class Annotator extends SwingWorker<String, Object> {
 		
 		if(node != null) {
 			
-		int start = node.getPosition()-3, end = start +Settings.windowSize, mutcounter =0;
+		int start = node.getPosition()-3, end = start +Settings.windowSize;//, mutcounter =0;
 		BedReader reader = new BedReader(track, start, end);
 		
 		
@@ -1037,8 +1115,10 @@ public class Annotator extends SwingWorker<String, Object> {
 			if(!Main.drawCanvas.loading) {
 				
 				track.used = false;
-				removeBedhits(track);
+				track.intersect = false;
+			//	removeBedhits(track);
 				cancelled = true;
+				repaint();
 				break;
 			}
 		
@@ -1086,7 +1166,7 @@ public class Annotator extends SwingWorker<String, Object> {
 				
 				if(!Main.drawCanvas.loading) {
 					track.used = false;
-					removeBedhits(track);
+				//	removeBedhits(track);
 					cancelled = true;
 					break;
 				}
@@ -1180,8 +1260,11 @@ public class Annotator extends SwingWorker<String, Object> {
 		}
 		else {
 			track.used = false;
+			if(track.small) {
+				Main.bedCanvas.getMoreBeds(track);
+			}
 			//track.intersect = false;
-			removeBedhits(track);
+		//	removeBedhits(track);
 		}
 		removeBeds(track);
 		if(FileRead.bigcalc) {
@@ -1194,7 +1277,12 @@ public class Annotator extends SwingWorker<String, Object> {
 		}
 		
 		Main.bedCanvas.annotator = false;
-		bedOn = true;
+		repaint();
+		if(!cancelled) {
+			bedOn = true;
+		}
+		
+		BedCanvas.annoTrack = null;
 		Draw.updatevars = true;
 		Main.drawCanvas.repaint();
 		
@@ -1230,11 +1318,17 @@ public class BedReader extends SwingWorker<String, Object> {
 		}
 		this.end = end;
 		this.track = track;
-		track.loading = true;	
+		track.loading = true;
+		if(track.file != null && track.file.getName().endsWith(".txt")) {
+			
+			getGeneTxt(track);
+			track.loading = false;
+			Main.drawCanvas.ready("Loading track...");
+		}
 	}
 
 	public void getNodes() {
-	
+		
 		try {			
 			
 			if(tabixReader != null) {
@@ -1253,15 +1347,17 @@ public class BedReader extends SwingWorker<String, Object> {
 					 }						
 				}
 				else {
-					if(track.file.getName().endsWith(".bed")) {
-						
-						bedreader = new BufferedReader(new FileReader(track.file.getCanonicalPath()));  
-						
+					if(track.file.getName().endsWith(".bed")) {						
+						bedreader = new BufferedReader(new FileReader(track.file.getCanonicalPath()));						
 					}
 					else {
-						
-						tabixReader = new TabixReaderMod(track.file.getCanonicalPath());  
-					}
+						try {
+							tabixReader = new TabixReaderMod(track.file.getCanonicalPath());  
+						}
+						catch(Exception e) {
+							bedreader = new BufferedReader(new FileReader(track.file.getCanonicalPath()));  
+						}
+ 					}
 				}
 			}
 			else {
@@ -1305,10 +1401,8 @@ public class BedReader extends SwingWorker<String, Object> {
 					
 						if(blocks.size() > 0) {							
 							bedreader = new BufferedReader(new FileReader(track.file));
-							bedreader.skip(blocks.get(0).getStartPosition());	
-							
-						}
-								
+							bedreader.skip(blocks.get(0).getStartPosition());								
+						}								
 					}
 					else if(tabixReader == null) {
 						
@@ -1428,7 +1522,7 @@ public class BedReader extends SwingWorker<String, Object> {
 					  }
 				  }
 			 */
-			 
+			
 			if(track.file != null) {  
 				if(track.file.getName().toLowerCase().endsWith("bed")) {
 					
@@ -1497,9 +1591,12 @@ public class BedReader extends SwingWorker<String, Object> {
 				track.hasvalues = true;
 				 
 				track.getLimitField().setEditable(true);
-				if(!track.selex) {
-		   			track.graph = true;
-				}
+				//if(!track.selex) {
+					/*if(!track.graph) {
+						pressGraph(track);
+					}
+					*/
+			//	}
 	   		}
 			if(!track.hasvalues) {				
 		    	track.getLimitField().setVisible(false);		    	  
@@ -1530,7 +1627,8 @@ public class BedReader extends SwingWorker<String, Object> {
 			}
 		}		
 		track.setDrawNode(track.getHead());
-		if(track.waiting) {			
+		if(track.waiting) {		
+		
 			track.waiting = false;
 			Main.bedCanvas.annotate(track.getHead());
 			
@@ -1552,9 +1650,8 @@ public class BedReader extends SwingWorker<String, Object> {
 		
 		if(track.file != null && track.file.getName().endsWith(".txt")) {
 			
-			getGeneTxt(track);
-			track.loading = false;
-			Main.drawCanvas.ready("Loading track...");
+			
+			
 			return "";
 		}
 		
@@ -1578,6 +1675,7 @@ void getGeneTxt(BedTrack track) {
 	 BufferedReader reader = new BufferedReader(new FileReader(track.file.getCanonicalFile()));
 	 String gene;
 	 String[] result = {};
+	// System.out.println("#chrom\tstart\tend\tname");
 	 while((line = reader.readLine()) != null) {
 		 
 		 gene = line.replace(" ", "");	
@@ -1593,6 +1691,7 @@ void getGeneTxt(BedTrack track) {
 		 }		 
 		
 		 if(result != null && result.length == 3) {
+		//	 System.out.println(result[0] +"\t" +result[1] +"\t" +result[2] +"\t" +gene);
 			 if(result[0].equals(Main.chromosomeDropdown.getSelectedItem().toString())){
 				 position = Integer.parseInt(result[1]);
 				 addNode = track.getHead();
@@ -1629,6 +1728,7 @@ void getGeneTxt(BedTrack track) {
 	
 	 }
 	 catch(Exception e) {
+		 
 		 e.printStackTrace();
 	 }
 	}
@@ -1648,7 +1748,7 @@ void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 		addNode = track.getHead();
 		track.getHead().putNext(null);
 		 track.setCurrent(track.getHead());
-		 boolean novalue = false, nostrand = false, first = true, nocolor = true, bedgraph = false, firstrow = true;
+		 boolean first = true, bedgraph = false, firstrow = true;
 		
 		 BEDFeature features;
 		 BEDCodecMod bedcodec = new BEDCodecMod();
@@ -1802,7 +1902,7 @@ void iterateBED(TabixReaderMod.Iterator iterator, BedTrack track) {
 		track.getHead().putNext(null);
 		
 		 track.setCurrent(track.getHead());
-		 boolean novalue = false, nostrand = false, first = true, nocolor = true, bedgraph = false;
+		 boolean first = true, bedgraph = false;
 		 if(track.file.getCanonicalPath().endsWith("bedgraph.gz") || track.file.getCanonicalPath().endsWith("bedgraph")) {
 			 bedgraph = true;
 		 }
@@ -1934,7 +2034,6 @@ void iterateBigBed(BigBedIterator iterator, BedTrack track) {
 	 track.maxvalue = 0;
 		track.minvalue = Double.MAX_VALUE;
 		 track.setCurrent(track.getHead());
-		 boolean novalue = false, nostrand = false, first = true, nocolor = true, bedgraph = false;
 		
 		 BedFeature features;
 		String[] allfields = null;
@@ -2030,7 +2129,7 @@ void iterateBigBed(BigBedIterator iterator, BedTrack track) {
 	    			System.out.println(allfields[i] +"\t");
 	    		}
 	    	}
-	    	first = false;
+	    
 	     }     
 	   if(track.minvalue < 0) {
 		   track.negatives = true;
@@ -2399,10 +2498,17 @@ void getBEDfeatures(BedTrack track, int start, int end) {
 	}
 	track.bedstart = start;
 	track.bedend = end;
-	Main.drawCanvas.loading("Loading track...");	
-	
+	if(!Main.bedCanvas.annotator) {
+		Main.drawCanvas.loading("Loading track...");	
+	}
 	BedReader reader = new BedReader(track, start, end);	
-	reader.execute();
+	if(Main.nothread) {
+		reader.getNodes();
+	}
+	else {
+		reader.execute();
+	}
+	
 }
 void removeBeds(BedTrack track) {
 	
@@ -2444,6 +2550,7 @@ public void paint(Graphics g) {
 	}
 }
 public void pressIntersect(BedTrack track) {
+	BedCanvas.annoTrack = track;
 	if(track.intersect) {
 		track.intersect = false;
 		
@@ -2461,6 +2568,7 @@ public void pressIntersect(BedTrack track) {
 		//if(bedTrack.get(selectedPlay).small || (!bedTrack.get(selectedPlay).small && bedTrack.get(selectedPlay).getHead().getNext() != null && Main.drawCanvas.splits.get(0).viewLength < 1000000)) {
 			annotate(track.getHead());
 			annotator = false;
+			BedCanvas.annoTrack = null;
 		/*}
 		else {
 			
@@ -2479,6 +2587,7 @@ public void pressIntersect(BedTrack track) {
 		track.intersect = true;
 		if((track.small && track.getZoomlevel() == null)|| (!track.small && track.getHead().getNext() != null && Main.drawCanvas.splits.get(0).viewLength < Settings.windowSize)) {
 			annotate(track.getHead());
+			BedCanvas.annoTrack = null;
 			annotator = false;
 			//bedTrack.get(selectedPlay).used = true;
 			
@@ -2503,6 +2612,7 @@ public void pressIntersect(BedTrack track) {
 			}
 			else {
 				annotate(track.getHead());
+				BedCanvas.annoTrack = null;
 			}
 			Draw.updatevars = true;
 			Draw.calculateVars = true;
@@ -2514,24 +2624,16 @@ public void mouseClicked(MouseEvent event) {
 	switch(event.getModifiers()) {	
 		case InputEvent.BUTTON1_MASK: {	
 			if(selectedPlay > -1 && bedTrack.get(selectedPlay).playbox.intersects(sideMouseRect)) {
-				pressIntersect(bedTrack.get(selectedPlay));
+				pressIntersect(bedTrack.get(selectedPlay));			
 			
-			
-		}
-		else if(selectedPlay > -1 && bedTrack.get(selectedPlay).graphBox.intersects(sideMouseRect)) {
-			if(bedTrack.get(selectedPlay).graph) {
-				bedTrack.get(selectedPlay).graph =false;
-				repaint();
 			}
-			else {
-				bedTrack.get(selectedPlay).graph =true;
-				repaint();
+			else if(selectedPlay > -1 && bedTrack.get(selectedPlay).graphBox.intersects(sideMouseRect)) {
+				pressGraph(bedTrack.get(selectedPlay));
 			}
-		}
-		else if(removeTrack > -1) {
-			removeTrack(removeTrack);
-		}	
-			break;
+			else if(removeTrack > -1) {
+				removeTrack(removeTrack);
+			}	
+				break;
 	}
 	case InputEvent.BUTTON3_MASK: {	
 		
@@ -2545,13 +2647,27 @@ public void mouseClicked(MouseEvent event) {
 	
 }	
 
+public void pressGraph(BedTrack track) {
+	if(track.graph) {
+		track.graph =false;
+		track.getCollapseBox().setText("Auto collapse");
+		repaint();
+	}
+	else {
+		track.graph =true;
+		track.getCollapseBox().setText("Auto scale");
+		repaint();
+	}
+}
 void removeBedhits(BedTrack remtrack) {
 	boolean bedon = false;
+	
 	for(int i = 0 ; i<bedTrack.size(); i++) {
 		if(bedTrack.get(i).intersect && !bedTrack.get(i).equals(remtrack)) {
 			bedon = true;
 		}
 	}
+	
 	if(!bedon) {
 		bedOn = false;
 	}
@@ -2799,9 +2915,11 @@ boolean annotate(BedNode head) {
 		while(currentBed != null) {		
 			
 			if(current.getNext() == null) {
+				
 				if(currentBed.getPosition() > current.getPosition()+1) {
 					break;
 				}
+				
 			}
 			
 			if(current.getPrev().getPrev() == null && currentBed.getPosition()+currentBed.getLength() < current.getPosition()) {	
@@ -2815,6 +2933,7 @@ boolean annotate(BedNode head) {
 						current = current.getPrev();						
 					}						
 					else  {
+						
 						current = current.getNext();						
 						break;
 					}
@@ -2860,16 +2979,35 @@ boolean annotate(BedNode head) {
 								}
 							}
 							if(found) {
-								current.getBedHits().add(currentBed);			
-								current.setBedhit(true);
-								
-								if(currentBed.varnodes == null) {
-									currentBed.varnodes = new ArrayList<VarNode>();
+								if(currentBed.getTrack().basecolumn != null) {
+									for(int i = 0 ; i< current.vars.size(); i++) {										
+										if(currentBed.name.equals(current.vars.get(i).getKey())) {
+											current.getBedHits().add(currentBed);			
+											current.setBedhit(true);
+											
+											if(currentBed.varnodes == null) {
+												currentBed.varnodes = new ArrayList<VarNode>();
+											}
+											
+											if(!currentBed.varnodes.contains(current)) {
+												
+												currentBed.varnodes.add(current);				
+											}
+										}
+									}
 								}
-								
-								if(!currentBed.varnodes.contains(current)) {
+								else {
+									current.getBedHits().add(currentBed);			
+									current.setBedhit(true);
 									
-									currentBed.varnodes.add(current);				
+									if(currentBed.varnodes == null) {
+										currentBed.varnodes = new ArrayList<VarNode>();
+									}
+									
+									if(!currentBed.varnodes.contains(current)) {
+										
+										currentBed.varnodes.add(current);				
+									}
 								}
 							}
 						}							
@@ -2911,6 +3049,7 @@ boolean annotate(BedNode head) {
 			/*if(current == null) {
 				break;
 			}*/
+			
 			currentBed = currentBed.getNext();
 			if(head.getTrack().small) {
 				if(currentBed == null) {
@@ -2933,7 +3072,9 @@ boolean annotate(BedNode head) {
 	if(!annotator && !FileRead.bigcalc) {
 		head.getTrack().used = true;
 	}
-	
+	if(current != null) {
+		current.bedhit = checkIntersect(current, t1, t2);	
+	}
 	current = null;
 	currentBed = null;
 	return true;
@@ -2962,7 +3103,7 @@ public void checkIntersectAll(VarNode node) {
 boolean checkIntersect(VarNode current, Object[] t1, Object[] t2) {
 	t2 = new Object[t1.length];
 	
-	if(current.getBedHits() == null) {
+	if(current == null || current.getBedHits() == null) {
 		for(int i = 0 ;i<this.bedTrack.size(); i++) {
 			if(this.bedTrack.get(i).intersect && this.bedTrack.get(i).getIntersectBox().isSelected()) {				
 				return false;
@@ -3000,6 +3141,17 @@ public void mousePressed(MouseEvent event) {
 	switch(event.getModifiers()) {	
 	
 	case InputEvent.BUTTON1_MASK: {	
+		
+	//	if(this.settingsbutton > -1) {
+			if(sidebar && this.sideMouseRect.intersects(bedTrack.get(this.hoverIndex).settingsButton)) {
+				
+				this.bedTrack.get(this.hoverIndex).getPopup().show(this, mouseX, mouseY);
+				//settingsbutton = -1;
+				break;
+			}
+		
+	
+		//}
 		if(resizer) {
 			preresize = mouseY;
 			preresizer = this.trackDivider.get(this.resizeDivider)*this.getHeight();
@@ -3020,6 +3172,59 @@ public void mousePressed(MouseEvent event) {
 }
 	
 }	
+
+void calcScale(BedTrack track) {
+	if(track.getCollapseBox().isSelected()) {
+		Double min = (double)Integer.MAX_VALUE, max = (double)Integer.MIN_VALUE;
+		BedNode node = null;
+		if(track.getDrawNode() != null) {
+			node = track.getCurrent();
+			
+		}
+		else {
+			return;
+		}
+		
+		while(node != null && node.getPosition() < Main.drawCanvas.splits.get(0).end) {
+			try {
+				if(node.value < min) {
+					min = node.value;				
+				}
+				if(node.value > max) {
+					max = node.value;
+				}
+			}
+			catch(Exception e) {
+				node = node.getNext();
+				continue;
+			}
+			node = node.getNext();		
+		}
+		//track.minvalue = min;
+		//track.maxvalue = max;
+		if(track.minvalue < 0) {
+			   track.negatives = true;
+			   track.scale = Math.max(Math.abs(max), Math.abs(min));
+	    }
+	    else {
+	    	   track.scale = max;
+	    }
+		
+		node = null;
+	}
+	else {
+		if(track.minvalue < 0) {
+			   track.negatives = true;
+			   track.scale = Math.max(Math.abs(track.maxvalue), Math.abs(track.minvalue));
+	    }
+	    else {
+	    	   track.scale = track.maxvalue;
+	    }
+	}
+
+	repaint();
+}
+
 public void mouseReleased(MouseEvent event) {
 	
 	if(!sidebar) {
@@ -3043,6 +3248,10 @@ public void mouseReleased(MouseEvent event) {
 	lineZoomer = false;
 	
 	for(int i = 0 ; i<bedTrack.size(); i++) {
+		if(bedTrack.get(i).graph) {
+			calcScale(bedTrack.get(i));
+			
+		}
 		getMoreBeds(bedTrack.get(i));
 	}
 }	
@@ -3188,7 +3397,7 @@ public void mouseDragged(MouseEvent event) {
 									}
 									catch(Exception e) {
 										
-										e.printStackTrace();
+									//	e.printStackTrace();
 									}
 								}
 							}							
@@ -3316,6 +3525,7 @@ public void keyPressed(KeyEvent e) {
 		repaint();
 	}
 	if(keyCode == KeyEvent.VK_MINUS || keyCode == 109) {
+		
 		heightchanged = true;
 		for(int i = 0 ; i< bedTrack.size(); i++) {
 			if(bedTrack.get(i).nodeHeight > 1) {

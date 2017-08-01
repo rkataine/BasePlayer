@@ -13,18 +13,17 @@ package base.BasePlayer;
 import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map.Entry;
 
-import base.BasePlayer.VariantHandler.QualEntry;
 
 public class DrawVariables implements Serializable {	
 	private static final long serialVersionUID = 1L;
 	double sampleHeight = Draw.defaultSampleHeight;
-	short visiblestart=0, visiblesamples=1;
+	
+	short visiblesamples=1,visiblestart=0;
 	int scrollbarpos = 0;
 	String projectName = "Untitled";
 	File projectFile;
-	HashMap<String, Float> advQualities = null;
+	
 	ArrayList<QualEntry> advQDraw = null;
+	ArrayList<QualEntry> advQDrawIndel = null;
 }

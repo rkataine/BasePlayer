@@ -20,7 +20,7 @@ public class SplitClass implements Serializable {
 	
 	
 	private static final long serialVersionUID = 1L;
-	int chromEnd = 0, offset;
+	int chromEnd = 0, offset, chromOffset;
 	double pixel = 0.0, start=1, end=0, viewLength=0;
 	String chrom;	
 	private transient int minReadStart = Integer.MAX_VALUE, maxReadEnd = 0;
@@ -34,6 +34,7 @@ public class SplitClass implements Serializable {
 	private transient Double divider = 4.0;
 	public boolean splitRead = false;
 	private transient SplitDraw splitDraw; 
+	private transient ArrayList<String[]> chromBands = new ArrayList<String[]>();
 	int transStart = 0;
 	
 	public SplitClass() {
@@ -43,9 +44,9 @@ public class SplitClass implements Serializable {
 	void resetSplits() {
 		
 		splitDraw = new SplitDraw();
-		FileRead reader = new FileRead();
+//		FileRead reader = new FileRead();
 	//	setTranscripts(reader.getExons(chrom));
-		setGenes(reader.getExons(chrom));
+//		setGenes(reader.getExons(chrom));
 	}
 	
 	/*ArrayList<Transcript> getTranscripts() {
@@ -54,6 +55,12 @@ public class SplitClass implements Serializable {
 	void setTranscripts(ArrayList<Transcript> trans) {
 		this.transcripts = trans;
 	}*/
+	public void setChromBands(ArrayList<String[]> bands) {
+		this.chromBands = bands;
+	}
+	public ArrayList<String[]> getChromBands() {
+		return this.chromBands;
+	}
 	ReferenceSeq getReference() {
 		return this.drawReference;
 	}
@@ -100,9 +107,17 @@ public class SplitClass implements Serializable {
 		return splitDraw.selectbuf;
 	}
 	BufferedImage getExonImage() {
-		return splitDraw.exonImage;
+		if(splitDraw == null) {
+			return null;
+		}
+		else {
+			return splitDraw.exonImage;
+		}
 	}
 	BufferedImage getReadImage() {
+		if(splitDraw == null) {
+			return null;
+		}
 		return splitDraw.readImage;
 	}
 	BufferedImage getSelectbuffer() {
@@ -138,10 +153,11 @@ public class SplitClass implements Serializable {
 		
 		public SplitDraw() {
 			resizeImages((int)Main.screenSize.getWidth());		
-			exonImageBuffer.setRenderingHints(Draw.rh);			
-			readBuffer.setRenderingHints(Draw.rh);			
-			selectbuf.setRenderingHints(Draw.rh);
+		//	exonImageBuffer.setRenderingHints(Draw.rh);			
+		//	readBuffer.setRenderingHints(Draw.rh);			
+		//	selectbuf.setRenderingHints(Draw.rh);
 			selectbuf.setStroke(Draw.strongStroke);
+			
 		}
 		public void resizeImages(int width) {
 			exonImage = MethodLibrary.toCompatibleImage(new BufferedImage(width, (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB));	

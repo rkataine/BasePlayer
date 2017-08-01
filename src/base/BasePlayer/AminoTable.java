@@ -57,7 +57,7 @@ private static final long serialVersionUID = 1L;
 		int samplecount = 0;
 		Enumeration<String> e;
 		String base;
-		private FontMetrics fm;
+		FontMetrics fm;
 		ArrayList<Object[]> geneheader =  new ArrayList<Object[]>();
 		String[] header = {"Gene", "Mut. count", "Gene position", "Description" };
 		int[][] headerlengths = new int[header.length][2];		
@@ -100,6 +100,7 @@ private static final long serialVersionUID = 1L;
 					 obj = new Object[3]; obj[0] = "rs-code"; 	obj[1] = (int)geneheader.get(geneheader.size()-1)[1] + (int)geneheader.get(geneheader.size()-1)[2]; obj[2] = (int)((width-10)/7.0); geneheader.add(obj);
 		
 			geneheaderlength = geneheader.size();
+			
 			bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width, (int)height, BufferedImage.TYPE_INT_ARGB));	
 			buf = (Graphics2D)bufImage.getGraphics();
 			this.addMouseListener(this);
@@ -154,13 +155,13 @@ void resizeTable(int width) {
 	this.revalidate();
 }
 
-void resizeTable() {
-	
+void resizeTable() {	
 	if(bufImage.getWidth() < headerlengths[headerlengths.length-1][0]+headerlengths[headerlengths.length-1][1]) {
+		
 		bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width*2, (int)height, BufferedImage.TYPE_INT_ARGB));	
 		buf = (Graphics2D)bufImage.getGraphics();
-	}
-	
+		buf.setFont(Main.menuFont);
+	}	
 }
 
 void resizeTable(int column, int amount) {
@@ -175,6 +176,7 @@ void resizeTable(int column, int amount) {
 			if(bufImage.getWidth() < headerlengths[headerlengths.length-1][0]+headerlengths[headerlengths.length-1][1]) {
 				bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width*2, (int)height, BufferedImage.TYPE_INT_ARGB));	
 				buf = (Graphics2D)bufImage.getGraphics();
+				buf.setFont(Main.menuFont);
 			}
 			this.setPreferredSize(new Dimension(headerlengths[headerlengths.length-1][0]+headerlengths[headerlengths.length-1][1], this.getHeight()));
 			this.revalidate();
@@ -191,6 +193,7 @@ void resizeTable(int column, int amount) {
 			if(bufImage.getWidth() < (int)geneheader.get(geneheader.size()-1)[1]+(int)geneheader.get(geneheader.size()-1)[2]) {
 				bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width*2, (int)height, BufferedImage.TYPE_INT_ARGB));	
 				buf = (Graphics2D)bufImage.getGraphics();
+				buf.setFont(Main.menuFont);
 			}
 			this.setPreferredSize(new Dimension((int)geneheader.get(geneheader.size()-1)[1]+(int)geneheader.get(geneheader.size()-1)[2], this.getHeight()));
 			this.revalidate();
@@ -201,14 +204,12 @@ void resizeTable(int column, int amount) {
 }
 
 void drawScreen(Graphics g) {	
-	if(!isEnabled()) {
-		
+	if(!isEnabled()) {		
 		return;
 	}
 	
-	buf.setColor(Color.black);
-	
-	buf.fillRect(0, 0, this.getWidth(), tablescroll.getViewport().getHeight());	
+	buf.setColor(Color.black);	
+	buf.fillRect(0, 0, VariantHandler.tableScroll.getViewport().getWidth(), tablescroll.getViewport().getHeight());	
 	
 	
 	if( VariantHandler.writetofile.isSelected()) {
@@ -295,6 +296,7 @@ void drawScreen(Graphics g) {
 				else {
 					buf.setColor(Color.white);
 				}
+				
 				mutcountbuffer = new StringBuffer(""+genearray.get(i).mutations +" (");
 				buf.drawString(mutcountbuffer.toString(), (int)(headerlengths[1][0]+5), (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
 		
@@ -313,6 +315,7 @@ void drawScreen(Graphics g) {
 						buf.drawString(", ",(int)(headerlengths[1][0])+5+textWidth, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
 						mutcountbuffer.append(", ");
 					}
+					
 					textWidth = (int)fm.getStringBounds(mutcountbuffer.toString(), buf).getWidth();
 					buf.setColor(Color.yellow);
 					buf.drawString(""+genearray.get(i).missense, (int)(headerlengths[1][0])+5+textWidth, (rowHeight*(i+1+genemutcount))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);		
@@ -606,6 +609,7 @@ void drawScreen(Graphics g) {
 												if(vararray.get(e).alleles == null) {													
 													break;
 												}
+												
 												controlarray[vararray.get(e).getControlSample().getIndex()] = vararray.get(e);
 										
 											}
@@ -629,7 +633,7 @@ void drawScreen(Graphics g) {
 														buf.setColor(Color.black);
 														buf.fillRect((int)geneheader.get(this.geneheaderlength+e*2)[1]+11, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
 														buf.setColor(textcolor);											
-														buf.drawString(""+MethodLibrary.round(controlarray[e].alleles/(double)controlarray[e].allelenumber,3), (int)geneheader.get(this.geneheaderlength+e*2)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
+														buf.drawString(""+MethodLibrary.round(controlarray[e].alleles/(double)controlarray[e].allelenumber,5), (int)geneheader.get(this.geneheaderlength+e*2)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
 														buf.setColor(Color.black);
 														buf.fillRect((int)geneheader.get(this.geneheaderlength+e*2+1)[1]+11, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
 														buf.setColor(textcolor);
@@ -1442,7 +1446,7 @@ void getAminos(Gene gene) {
 						if(entry.getValue().get(m).alleles != null) {							
 							break;
 						}
-						if(!Main.drawCanvas.hideVar(entry.getValue().get(m))) {
+						if(!Main.drawCanvas.hideVar(entry.getValue().get(m), entry.getKey().length() > 1)) {
 							if(VariantHandler.onlyselected.isSelected()) {
 								if(!entry.getValue().get(m).getSample().equals(Main.drawCanvas.selectedSample)) {
 									entry.getValue().remove(m);
@@ -1522,7 +1526,7 @@ void getAminos(Gene gene) {
 							if(entry.getValue().get(m).alleles != null) {							
 								break;
 							}
-							if(!Main.drawCanvas.hideVar(entry.getValue().get(m))) {
+							if(!Main.drawCanvas.hideVar(entry.getValue().get(m), entry.getKey().length() > 1)) {
 								if(VariantHandler.onlyselected.isSelected()) {
 									if(!entry.getValue().get(m).getSample().equals(Main.drawCanvas.selectedSample)) {
 										entry.getValue().remove(m);
@@ -1620,7 +1624,7 @@ void getAminos(Gene gene) {
 								
 								break;
 							}
-							if(!Main.drawCanvas.hideVar(entry.getValue().get(m))) {
+							if(!Main.drawCanvas.hideVar(entry.getValue().get(m), entry.getKey().length() > 1)) {
 								if(VariantHandler.onlyselected.isSelected()) {
 									if(!entry.getValue().get(m).getSample().equals(Main.drawCanvas.selectedSample)) {
 										entry.getValue().remove(m);										

@@ -52,7 +52,7 @@ public class WelcomeScreen  extends JPanel implements ActionListener {
 		makeGenomes();
 		this.setBackground(Color.black);
 				
-		StringBuffer html = new StringBuffer("<html><body style='color:black;background:rgb(162,216,235);'><h1>Welcome to BasePlayer</h1>");
+		StringBuffer html = new StringBuffer("<html><body style='color:black;background:rgb(228,228,218);'><h1>Welcome to BasePlayer</h1>");
 				if(editorial) {
 					html.append("<p>This is editors/reviewers version of BasePlayer for testing purposes.<br>"
 							+ "Check http://baseplayer.fi for instructions<br>"

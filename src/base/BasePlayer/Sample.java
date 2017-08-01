@@ -27,7 +27,8 @@ public class Sample implements Serializable{
 	
 	private static final long serialVersionUID = 1L;
 	private transient HashMap<SplitClass, Reads> readHash;
-	Short maxCoverage = 0;
+	private transient Float maxCoverage = 0F;
+	int maxCoveragecaller = 0;
 	Short prepixel = 0;
 	boolean reading = false, multiVCF = false, multipart = false, removed = false;
 	private Short index;
@@ -37,17 +38,20 @@ public class Sample implements Serializable{
 	private transient BufferedReader vcfreader;
 	short infolocation = 0;
 	int varcount = 0, homozygotes = 0, heterozygotes = 0, indels = 0, snvs=0, ins=0, coding = 0;
+	int syn= 0,nonsyn=0,missense=0, splice=0,nonsense=0,fshift=0,inframe=0;
 	File samFile;
 	long vcfEndPos = 0;
 	Integer longestRead = 0;
-	String chr = "", vcfchr = "";
+	String chr = "", vcfchr = "", readString = "No BAM/CRAM";
 	Short somaticColumn = null;
 	private transient HashMap<String, ArrayList<ReadNode>> mates;
 	double callrates = 0.0;
 	double[] mutationTypes;
 	short phred = 33;
-	public boolean MD = false, CRAM = false, hasMates = false,complete = false;
+	public boolean MD = false, CRAM = false, hasMates = false, calledvariants = false;
+	private transient Boolean complete;
 	public int sitioRate = 0, versioRate = 0;
+	public boolean chrSet = false;
 	
 	Sample(String sampleName, short index, String tabixfile) {		
 		if(tabixfile != null) {
@@ -64,7 +68,9 @@ public class Sample implements Serializable{
 		this.index = index;
 	
 	}
-	
+	void setTabixFile(String file) {
+		this.tabixfile = file;
+	}
 	void resetreadHash() {
 		if(samFile != null) {
 			if(samFile.getName().toLowerCase().endsWith(".cram")) {
@@ -85,6 +91,22 @@ public class Sample implements Serializable{
 /*	ArrayList<Reads> getreadHash() {
 		return this.readHash;
 	}*/
+	public float getMaxCoverage() {
+		if(maxCoverage == null) {
+			return 0F;
+		}
+		return this.maxCoverage;
+	}
+	public void setMaxCoverage(float value) {
+		this.maxCoverage = value;
+	}
+	public Boolean getComplete() {
+		
+		return this.complete;
+	}
+	public void setcomplete(boolean value) {
+		this.complete = value;
+	}
 	BlockCompressedInputStream getVCFInput() {
 		return this.inputStream;
 	}

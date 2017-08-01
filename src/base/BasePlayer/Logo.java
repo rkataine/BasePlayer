@@ -34,6 +34,7 @@ public class Logo extends JPanel {
 //	static int height = gd.getDisplayMode().getHeight();
 	
 	public Logo(){
+		
 		    iconimage=Toolkit.getDefaultToolkit().getImage(getClass().getResource("Logo.png"));
 			ImageIcon icon = new ImageIcon(iconimage); 
 			image.setIcon(icon);

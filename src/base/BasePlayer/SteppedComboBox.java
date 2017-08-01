@@ -11,12 +11,17 @@ import javax.swing.plaf.basic.*;
  * @version 1.0 12/12/98
  */
 class SteppedComboBoxUI extends BasicComboBoxUI {
+	
+	public SteppedComboBoxUI() {
+		super();
+	}
   protected ComboPopup createPopup() {
     BasicComboPopup popup = new BasicComboPopup( comboBox ) {
      
 		private static final long serialVersionUID = 1L;
 
 	public void show() {
+		
         Dimension popupSize = ((SteppedComboBox)comboBox).getPopupSize();
         popupSize.setSize( popupSize.width, getPopupHeightForRowCount( comboBox.getMaximumRowCount() ) );
         Rectangle popupBounds = computePopupBounds( 0,
@@ -46,10 +51,13 @@ class SteppedComboBoxUI extends BasicComboBoxUI {
  
  
 public class SteppedComboBox extends JComboBox<String> {
-  protected int popupWidth;
+ 
+	private static final long serialVersionUID = 1L;
+protected int popupWidth;
   
   public SteppedComboBox(ComboBoxModel<String> aModel) {
     super(aModel);
+    //setUI(new SteppedComboBoxUI());
     setUI(new SteppedComboBoxUI());
     popupWidth = 0;
   }

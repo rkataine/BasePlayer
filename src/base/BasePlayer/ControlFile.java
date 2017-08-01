@@ -30,11 +30,12 @@ public class ControlFile implements Serializable, ActionListener {
 	int varcount = 0;
 	Rectangle alleleBox = new Rectangle(), playbox = new Rectangle();
 	JCheckBox remOverlaps;
-	JPopupMenu menu;
+	private transient JPopupMenu menu;
 	Polygon playTriangle = new Polygon();
 	
 	boolean controlOn = false;
 	StringBuffer alleletext = new StringBuffer("0.01");
+	
 	
 	public ControlFile(String sampleName, short index, String tabixfile) {
 		this.tabixfile = tabixfile;
@@ -44,10 +45,19 @@ public class ControlFile implements Serializable, ActionListener {
 	}
 
 	void setMenu() {
-		remOverlaps = new JCheckBox("Overlap indels");
+		if(remOverlaps == null) {
+			remOverlaps = new JCheckBox("Overlap indels");
+		}
+		
 		menu = new JPopupMenu("Options");
 		menu.add(remOverlaps);
 		remOverlaps.addActionListener(this);
+		for(int c = 0 ; c<getPopupMenu().getComponentCount(); c++) {
+			getPopupMenu().getComponent(c).setFont(Main.menuFont);
+		}
+	}
+	public JPopupMenu getPopupMenu() {
+		return this.menu;
 	}
 	String getTabixFile() {
 		return this.tabixfile;

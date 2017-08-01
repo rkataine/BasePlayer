@@ -16,7 +16,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 
 
-public class Reads implements Serializable{
+public class Reads implements Serializable, Cloneable {
 	
 	private static final long serialVersionUID = 1L;
 
@@ -34,10 +34,13 @@ public class Reads implements Serializable{
 	private transient Integer readstart=0, readend=0, coveragestart = 0, coverageend = 0;
 	private transient boolean readScroll = false;
 	public boolean loading = false, nodraw = false;
-	Font readfont =new Font("SansSerif", Font.BOLD, 10);
-	int readHeight = 10;
+	Font readfont =new Font("SansSerif", Font.PLAIN, Main.defaultFontSize);
+	int readHeight = Main.defaultFontSize;
 	//public ReferenceSeq reference;
 	
+	protected Object clone() throws CloneNotSupportedException {
+		return super.clone();
+	}
 	Rectangle getScrollBar() {
 		return this.scrollbar;
 	}

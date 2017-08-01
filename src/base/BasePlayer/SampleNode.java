@@ -10,14 +10,15 @@
  *  
  */
 package base.BasePlayer;
-
 import java.util.HashMap;
 
 public class SampleNode {
 //	private String variation;
 
-	private final Short coverage, calls;
+	private static final long serialVersionUID = 1L;
+	private final Integer coverage, calls;
 	private final Float quality, gq;
+	float heightValue = 0;
 	private final Sample sample;
 	private final ControlFile controlSample;
 	private final boolean genotype;	
@@ -35,22 +36,79 @@ public class SampleNode {
 		this.calls = null;
 		this.genotype = false;
 	}
-	public SampleNode(short coverage, short calls, boolean genotype, Float quality, Float gq, HashMap<String, Float> advquals, Sample sample) {
+	public SampleNode(int coverage, int calls, boolean genotype, Float quality, Float gq, HashMap<String, Float> advquals, Sample sample) {
 		this.sample = sample;
 		//this.advQualities = advquals;
 		this.controlSample = null;
-		if(coverage > Short.MAX_VALUE) {
-			this.calls = (short)(calls/(double)coverage * Short.MAX_VALUE);
+		/*if(coverage > Short.MAX_VALUE) {
+			this.calls = (Float)(calls/(double)coverage * Short.MAX_VALUE);
 			this.coverage = Short.MAX_VALUE;
 			
 		}
-		else {
+		else {*/
 			this.coverage = coverage;
 			this.calls = calls;
-		}
+	//	}
 		this.gq = gq;
 		this.quality = quality;
 		this.genotype = genotype;
+		switch(Settings.selectedVarDraw) {	
+		
+			case 0: {	
+				if(sample.getMaxCoverage() < coverage) {
+					
+					sample.setMaxCoverage((float)(coverage));
+					
+				}	
+				this.heightValue = coverage;
+				break;
+			}
+			case 1: {	
+				if(sample.getMaxCoverage() < calls/(float)coverage) {
+					
+					sample.setMaxCoverage(calls/(float)coverage);
+					
+				}	
+				this.heightValue = calls/(float)coverage;
+				break;
+			}
+			case 2: {	
+				if(quality != null) {
+					if(sample.getMaxCoverage() < quality) {
+						
+						sample.setMaxCoverage(quality);
+						if(VariantHandler.maxSlideValue < quality) {
+							VariantHandler.maxSlideValue = quality;
+						}
+					}	
+					this.heightValue = quality;
+				}
+				break;
+			}
+			case 3: {	
+				if(gq != null) {
+					if(sample.getMaxCoverage() < gq) {
+						
+						sample.setMaxCoverage(gq);
+						if(VariantHandler.maxSlideValue < gq) {
+							VariantHandler.maxSlideValue = gq;
+						}
+					}	
+					this.heightValue = gq;
+				}
+				
+				break;
+			}
+			case 4: {	
+				if(sample.getMaxCoverage() < calls) {
+					
+					sample.setMaxCoverage((float)(calls));
+					
+				}	
+				this.heightValue = calls;
+				break;
+			}
+		}
 	}
 	/*public String getVariation() {
 		return " ";
@@ -60,18 +118,26 @@ public class SampleNode {
 	public void addAlleles(int add) {
 		this.alleles += add;
 	}
-	public Short getCoverage() {
+	public int getCoverage() {
 		return this.coverage;
 	}
-	public Short getCalls() {
+	public int getCalls() {
 		return this.calls;
 	}
 	public Float getQuality() {
 		
 		return this.quality;
 	}
-	public Float getGQ() {
+	public Float getGQ() {		
 		return this.gq;
+	}
+	public String getGQString() {
+		if(this.gq == null) {
+			return ".";
+		}
+		else {
+			return ""+this.gq;
+		}
 	}
 	public Sample getSample() {
 		return this.sample;

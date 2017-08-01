@@ -217,7 +217,7 @@ Shape thumbShape = createThumbShape(w - 1, h - 1);
 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
 RenderingHints.VALUE_ANTIALIAS_ON);
 g2d.translate(knobBounds.x, knobBounds.y);
-g2d.setColor(Color.CYAN);
+g2d.setColor(new Color(160,255,160));
 g2d.fill(thumbShape);
 g2d.setColor(Color.black);
 g2d.draw(thumbShape);
@@ -239,7 +239,7 @@ Shape thumbShape = createThumbShape(w - 1, h - 1);
 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
 RenderingHints.VALUE_ANTIALIAS_ON);
 g2d.translate(knobBounds.x, knobBounds.y);
-g2d.setColor(Color.magenta);
+g2d.setColor(Draw.redColor);
 g2d.fill(thumbShape);
 g2d.setColor(Color.black);
 g2d.draw(thumbShape);

@@ -15,7 +15,7 @@ import java.util.ArrayList;
 
 public class BedNode {
 	
-	private static final long serialVersionUID = 1L;
+	
 	private final int position;	
 	private final int length;
 	int level;

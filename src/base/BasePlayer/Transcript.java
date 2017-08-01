@@ -11,10 +11,13 @@
  */
 package base.BasePlayer;
 import java.awt.Rectangle;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Transcript {
+	
+	
 	private boolean canonical = true;
 	private final String biotype,uniprot,ID;
 
@@ -32,6 +35,8 @@ public class Transcript {
 	*/
 	
 	class Exon {
+		
+		
 		private int start, end;
 		short startPhase = -1,endPhase =-1, nro;
 		private int firstamino;

@@ -16,6 +16,7 @@ import java.util.HashMap;
 
 public class Gene {
 	
+	private static final long serialVersionUID = 1L;
 	private boolean strand = false, showIsoforms = false;
 	private String description = "-", name, ID, chrom;
 	private Transcript canonical, longest;

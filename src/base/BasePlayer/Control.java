@@ -292,7 +292,8 @@ static void useVCFoverlap(TabixReader.Iterator iterator, VarNode current, int c,
 			    		 templist = split[4].split(",");
 			    		
 			    		 for(int i = 0; i<templist.length; i++) {
-			    			 templist[i] = FileRead.getVariant(split[3], templist[i]);		    			 
+			    			 templist[i] = FileRead.getVariant(split[3], templist[i]);	
+			    			
 			    		 }	    		
 			    	 }
 		    		 current.controlled = true;
@@ -317,9 +318,11 @@ static void useVCFoverlap(TabixReader.Iterator iterator, VarNode current, int c,
 		    				 
 		    				 for(int t = 0; t<templist.length; t++) {
 		    					 if(current.vars.get(i).getKey().equals(templist[t]) || baselength > 1) {
+		    						
 		    						 if(controlData.fileArray.get(c).varcount > 2) {
 		    							 alleles = Integer.parseInt(split[7].substring(index, acendindex).split(",")[t]);	    							 					    		
 		 					    		 allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
+		 					    	
 		    						 }
 		    						 else {
 		    							 infosplit = split[split.length-1].split(":");		    							 
@@ -330,9 +333,12 @@ static void useVCFoverlap(TabixReader.Iterator iterator, VarNode current, int c,
 		    							 alleles = alt;				 	
 		    							 allelenumber = ref+alt;
 		    						 }
-		    	    				 samplelist = current.vars.get(i).getValue();		    				
-		    	    				 samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	
-		    	    				 break;
+		    						 if(alleles > 0) {
+		    							 
+			    	    				 samplelist = current.vars.get(i).getValue();		    				
+			    	    				 samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	
+		    						 }
+		    	    				
 		    					 }	    					
 		    	    		 }
 		    				 
@@ -368,10 +374,10 @@ static void useVCFoverlap(TabixReader.Iterator iterator, VarNode current, int c,
 	    					 */
 	    					 }
 		    				
-		    				 
-		    				 samplelist = current.vars.get(i).getValue();		   
-		    				
-		    				 samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	    				
+		    				 if(alleles > 0) {
+		    				    samplelist = current.vars.get(i).getValue();		   
+		    				 	samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	    				
+		    				 }
 		    				 continue;
 		    			 }
 		    		 }	    		 
@@ -434,7 +440,8 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 		    		 templist = split[4].split(",");
 		    		
 		    		 for(int i = 0; i<templist.length; i++) {
-		    			 templist[i] = FileRead.getVariant(split[3], templist[i]);		    			 
+		    			 templist[i] = FileRead.getVariant(split[3], templist[i]);		 
+		    			 
 		    		 }	    		
 		    	 }
 	    		 current.controlled = true;
@@ -444,6 +451,7 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 	    			 index = split[7].indexOf("AC=")+3;
 	    		 }
 	    		 acendindex = split[7].indexOf(";", index);
+	    		
 	    		 if(acendindex == -1) {
 	    			 acendindex = split[7].length();
 	    		 }
@@ -462,9 +470,12 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 	    			 if(split[4].contains(",")) {
 	    				 
 	    				 for(int t = 0; t<templist.length; t++) {
+	    					 
 	    					 if(current.vars.get(i).getKey().equals(templist[t])) {
 	    						 if(controlData.fileArray.get(c).varcount > 2) {
-	    							 alleles = Integer.parseInt(split[7].substring(index, acendindex).split(",")[t]);	    							 					    		
+	    							 alleles = Integer.parseInt(split[7].substring(index, acendindex).split(",")[t]);
+	    							
+	    						//	 System.out.println(position +" " +alleles); 
 	 					    		 allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
 	 					    		 
 	    					//		 allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
@@ -472,8 +483,8 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 	 					    		
 	    						 }
 	    						 else {
-	    							 infosplit = split[split.length-1].split(":");
-	    							 /*if(infosplit[0].length() > 2 ) { 
+	    						//	 infosplit = split[split.length-1].split(":");
+	    							 if(infosplit[0].length() > 2 ) { 
 		    							 if(infosplit[0].charAt(0) != infosplit[0].charAt(2)) {
 		    								 alleles = 1;
 		    							 }
@@ -482,18 +493,25 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 		    							 }
 	    						 	 }
 	    							 else {
+	    								 System.out.println(line);
 	    								 alleles = 0;
-	    							 }*/
-	    							 coverages = infosplit[split[8].indexOf("AD")/3].split(",");
+	    							 }
+	    						/*	 coverages = infosplit[split[8].indexOf("AD")/3].split(",");
+	    							
 	    							 ref = Integer.parseInt(coverages[0]);
+	    							
 	    							 alt = Integer.parseInt(coverages[1]);
-	    							 
-	    							 alleles = alt;				 	
-	    							 allelenumber = ref+alt;
+	    							 */
+	    						//	 alleles = alt;				 	
+	    						//	 allelenumber = ref+alt;
+	    							 allelenumber = 2;
 	    						 }
-	    	    				 samplelist = current.vars.get(i).getValue();		    				
-	    	    				 samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	
-	    	    				 break;
+	    						
+	    						 if(alleles > 0) {
+	    							samplelist = current.vars.get(i).getValue();		    				
+	    	    				 	samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	
+	    						 }
+	    	    				// break;
 	    					 }	    					
 	    	    		 }
 	    				 
@@ -529,10 +547,10 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
     					 */
     					 }
 	    				
-	    				 
-	    				 samplelist = current.vars.get(i).getValue();		   
-	    				
-	    				 samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	    				
+	    				 if(alleles > 0) {
+	    					 samplelist = current.vars.get(i).getValue();	    				
+	    				 	 samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	    
+	    				 }
 	    				 continue;
 	    			 }
 	    		 }	    		 
@@ -851,9 +869,6 @@ static void addFiles(File[] filestemp) {
 	 
 	 Main.controlScroll.setVisible(true);
 	 Main.controlDraw.setVisible(true);
-	
-		
-
 	 hold = false;
  }
  

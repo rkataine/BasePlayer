@@ -12,6 +12,7 @@
 package base.BasePlayer;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -51,7 +52,7 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 	void setWindow() {
 		
 		try {
-			JFrame.setDefaultLookAndFeelDecorated(true);
+			JFrame.setDefaultLookAndFeelDecorated(false);
 			 if(Main.ref == null) {
 				 frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); 
 				 frame.setVisible(true);
@@ -66,7 +67,7 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 			 frame.setContentPane(newContentPane);
 			 frame.setResizable(true);    
 			
-			 frame.setPreferredSize(new Dimension(600,300));	
+			 frame.setMinimumSize(new Dimension(600,300));	
 			 frame.addComponentListener(this);
 			 if(frame.isVisible()) {
 				 createTable();
@@ -118,6 +119,27 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 	    		
 	    		for(int i = 0; i<split.length; i++) {
 		    		data[0][i] = "Select";
+		    		if(track.chromcolumn != null && track.chromcolumn == i) {
+		    			data[0][i] = "Chromosome";				    			
+		    		}
+		    		else if(track.startcolumn != null && track.startcolumn == i) {
+		    			data[0][i] = "Start";				    			
+		    		}
+		    		else if(track.endcolumn != null && track.endcolumn == i) {
+		    			data[0][i] = "End";				    			
+		    		}
+		    		else if(track.namecolumn != null && track.namecolumn == i) {
+		    			data[0][i] = "Name";				    			
+		    		}
+		    		else if(track.valuecolumn != null && track.valuecolumn == i) {
+		    			data[0][i] = "Value";				    			
+		    		}
+		    		else if(track.strandcolumn != null && track.strandcolumn == i) {
+		    			data[0][i] = "Strand";				    			
+		    		}
+		    		else if(track.basecolumn != null && track.basecolumn == i) {
+		    			data[0][i] = "Base";				    			
+		    		}
 		    	}
 	    	}
 	    	
@@ -134,7 +156,7 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 		  columns[i] = "";
 	  }
 	  reader.close(); 	
-	panel.setBackground(new Color(179, 183, 207));
+	panel.setBackground(Draw.sidecolor);
 	table = new JTable(data, columns);
 	for(int i = 0 ; i<columns.length; i++) {
 		TableColumn column = table.getColumnModel().getColumn(i);			
@@ -146,9 +168,46 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 		comboBox.addItem("Name");
 		comboBox.addItem("Value");	
 		comboBox.addItem("Strand");
-		comboBox.addItem("Base");				
+		comboBox.addItem("Base");		
 		column.setCellEditor(new DefaultCellEditor(comboBox));
+		
+		if(track.chromcolumn != null && track.chromcolumn == i) {
+			comboBox.setSelectedItem("Chromosome");					
+		}
 	}
+	
+	/*
+	if(track.startcolumn != null) {
+		if(table.getValueAt(0, track.startcolumn).toString().contains("Non")) {
+			track.startcolumn = null;
+		}
+	}
+	if(track.endcolumn != null) {
+		if(table.getValueAt(0, track.endcolumn).toString().contains("Non")) {
+			track.endcolumn = null;
+		}
+	}
+	if(track.namecolumn != null) {
+		if(table.getValueAt(0, track.namecolumn).toString().contains("Non")) {
+			track.namecolumn = null;
+		}
+	}
+	if(track.valuecolumn != null) {
+		if(table.getValueAt(0, track.valuecolumn).toString().contains("Non")) {
+			track.valuecolumn = null;
+		}
+	}
+	if(track.strandcolumn != null) {
+		if(table.getValueAt(0, track.strandcolumn).toString().contains("Non")) {
+			track.strandcolumn = null;
+		}
+	}
+	if(track.basecolumn != null) {
+		if(table.getValueAt(0, track.basecolumn).toString().contains("Non")) {
+			track.basecolumn = null;
+		}
+	}
+	*/
 	GridBagConstraints c = new GridBagConstraints();	
 	c.gridx=0;
 	c.gridy=0;
@@ -156,9 +215,11 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 	panel.add(save,c);
 	c.gridx = 1;
 	panel.add(info);
-	info.setForeground(Color.white);
+	//info.setForeground(Color.white);
 	c.gridx=0;
 	save.addActionListener(this);
+	save.setPreferredSize(Main.buttonDimension);
+	save.setMinimumSize(Main.buttonDimension);
 	c = new GridBagConstraints(
 	0,2, // position
     4,1, // size
@@ -192,6 +253,18 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 		catch(Exception e) {
 			e.printStackTrace();
 		}
+	}
+	void setFonts(Font menuFont) {
+		for(int i = 0 ; i<this.panel.getComponentCount(); i++) {
+			this.panel.getComponent(i).setFont(menuFont);
+		}
+		if(table != null) {
+			table.getTableHeader().setFont(menuFont);
+			table.setFont(menuFont);
+			table.setRowHeight(menuFont.getSize()+4);
+		}
+		frame.pack();
+		
 	}
 	public static void main(String[] args) {
 	//	BedTrack track = new BedTrack(new File("X:/cg8/BED/CADD/whole_genome_SNVs.tsv.gz"),0);
@@ -303,8 +376,8 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 	}
 	@Override
 	public void componentShown(ComponentEvent e) {
-		frame.setLocation(Main.frame.getLocation().x, Main.frame.getLocation().y);
-		
+		//frame.setLocation(Main.frame.getLocation().x, Main.frame.getLocation().y);
+		frame.setLocation(Main.frame.getLocationOnScreen().x+Main.frame.getWidth()/2 - this.frame.getWidth()/2, Main.frame.getLocationOnScreen().y+Main.frame.getHeight()/6);
 		if(!tableSet) {
 			createTable();
 		}

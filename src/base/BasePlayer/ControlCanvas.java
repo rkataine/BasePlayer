@@ -96,10 +96,10 @@ private static final long serialVersionUID = 1L;
 		this.height = height;
 		bufImage = new BufferedImage((int)Main.screenSize.getWidth(), (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB);	
 		buf = (Graphics2D)bufImage.getGraphics();
-		buf.setRenderingHints(Draw.rh);
+//		buf.setRenderingHints(Draw.rh);
 		nodeImage = new BufferedImage((int)Main.screenSize.getWidth(), (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB);
 		nodebuf = (Graphics2D)nodeImage.getGraphics();
-		nodebuf.setRenderingHints(Draw.rh);
+//		nodebuf.setRenderingHints(Draw.rh);
 		backupComposite = nodebuf.getComposite();
 		buf.setFont(Draw.defaultFont);
 		nodebuf.setFont(Draw.defaultFont);
@@ -112,10 +112,10 @@ private static final long serialVersionUID = 1L;
 
 void drawScreen(Graphics g) {	
 	
-	buf.drawImage(Draw.image, Main.sidebarWidth, 0, this.getWidth(),(int)Main.screenSize.getHeight(), this);
+	//buf.drawImage(Draw.image, Main.sidebarWidth, 0, this.getWidth(),(int)Main.screenSize.getHeight(), this);
 	buf.setColor(Draw.backColor);
 	buf.fillRect(Main.sidebarWidth, 0, this.getWidth(), nodeImage.getHeight());	
-	buf.setColor(Color.gray);
+//	buf.setColor(Color.gray);
 	
 	if(this.trackDivider.get(this.trackDivider.size()-1) != 1.0) {	
 		 for(int i = 0 ; i<this.trackDivider.size(); i++) {
@@ -124,12 +124,18 @@ void drawScreen(Graphics g) {
 	}
 
 	drawSidebar();
-	buf.setStroke(Draw.strongStroke);
-	buf.setColor(Color.black);
-	buf.drawLine(Main.sidebarWidth, 0, Main.sidebarWidth, this.getHeight());
+	buf.setStroke(Draw.doubleStroke);
+	buf.setColor(Color.gray);
+	buf.drawLine(Main.sidebarWidth-1, 0, Main.sidebarWidth-1, Main.drawScroll.getViewport().getHeight());
+	buf.drawLine(1, 0, 1, Main.drawScroll.getViewport().getHeight());
+	buf.setColor(Color.lightGray);
+	buf.drawLine(3, 0,3, Main.drawScroll.getViewport().getHeight());
+	buf.drawLine(Main.sidebarWidth-3, 0, Main.sidebarWidth-3, Main.drawScroll.getViewport().getHeight());
+	buf.setStroke(Draw.basicStroke);
 	if(resizer && !mouseDrag) {
 		resizer = false;
 	}
+	drawNodes();
 	if(Control.controlData.fileArray.size() > 1) {
 		buf.setStroke(Draw.doubleStroke);
 	/*	for(int i = 1; i< Control.controlData.fileArray.size(); i++) {
@@ -138,8 +144,10 @@ void drawScreen(Graphics g) {
 		for(int i = 0 ; i<Control.controlData.fileArray.size(); i++) {
 			
 			if(i <Control.controlData.fileArray.size()-1) {
+				buf.setColor(Color.lightGray);
 				buf.drawLine(0, (int)(trackDivider.get(i)*this.getHeight()), this.getWidth(), (int)(trackDivider.get(i)*this.getHeight()));
-				
+				buf.setColor(Color.gray);
+				buf.drawLine(0, (int)(trackDivider.get(i)*this.getHeight())+1, this.getWidth(), (int)(trackDivider.get(i)*this.getHeight())+1);
 				if(!lineZoomer && mouseY < (int)(trackDivider.get(i)*this.getHeight())+4 && mouseY > (int)(trackDivider.get(i)*this.getHeight())-4) {
 					resizer = true;
 					
@@ -168,53 +176,53 @@ void drawSidebar() {
 	buf.setColor(Draw.softColor);
 	buf.fillRect(0, 0, Main.sidebarWidth, this.getHeight());
 	buf.setColor(Color.black);
-	buf.setStroke(Draw.doubleStroke);
+//	buf.setStroke(Draw.basicStroke);
 	if(Control.controlData.fileArray.size() > 0) {
 		
 		overlapping = false;
 		for(int i = 0; i<Control.controlData.fileArray.size(); i++) {
 			if(i == 0) {
-				trackstart = 10;
+				trackstart = Main.defaultFontSize;
 				trackheight = (int)(trackDivider.get(i)*this.getHeight());
 			}
 			else {
 				
-				trackstart = 10+(int)(trackDivider.get(i-1)*this.getHeight());
+				trackstart = Main.defaultFontSize+(int)(trackDivider.get(i-1)*this.getHeight());
 				trackheight = (int)(trackDivider.get(i)*this.getHeight())-(int)(trackDivider.get(i-1)*this.getHeight());
 			}
 			
 			buf.drawString((i+1) +": " +Control.controlData.fileArray.get(i).getName(), 10, trackstart);
-			if(trackheight > 30) {
-				buf.drawString("Allele count: "+Control.controlData.fileArray.get(i).varcount, 10, trackstart+15);
+			if(trackheight > Main.defaultFontSize*2+6) {
+				buf.drawString("Allele count: "+Control.controlData.fileArray.get(i).varcount, 10, trackstart+Main.defaultFontSize+5);
 			}
-			if(trackheight > 60) {
-				if((int)Control.controlData.fileArray.get(i).alleleBox.getBounds().getY() != trackstart+30) {
-					Control.controlData.fileArray.get(i).alleleBox.setBounds(10, trackstart+30, 100, 20);
-					Control.controlData.fileArray.get(i).playbox.setBounds((int)Control.controlData.fileArray.get(i).alleleBox.getMaxX()+10, trackstart+30, 20, 20);
+			if(trackheight > Main.defaultFontSize*4+6) {
+				if((int)Control.controlData.fileArray.get(i).alleleBox.getBounds().getY() != trackstart+Main.defaultFontSize*2) {
+					Control.controlData.fileArray.get(i).alleleBox.setBounds(10, trackstart+Main.defaultFontSize*2, 100, Main.defaultFontSize+6);
+					Control.controlData.fileArray.get(i).playbox.setBounds((int)Control.controlData.fileArray.get(i).alleleBox.getMaxX()+10, trackstart+Main.defaultFontSize*2,  Main.defaultFontSize+6,  Main.defaultFontSize+6);
 					Control.controlData.fileArray.get(i).playTriangle.reset();
 					
-					Control.controlData.fileArray.get(i).playTriangle.addPoint(Control.controlData.fileArray.get(i).playbox.x+4, trackstart+34);
-					Control.controlData.fileArray.get(i).playTriangle.addPoint(Control.controlData.fileArray.get(i).playbox.x+4, trackstart+46);
-					Control.controlData.fileArray.get(i).playTriangle.addPoint(Control.controlData.fileArray.get(i).playbox.x+16, trackstart+40);
+					Control.controlData.fileArray.get(i).playTriangle.addPoint(Control.controlData.fileArray.get(i).playbox.x+Main.defaultFontSize/4, Control.controlData.fileArray.get(i).playbox.y+Main.defaultFontSize/4);
+					Control.controlData.fileArray.get(i).playTriangle.addPoint(Control.controlData.fileArray.get(i).playbox.x+Main.defaultFontSize/4, Control.controlData.fileArray.get(i).playbox.y+(int)Control.controlData.fileArray.get(i).playbox.getHeight()-Main.defaultFontSize/4);
+					Control.controlData.fileArray.get(i).playTriangle.addPoint(Control.controlData.fileArray.get(i).playbox.x+(int)Control.controlData.fileArray.get(i).playbox.getWidth() -Main.defaultFontSize/4, Control.controlData.fileArray.get(i).playbox.y+(int)Control.controlData.fileArray.get(i).playbox.getHeight()/2);
 				}
 			//	if( Control.controlData.fileArray.get(i).varcount > 2) {
 					buf.setColor(Color.white);
+				
+					
 					buf.fillRect(Control.controlData.fileArray.get(i).alleleBox.getBounds().x,Control.controlData.fileArray.get(i).alleleBox.getBounds().y,Control.controlData.fileArray.get(i).alleleBox.getBounds().width, Control.controlData.fileArray.get(i).alleleBox.getBounds().height );
 					buf.setColor(Color.black);
-					buf.drawString(Control.controlData.fileArray.get(i).alleletext.toString(), 12, trackstart+45);
-			//	}
-				
-				buf.setColor(Color.lightGray);
-				buf.fillRect(Control.controlData.fileArray.get(i).playbox.getBounds().x,Control.controlData.fileArray.get(i).playbox.getBounds().y,Control.controlData.fileArray.get(i).playbox.getBounds().width, Control.controlData.fileArray.get(i).playbox.getBounds().height );
-				
-				if(Control.controlData.fileArray.get(i).controlOn) {
-					buf.setColor(Color.green);
-					buf.fillRect(Control.controlData.fileArray.get(i).playTriangle.getBounds().x, Control.controlData.fileArray.get(i).playTriangle.getBounds().y, 12,12);
-				}
-				else {
-					buf.setColor(Color.red);
-					buf.fillPolygon(Control.controlData.fileArray.get(i).playTriangle);
-				}				
+					buf.drawString("AF:", Control.controlData.fileArray.get(i).alleleBox.getBounds().x+4, Control.controlData.fileArray.get(i).alleleBox.getBounds().y+Main.defaultFontSize);
+					
+					buf.drawString(Control.controlData.fileArray.get(i).alleletext.toString(), Control.controlData.fileArray.get(i).alleleBox.getBounds().x+Main.defaultFontSize*2, Control.controlData.fileArray.get(i).alleleBox.getBounds().y+Main.defaultFontSize);
+					buf.setColor(Color.gray);
+					buf.drawRect(Control.controlData.fileArray.get(i).alleleBox.getBounds().x,Control.controlData.fileArray.get(i).alleleBox.getBounds().y,Control.controlData.fileArray.get(i).alleleBox.getBounds().width, Control.controlData.fileArray.get(i).alleleBox.getBounds().height );
+					
+					
+					//	}
+				buf.setColor(Color.white);
+				buf.fillRoundRect(Control.controlData.fileArray.get(i).playbox.getBounds().x-1,Control.controlData.fileArray.get(i).playbox.getBounds().y-1,Control.controlData.fileArray.get(i).playbox.getBounds().width, Control.controlData.fileArray.get(i).playbox.getBounds().height,2,2 );
+				buf.setColor(Color.gray);
+				buf.fillRoundRect(Control.controlData.fileArray.get(i).playbox.getBounds().x+1,Control.controlData.fileArray.get(i).playbox.getBounds().y+1,Control.controlData.fileArray.get(i).playbox.getBounds().width, Control.controlData.fileArray.get(i).playbox.getBounds().height,2,2 );
 				if(sideMouseRect.intersects(Control.controlData.fileArray.get(i).playbox)) {
 					overlapping = true;
 					if(getCursor().getType() != Cursor.HAND_CURSOR) {
@@ -222,9 +230,24 @@ void drawSidebar() {
 						setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 					}	
 					buf.setColor(Color.white);
-					buf.drawRect(Control.controlData.fileArray.get(i).playbox.getBounds().x-1,Control.controlData.fileArray.get(i).playbox.getBounds().y-1,Control.controlData.fileArray.get(i).playbox.getBounds().width+1, Control.controlData.fileArray.get(i).playbox.getBounds().height+1);
+				//	buf.drawRect(Control.controlData.fileArray.get(i).playbox.getBounds().x-1,Control.controlData.fileArray.get(i).playbox.getBounds().y-1,Control.controlData.fileArray.get(i).playbox.getBounds().width+1, Control.controlData.fileArray.get(i).playbox.getBounds().height+1);
+					buf.fillRoundRect(Control.controlData.fileArray.get(i).playbox.getBounds().x,Control.controlData.fileArray.get(i).playbox.getBounds().y,Control.controlData.fileArray.get(i).playbox.getBounds().width, Control.controlData.fileArray.get(i).playbox.getBounds().height,2,2 );
 					
 				}
+				else {
+					buf.setColor(Draw.sidecolor);
+					buf.fillRoundRect(Control.controlData.fileArray.get(i).playbox.getBounds().x,Control.controlData.fileArray.get(i).playbox.getBounds().y,Control.controlData.fileArray.get(i).playbox.getBounds().width, Control.controlData.fileArray.get(i).playbox.getBounds().height,2,2 );
+				}
+				
+				if(Control.controlData.fileArray.get(i).controlOn) {
+					buf.setColor(Draw.greenColor);
+					buf.fillRoundRect(Control.controlData.fileArray.get(i).playTriangle.getBounds().x, Control.controlData.fileArray.get(i).playTriangle.getBounds().y,(int)Control.controlData.fileArray.get(i).playbox.getWidth()-Main.defaultFontSize/4*2,(int)Control.controlData.fileArray.get(i).playbox.getHeight()-Main.defaultFontSize/4*2,2,2);
+				}
+				else {
+					buf.setColor(Draw.redColor);
+					buf.fillPolygon(Control.controlData.fileArray.get(i).playTriangle);
+				}				
+				
 				buf.setColor(Color.black);
 				
 				if(sideMouseRect.intersects(Control.controlData.fileArray.get(i).alleleBox)/* &&  Control.controlData.fileArray.get(i).varcount > 2*/) {
@@ -238,9 +261,9 @@ void drawSidebar() {
 				}
 			}
 		}
-		if(typing && Main.controlScroll.getViewport().getHeight()/Control.controlData.fileArray.size() > 55) {
+		if(typing && trackheight > Main.defaultFontSize*4) {
 			if(typeBox > -1) {
-				buf.drawLine(Control.controlData.fileArray.get(typeBox).alleleBox.getBounds().x+this.typeTextWidth+2, Control.controlData.fileArray.get(typeBox).alleleBox.getBounds().y+2, Control.controlData.fileArray.get(typeBox).alleleBox.getBounds().x+this.typeTextWidth+2, Control.controlData.fileArray.get(typeBox).alleleBox.getBounds().y+20);
+				buf.drawLine(Control.controlData.fileArray.get(typeBox).alleleBox.getBounds().x+this.typeTextWidth+Main.defaultFontSize*2, Control.controlData.fileArray.get(typeBox).alleleBox.getBounds().y+2, Control.controlData.fileArray.get(typeBox).alleleBox.getBounds().x+this.typeTextWidth+Main.defaultFontSize*2, Control.controlData.fileArray.get(typeBox).alleleBox.y +(int)Control.controlData.fileArray.get(typeBox).alleleBox.getHeight() -2);
 			}
 		}
 		if(!overlapping) {			
@@ -255,10 +278,12 @@ void drawSidebar() {
 	if(sidebar ) {
 		buf.setColor(Color.black);
 		buf.setStroke(Draw.basicStroke);
-		
-		if(hoverIndex > -1 && (this.remoBox.getBounds().y != (int)(trackDivider.get(hoverIndex)*this.getHeight())-11 || this.remoBox.getBounds().x != Main.sidebarWidth-11)) {
-			this.remoBox.setBounds(Main.sidebarWidth-11, (int)(trackDivider.get(hoverIndex)*this.getHeight())-11, 8, 8);
+		if(hoverIndex > -1 && hoverIndex < trackDivider.size() && (this.remoBox.getBounds().x != Main.sidebarWidth-(Main.defaultFontSize+10) || this.remoBox.getBounds().y != (int)(trackDivider.get(hoverIndex)*this.getHeight()) -(Main.defaultFontSize+6))) {
+			this.remoBox.setBounds(Main.sidebarWidth-(Main.defaultFontSize+10), (int)(trackDivider.get(hoverIndex)*this.getHeight()) -(Main.defaultFontSize+6), Main.defaultFontSize+3, Main.defaultFontSize+3);
 		}
+		/*if(hoverIndex > -1 && hoverIndex < trackDivider.size() && (this.remoBox.getBounds().y != (int)(trackDivider.get(hoverIndex)*this.getHeight())-11 || this.remoBox.getBounds().x != Main.sidebarWidth-11)) {
+			this.remoBox.setBounds(Main.sidebarWidth-11, (int)(trackDivider.get(hoverIndex)*this.getHeight())-11, 8, 8);
+		}*/
 	
 	if(sidebar && sideMouseRect.intersects(this.remoBox)) {				
 		removeControl = hoverIndex;
@@ -270,23 +295,26 @@ void drawSidebar() {
 	}
 	
 	buf.setColor(Color.black);
-	buf.drawRect(this.remoBox.x-1, this.remoBox.y, this.remoBox.width, this.remoBox.height);
-	buf.drawLine(this.remoBox.x-1,this.remoBox.y,this.remoBox.x+7, this.remoBox.y +8);
-	buf.drawLine(this.remoBox.x-1,this.remoBox.y+8,this.remoBox.x+7, this.remoBox.y);
+	buf.drawRect(this.remoBox.x, this.remoBox.y, this.remoBox.width, this.remoBox.height);
+	buf.drawLine(this.remoBox.x, this.remoBox.y, this.remoBox.x+this.remoBox.width, this.remoBox.y+(int)this.remoBox.getHeight());
+	buf.drawLine(this.remoBox.x, this.remoBox.y+(int)this.remoBox.getHeight(), this.remoBox.x+this.remoBox.width,this.remoBox.y);
+
 	
 	}
-	buf.setColor(Color.black);
+	
 	
 }
 
 void drawNodes() {
 	
-	//nodebuf.setColor(Draw.backColor);
-	nodebuf.setComposite( Main.drawCanvas.composite);		
+	nodebuf.setColor(Draw.backColor);
+	nodebuf.fillRect(0,0, bufImage.getWidth(),this.getHeight());	
+/*	nodebuf.setComposite( Main.drawCanvas.composite);		
 	nodebuf.fillRect(0,0, bufImage.getWidth(),this.getHeight());	
 	nodebuf.setComposite(this.backupComposite);	
+	*/
+	buf.drawImage(nodeImage, Main.sidebarWidth, 0, this);
 	
-
 }
 
 void drawZoom() {	
@@ -297,17 +325,17 @@ void drawZoom() {
 		buf.setStroke(Draw.dashed);
 		
 		buf.drawLine(Main.drawCanvas.pressX, pressY, mouseX, mouseY);
-	
+		buf.setStroke(Draw.doubleStroke);
 		
 	}
 	else if(zoomDrag) {
 		
 		
-		buf.setStroke(Draw.dashed);
-		buf.setColor(Color.black);
-		buf.setFont(ChromDraw.seqFont);
+	//	buf.setStroke(Draw.dashed);
+		buf.setColor(Color.white);
+	//	buf.setFont(ChromDraw.defaultFont);
 		if(this.mouseX-Main.drawCanvas.pressX >= 0) {
-			buf.drawRect(Main.drawCanvas.pressX, 0, this.mouseX-Main.drawCanvas.pressX, this.getHeight());	
+			buf.drawRect(Main.drawCanvas.pressX, 0, this.mouseX-Main.drawCanvas.pressX-1, this.getHeight());	
 			if(Main.drawCanvas.getDrawWidth()-this.mouseX > 200) {
 				buf.drawString("" +MethodLibrary.formatNumber((int)((this.mouseX-Main.drawCanvas.pressX)/Main.drawCanvas.selectedSplit.pixel)) +"bp", Main.drawCanvas.pressX+(this.mouseX-Main.drawCanvas.pressX)+4, this.mouseY-35);
 				buf.drawString("Right click to cancel zoom" , Main.drawCanvas.pressX+(this.mouseX-Main.drawCanvas.pressX)+4, this.mouseY-6);
@@ -338,7 +366,7 @@ void drawZoom() {
 		}
 		buf.setFont(Draw.defaultFont);
 	}
-	buf.setStroke(Draw.doubleStroke);
+//	buf.setStroke(Draw.doubleStroke);
 }
 
 public void paint(Graphics g) {
@@ -385,7 +413,13 @@ public void mouseClicked(MouseEvent event) {
 		if(this.selectedPlay > -1 && Control.controlData.fileArray.get(selectedPlay).playbox.intersects(sideMouseRect)) {
 			
 			if(!Control.controlData.fileArray.get(selectedPlay).controlOn) {
-				Control.controlData.fileArray.get(selectedPlay).alleleFreq = Double.parseDouble(Control.controlData.fileArray.get(selectedPlay).alleletext.toString());
+				try {
+					Control.controlData.fileArray.get(selectedPlay).alleleFreq = Double.parseDouble(Control.controlData.fileArray.get(selectedPlay).alleletext.toString());
+				}
+				catch(Exception e) {
+					Control.controlData.fileArray.get(selectedPlay).alleletext = new StringBuffer("0");
+					Control.controlData.fileArray.get(selectedPlay).alleleFreq = 0;
+				}
 				Control.controlData.fileArray.get(selectedPlay).controlOn = true;
 				Control.controlData.controlsOn = true;
 			
@@ -420,7 +454,9 @@ public void mouseClicked(MouseEvent event) {
 		break;
 	}
 	case InputEvent.BUTTON3_MASK: {			
-		Control.controlData.fileArray.get(hoverIndex).menu.show(this, mouseX, mouseY);
+		if(!this.zoomDrag) {
+			Control.controlData.fileArray.get(hoverIndex).getPopupMenu().show(this, mouseX, mouseY);
+		}
 		//this.bedTrack.get(hoverIndex).getPopup().show(this, mouseX, mouseY);
 	}	
 	}	
@@ -446,9 +482,10 @@ public void removeControl(int removeControl) {
 	}
 	boolean allfalse = true;
 	for(int i = 0; i<Control.controlData.fileArray.size(); i++) {
+		Control.controlData.fileArray.get(i).setIndex((short)i);
 		if(Control.controlData.fileArray.get(i).controlOn) {
 			allfalse = false;
-			break;
+			
 		}
 	}
 	if(allfalse) {
@@ -475,8 +512,9 @@ public void mousePressed(MouseEvent event) {
 			}		
 			break;
 		}
-		case InputEvent.BUTTON3_MASK: {			
-			this.zoomDrag = false;
+		case InputEvent.BUTTON3_MASK: {		
+			
+			
 		}
 }
 	
@@ -498,6 +536,12 @@ public void mouseReleased(MouseEvent event) {
 		Draw.updatevars = true;
 		Main.drawCanvas.repaint();
 	}
+	for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
+		if(Main.bedCanvas.bedTrack.get(i).graph) {
+			Main.bedCanvas.calcScale(Main.bedCanvas.bedTrack.get(i));			
+		}		
+	}
+	
 	mouseDrag = false; 
 	zoomDrag = false;	
 	Main.drawCanvas.lineZoomer = false;
@@ -732,6 +776,7 @@ public void keyPressed(KeyEvent e) {
 		}			
 		
 		typeTextWidth = (int)fm.getStringBounds(Control.controlData.fileArray.get(typeBox).alleletext.substring(0, cursorPosition), buf).getWidth();
+		
 		repaint();
 	
 }

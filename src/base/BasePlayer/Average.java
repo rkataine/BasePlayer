@@ -13,11 +13,12 @@ package base.BasePlayer;
 
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SamReader;
+//import htsjdk.samtools.SamReader;
 
 import htsjdk.tribble.readers.TabixReader;
 
 import java.awt.Component;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -30,7 +31,9 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.TreeSet;
+
+
+
 
 import javax.swing.table.TableCellRenderer;
 
@@ -63,7 +66,7 @@ public class Average extends JPanel implements TableCellRenderer, MouseListener 
 	static java.util.List<java.util.List<String>> outVector =Collections.synchronizedList(new ArrayList<java.util.List<String>>());
 	
 	JLabel fileLabel = new JLabel("Open BED-file to calculate average coverage");
-	JPanel panel = new JPanel(new GridBagLayout());
+	static JPanel panel = new JPanel(new GridBagLayout());
 	static Object[] headers = {"Sample", "Average coverage", "Average mapping quality", "Soft clip rate", "Zero quality rate", "Covered (%) (Coverage : Percentage)", "Status"}; 
     static Object[][] data = {}; 
     static DefaultTableModel model = new DefaultTableModel(data, headers); 
@@ -93,7 +96,7 @@ public class Average extends JPanel implements TableCellRenderer, MouseListener 
 				}
 			}
 		}
-	/*	else {
+		else {
 			outVector.clear();
 			model.getDataVector().clear();
 			for(int i = 0; i<Main.samples; i++) {
@@ -106,17 +109,14 @@ public class Average extends JPanel implements TableCellRenderer, MouseListener 
 					
 				}
 			}
-		}*/
+		}
 		
 	}
 public Average() {	
 
 super(new GridBagLayout());		
 	
-	panel.setBackground(new Color(179, 183, 207));
-	
-	
-	
+	panel.setBackground(Draw.sidecolor);
 	
 	output.setEnabled(false);
 	execute.setEnabled(false);
@@ -171,8 +171,17 @@ super(new GridBagLayout());
     output.addMouseListener(this);
     execute.addMouseListener(this);
     cancel.addMouseListener(this);
-   
+    setFonts(Main.menuFont);
     
+}
+
+static void setFonts(Font menuFont) {
+	for(int i = 0 ; i<Average.panel.getComponentCount(); i++) {
+		Average.panel.getComponent(i).setFont(menuFont);
+	}
+	table.getTableHeader().setFont(menuFont);
+	table.setFont(menuFont);
+	table.setRowHeight(menuFont.getSize()+4);
 }
 
 public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {

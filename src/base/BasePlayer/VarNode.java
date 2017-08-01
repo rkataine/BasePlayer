@@ -10,9 +10,9 @@
  *  
  */
 package base.BasePlayer;
+
 import java.util.AbstractMap;
 import java.util.ArrayList;
-
 import java.util.HashMap;
 //import java.util.Hashtable;
 import java.util.List;
@@ -21,6 +21,9 @@ import java.util.Map.Entry;
 
 public class VarNode {
 	
+	
+	private static final long serialVersionUID = 1L;
+
 	private final int position;
 	
 	private VarNode prev, next;
@@ -35,12 +38,13 @@ public class VarNode {
 	ClusterNode clusterNode;
 	ArrayList<Map.Entry<String, ArrayList<SampleNode>>> vars = new ArrayList<Map.Entry<String, ArrayList<SampleNode>>>();	
 	boolean incluster, indel, found;
+	public short phase = -1;
 	public String codon;
 	boolean controlled;
 	private Entry<String, ArrayList<SampleNode>> entry;
 	public boolean coding = false;
 	
-	public VarNode(int position, byte ref, String variation, short coverage, short calls, boolean genotype, Float quality, Float gq, HashMap<String, Float> advquals, String rscode, Sample sample, VarNode prev, VarNode next) {
+	public VarNode(int position, byte ref, String variation, int coverage, int calls, boolean genotype, Float quality, Float gq, HashMap<String, Float> advquals, String rscode, Sample sample, VarNode prev, VarNode next) {
 		this.position = position;
 		this.rscode = rscode;
 		this.refBase = ref; //Main.bases.get(ref);
@@ -203,7 +207,7 @@ public class VarNode {
 		return null;
 	}
 
-	public void addSample(String variation, short coverage, short calls, boolean genotype, Float quality, Float gq, HashMap<String, Float> advquals, Sample sample) {	
+	public void addSample(String variation, int coverage, int calls, boolean genotype, Float quality, Float gq, HashMap<String, Float> advquals, Sample sample) {	
 		found = false;	
 		if (variation.length() > 1 ) indel = true;
 		for(Map.Entry<String, ArrayList<SampleNode>> entry : vars) {
@@ -231,29 +235,33 @@ public class VarNode {
 		this.putPrev(null);
 	}
 	public void removeSample(Sample sample) {
-				
-		for(int v = 0; v<vars.size();v++) {			
-			entry = vars.get(v);
-			for(int i = 0 ;i<entry.getValue().size(); i++) {
-				if(entry.getValue().get(i).getSample() == null) {
-					break;
-				}
-				if(entry.getValue().get(i).getSample().equals(sample)) {
-					entry.getValue().remove(i);
-					
-					if(entry.getValue().size() == 0) {
-						vars.remove(entry);						
+		try {
+			for(int v = vars.size()-1; v>=0;v--) {			
+				entry = vars.get(v);
+				for(int i = entry.getValue().size()-1 ;i>=0; i--) {
+					if(entry.getValue().get(i).getSample() == null) {
+						continue;
 					}
-					break;					
-				}
-			}			
-		}
-		if(vars.size() == 0) {
-			if(this.getNext() != null) {
-				this.getNext().putPrev(this.getPrev());
+					if(entry.getValue().get(i).getSample().equals(sample)) {
+						entry.getValue().remove(i);
+						
+						if(entry.getValue().size() == 0) {
+							vars.remove(entry);						
+						}
+						break;					
+					}
+				}			
 			}
-			this.getPrev().putNext(this.getNext());
-			
+			if(vars.size() == 0) {
+				if(this.getNext() != null) {
+					this.getNext().putPrev(this.getPrev());
+				}
+				this.getPrev().putNext(this.getNext());
+				
+			}
+		}
+		catch(Exception e) {
+			e.printStackTrace();
 		}
 	/*	SampleNode node; // TODO
 		for(int i = 0;i<samples.size(); i++) {

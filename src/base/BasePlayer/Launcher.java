@@ -136,10 +136,8 @@ public class Launcher  {
 			  if(!fromMain) {
 				  ProcessBuilder pb;
 					 try {
-						  pb = new ProcessBuilder("java","-Xmx4G", "-Dprism.verbose=true", "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
-					     pb.start();
-						
-						
+						 pb = new ProcessBuilder("java","-Xmx4G", "-Dprism.verbose=true", "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
+					     pb.start();						
 					 }
 					 catch(Exception e) {
 						 e.printStackTrace();
