@@ -55,6 +55,9 @@ public class SplitClass implements Serializable {
 	void setTranscripts(ArrayList<Transcript> trans) {
 		this.transcripts = trans;
 	}*/
+	public void clearGenes() {
+		this.genes.clear();
+	}
 	public void setChromBands(ArrayList<String[]> bands) {
 		this.chromBands = bands;
 	}
@@ -160,6 +163,7 @@ public class SplitClass implements Serializable {
 			
 		}
 		public void resizeImages(int width) {
+		
 			exonImage = MethodLibrary.toCompatibleImage(new BufferedImage(width, (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB));	
 			exonImageBuffer = (Graphics2D)exonImage.getGraphics();
 			

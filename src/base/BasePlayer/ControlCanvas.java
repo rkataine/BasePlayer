@@ -16,8 +16,6 @@ import java.awt.Composite;
 import java.awt.Cursor;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
-import java.awt.KeyEventDispatcher;
-import java.awt.KeyboardFocusManager;
 import java.awt.Rectangle;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -63,7 +61,7 @@ private static final long serialVersionUID = 1L;
 	private int hoverIndex = -1;	
 	private int removeControl = -1;
 	private Rectangle sideMouseRect = new Rectangle();
-	private boolean resize;
+
 	private int pressY;
 	ArrayList<Double> trackDivider = new ArrayList<Double>();
 	private boolean mouseDrag;
@@ -116,7 +114,9 @@ void drawScreen(Graphics g) {
 	buf.setColor(Draw.backColor);
 	buf.fillRect(Main.sidebarWidth, 0, this.getWidth(), nodeImage.getHeight());	
 //	buf.setColor(Color.gray);
-	
+	if(Main.readingControls) {
+		return;
+	}
 	if(this.trackDivider.get(this.trackDivider.size()-1) != 1.0) {	
 		 for(int i = 0 ; i<this.trackDivider.size(); i++) {
 			 this.trackDivider.set(i, ((i+1)*(this.getHeight()/(double)trackDivider.size())/this.getHeight()));
@@ -177,6 +177,7 @@ void drawSidebar() {
 	buf.fillRect(0, 0, Main.sidebarWidth, this.getHeight());
 	buf.setColor(Color.black);
 //	buf.setStroke(Draw.basicStroke);
+	
 	if(Control.controlData.fileArray.size() > 0) {
 		
 		overlapping = false;
@@ -494,8 +495,9 @@ public void removeControl(int removeControl) {
 }
 public void mouseEntered(MouseEvent arg0) {}	
 public void mouseExited(MouseEvent arg0) {}	
+@SuppressWarnings("unchecked")
 public void mousePressed(MouseEvent event) {
-	resize =false;
+	
 	pressY = event.getY();
 	mouseDrag = true;
 	
@@ -547,6 +549,7 @@ public void mouseReleased(MouseEvent event) {
 	Main.drawCanvas.lineZoomer = false;
 	lineZoomer = false;
 }	
+@SuppressWarnings("unchecked")
 public void mouseDragged(MouseEvent event) {
 	
 switch(event.getModifiers()) {	

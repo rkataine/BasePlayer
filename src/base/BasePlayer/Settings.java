@@ -17,7 +17,6 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -50,8 +49,8 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	private static JLabel insertLabel = new JLabel("Maximum insert size: 1000"), readLabel = new JLabel("Read options");
 	private static Dimension mindimension = new Dimension(200, 15);
 	private static JLabel depthLimitLabel;
-	private static JLabel coverageDistanceLabel = new JLabel("Coverage draw distance:");
-	private static JTextField coverageDistanceField = new JTextField("");
+	private static JLabel coverageDistanceLabel = new JLabel("Coverage draw distance (bp):");
+	
 	private static JSlider depthLimitSlide = new JSlider(1,10000);
 	private static JSlider rSlider = new JSlider(60,255);
 	private static JSlider gSlider = new JSlider(60,255);
@@ -73,7 +72,11 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	private static JTabbedPane tabPanel = new JTabbedPane(JTabbedPane.LEFT);
 	private static JButton colorButton = new JButton("Select color");
 	static HashMap<String, Integer> settings;
-	private static JLabel windowLabel = new JLabel("Processing window size:");
+	private static JLabel windowLabel = new JLabel("Processing window size (bp):");
+	
+	private static JLabel bigFileLabel = new JLabel("Big file size for tracks (MB):");
+	private static JTextField coverageDistanceField = new JTextField("");
+	private static JTextField bigFileField = new JTextField("");
 	private static JTextField windowField = new JTextField("");
 	static int readDrawDistance, coverageDrawDistance,coverageAlleleFreq, windowSize, readDepthLimit, softClips, mappingQ, insertSize, baseQ;
 	static Color frameColor = new Color(188,188,178);
@@ -88,6 +91,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		try {
 		this.setBackground(Color.black);
 		windowLabel.setToolTipText("Window size for processing large vcf and bed files.");
+		bigFileLabel.setToolTipText("Maximum file size for chromosomal level drawing.");
 		depthLimitLabel = new JLabel("");
 		String[] sizes = {"8","10","12","14","16","18","20","22","24"};
 		
@@ -144,12 +148,13 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		colorButton.addActionListener(this);
 	//	coverageDistanceField.setOpaque(false);
 		coverageDistanceField.addKeyListener(this);
+		bigFileField.addKeyListener(this);
 	//	windowField.setOpaque(false);
 		windowField.addKeyListener(this);
 		GridBagConstraints c = new GridBagConstraints();
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.anchor = GridBagConstraints.NORTHWEST;		
-		c.insets = new Insets(2,4,2,30);
+		c.insets = new Insets(2,0,0,30);
 		c.gridx = 0;
 		c.gridy = 0;
 		c.gridwidth = 1;	
@@ -269,6 +274,12 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		c.gridx = 1;
 		generalPanel.add(windowField,c);
 		c.gridx = 0;
+		c.gridy++;
+		generalPanel.add(bigFileLabel,c);
+		c.gridx = 1;
+		generalPanel.add(bigFileField,c);
+		
+		c.gridx = 0;
 		c.weightx = 1;
 		c.weighty = 1;
 		c.gridwidth = GridBagConstraints.REMAINDER;
@@ -378,6 +389,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		coverageDrawDistance = settings.get("coverageDrawDistance");
 		coverageAlleleFreq = settings.get("coverageAlleleFreq");
 		coverageDistanceField.setText(""+settings.get("coverageDrawDistance"));
+		bigFileField.setText(""+settings.get("bigFile"));
 		depthLimitLabel.setText("Read depth limit: " +settings.get("readDepthLimit"));		
 		windowField.setText(""+settings.get("windowSize"));
 		baseQuality.setValue(settings.get("baseQ"));
@@ -514,8 +526,14 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 			bLabel.setText("Blue: " +bSlider.getValue());
 			
 			Draw.sidecolor = new Color(rSlider.getValue(), gSlider.getValue(), bSlider.getValue());				
-			VariantHandler.backColor = new Color(rSlider.getValue(), gSlider.getValue(), bSlider.getValue());
-			
+			if(VariantHandler.frame != null) {
+				VariantHandler.backColor = new Color(rSlider.getValue(), gSlider.getValue(), bSlider.getValue());
+				VariantHandler.adder.setForeground(Draw.sidecolor);
+				VariantHandler.adder2.setForeground(Draw.sidecolor);
+				VariantHandler.adder3.setForeground(Draw.sidecolor);
+				VariantHandler.adder4.setForeground(Draw.sidecolor);
+				VariantHandler.adder5.setForeground(Draw.sidecolor);
+			}
 			/*if(colorSlider.getValue() <= 120) {
 				Draw.sidecolor = new Color(200, 80+colorSlider.getValue(), 120);				
 				VariantHandler.backColor = new Color(Draw.sidecolor.getRed(), Draw.sidecolor.getGreen(), Draw.sidecolor.getBlue(), 200);
@@ -565,18 +583,20 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 				Main.chromDraw.repaint();
 				Main.bedCanvas.repaint();
 				Main.panel.setBackground(new Color(Draw.sidecolor.getRed()-40, Draw.sidecolor.getGreen()-40, Draw.sidecolor.getBlue()-40));
-				VariantHandler.frame.getContentPane().setBackground(new Color(Draw.sidecolor.getRed()-40, Draw.sidecolor.getGreen()-40, Draw.sidecolor.getBlue()-40));
 				Main.chrompan.setBackground(Draw.sidecolor);
 				Main.setbut.setBackground(Main.panel.getBackground());
 				Main.panel.revalidate();
-				VariantHandler.filterpanel.setBackground(VariantHandler.backColor);
-				VariantHandler.filterpanel.revalidate();
-				VariantHandler.aminopanel.setBackground(VariantHandler.backColor);
-				VariantHandler.aminopanel.revalidate();
-				VariantHandler.comparepanel.setBackground(VariantHandler.backColor);
-				VariantHandler.comparepanel.revalidate();
-				VariantHandler.tabs.setBackground(VariantHandler.backColor);
-				VariantHandler.tabs.revalidate();
+				if(VariantHandler.frame != null) {
+					VariantHandler.frame.getContentPane().setBackground(new Color(Draw.sidecolor.getRed()-40, Draw.sidecolor.getGreen()-40, Draw.sidecolor.getBlue()-40));
+					VariantHandler.filterpanel.setBackground(VariantHandler.backColor);
+					VariantHandler.filterpanel.revalidate();
+					VariantHandler.aminopanel.setBackground(VariantHandler.backColor);
+					VariantHandler.aminopanel.revalidate();
+					VariantHandler.comparepanel.setBackground(VariantHandler.backColor);
+					VariantHandler.comparepanel.revalidate();
+					VariantHandler.tabs.setBackground(VariantHandler.backColor);
+					VariantHandler.tabs.revalidate();
+				}
 			}
 		}
 		
@@ -677,9 +697,10 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 			catch(Exception ex) {
 				settings.put("coverageDrawDistance", Integer.MAX_VALUE);
 				coverageDrawDistance= Integer.MAX_VALUE;
+				
 			}
 		} 
-		if(e.getSource() == windowField) {
+		else if(e.getSource() == windowField) {
 			try {
 				settings.put("windowSize", Integer.parseInt(windowField.getText()));
 				windowSize = Integer.parseInt(windowField.getText());
@@ -687,9 +708,19 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 			catch(Exception ex) {
 				settings.put("windowSize", Integer.MAX_VALUE);
 				windowSize = Integer.MAX_VALUE;
+				
 			}
 		} 
-		
+		else if(e.getSource() == bigFileField) {
+			try {
+				settings.put("bigFile", Integer.parseInt(bigFileField.getText()));
+				
+			}
+			catch(Exception ex) {
+				settings.put("bigFile", 200);
+				
+			}
+		}
 	}
 	@Override
 	public void keyReleased(KeyEvent e) {

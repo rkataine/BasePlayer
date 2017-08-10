@@ -12,9 +12,9 @@
 package base.BasePlayer;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
+
 import java.io.FileInputStream;
-import java.io.FileReader;
+
 import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.util.zip.GZIPInputStream;
@@ -35,7 +35,7 @@ public class ConvertExons {
 			line = reader.readLine();
 			split = line.split("\t");
 			String chrom = "", phase;
-			String genestart, geneend, strand, uniprot = "-", canonical, biotype, codingstart, codingend, description, name, ensg, enst;
+			String genestart, geneend, strand, uniprot = "-", canonical, biotype, codingstart, codingend, description, name, ensg;
 			StringBuffer exonstarts, exonends, phases;
 			writer.write(header);
 			while(true) {

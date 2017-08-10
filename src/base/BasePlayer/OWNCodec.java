@@ -30,8 +30,6 @@ import htsjdk.tribble.annotation.Strand;
 import htsjdk.tribble.bed.BEDFeature;
 import htsjdk.tribble.bed.FullBEDFeature;
 import htsjdk.tribble.readers.LineIterator;
-import htsjdk.tribble.util.ParsingUtils;
-
 import java.util.regex.Pattern;
 
 /**

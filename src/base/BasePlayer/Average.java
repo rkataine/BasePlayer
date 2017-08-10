@@ -35,6 +35,8 @@ import java.util.Iterator;
 
 
 
+
+
 import javax.swing.table.TableCellRenderer;
 
 import java.awt.Color;
@@ -49,10 +51,11 @@ import javax.swing.SwingWorker;
 import javax.swing.table.DefaultTableModel;
 
 
+@SuppressWarnings("deprecation")
 public class Average extends JPanel implements TableCellRenderer, MouseListener  {
 	private static final long serialVersionUID = 1L;
 	
-    static JFrame frame = new JFrame("Coverage handler");    	
+    static JFrame frame;    	
 	//UI	
 	//Labels	
     static java.util.List<int[]> mergeVector = null;
@@ -228,6 +231,7 @@ public static class runner extends SwingWorker<String, Object> {
 	}
 	
 }
+
 static void calcAverage() {
 	
 	try {		
@@ -416,7 +420,7 @@ static void calcAverage() {
 }
 private static void createAndShowGUI() {
 	
-	   
+	frame = new JFrame("Coverage handler");    	
 	JFrame.setDefaultLookAndFeelDecorated(true);
     frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
   

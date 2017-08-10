@@ -15,7 +15,7 @@ import java.util.HashMap;
 public class SampleNode {
 //	private String variation;
 
-	private static final long serialVersionUID = 1L;
+//	private static final long serialVersionUID = 1L;
 	private final Integer coverage, calls;
 	private final Float quality, gq;
 	float heightValue = 0;

@@ -113,7 +113,7 @@ public class ClusterTable  extends JPanel implements MouseMotionListener, MouseL
 		 obj = new Object[3]; obj[0] = "Flanking genes"; 	obj[1] = (int)header.get(header.size()-1)[1] + (int)header.get(header.size()-1)[2]; obj[2] = (int)((width-10)/7.0); header.add(obj);
 		
 		 
-		bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width, (int)height, BufferedImage.TYPE_INT_ARGB));	
+		bufImage = MethodLibrary.toCompatibleImage(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB));	
 		buf = (Graphics2D)bufImage.getGraphics();
 		this.addMouseListener(this);
 		this.addMouseMotionListener(this);
@@ -122,12 +122,12 @@ public class ClusterTable  extends JPanel implements MouseMotionListener, MouseL
 	}	
 	
 void resizeTable() {
-
-	if(bufImage.getWidth() < (int)header.get(header.size()-1)[1]+ (int)header.get(header.size()-1)[2]) {
-		bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width*2, (int)height, BufferedImage.TYPE_INT_ARGB));	
-		buf = (Graphics2D)bufImage.getGraphics();
+	if(bufImage.getWidth() != 1) {
+		if(bufImage.getWidth() < (int)header.get(header.size()-1)[1]+ (int)header.get(header.size()-1)[2]) {
+			bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width*2, (int)height, BufferedImage.TYPE_INT_ARGB));	
+			buf = (Graphics2D)bufImage.getGraphics();
+		}
 	}
-	
 
 }
 
@@ -158,9 +158,11 @@ void resizeTable(int column, int amount) {
 			}
 		}
 		if((int)header.get(header.size()-1)[1]+(int)header.get(header.size()-1)[2] > this.getWidth()) {
+			if(bufImage.getWidth() != 1) {
 			if(bufImage.getWidth() < (int)header.get(header.size()-1)[1]+(int)header.get(header.size()-1)[2]) {
 				bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width*2, (int)height, BufferedImage.TYPE_INT_ARGB));	
 				buf = (Graphics2D)bufImage.getGraphics();
+			}
 			}
 			this.setPreferredSize(new Dimension((int)header.get(header.size()-1)[1]+(int)header.get(header.size()-1)[2], this.getHeight()));
 			this.revalidate();
@@ -174,9 +176,11 @@ void resizeTable(int column, int amount) {
 			}
 		}
 		if((int)geneheader.get(geneheader.size()-1)[1]+(int)geneheader.get(geneheader.size()-1)[2] > this.getWidth()) {
-			if(bufImage.getWidth() < (int)geneheader.get(geneheader.size()-1)[1]+(int)geneheader.get(geneheader.size()-1)[2]) {
-				bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width*2, (int)height, BufferedImage.TYPE_INT_ARGB));	
-				buf = (Graphics2D)bufImage.getGraphics();
+			if(bufImage.getWidth() != 1) {
+				if(bufImage.getWidth() < (int)geneheader.get(geneheader.size()-1)[1]+(int)geneheader.get(geneheader.size()-1)[2]) {
+					bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width*2, (int)height, BufferedImage.TYPE_INT_ARGB));	
+					buf = (Graphics2D)bufImage.getGraphics();
+				}
 			}
 			this.setPreferredSize(new Dimension((int)geneheader.get(geneheader.size()-1)[1]+(int)geneheader.get(geneheader.size()-1)[2], this.getHeight()));
 			this.revalidate();
@@ -194,9 +198,11 @@ void addColumnGeneheader(Object column) {
 	geneheader.add(obj);
 	
 	if((int)obj[1]+(int)obj[2] > this.getWidth()) {
+		if(bufImage.getWidth() != 1) {
 		if(bufImage.getWidth() < (int)obj[1]+(int)obj[2]) {
 			bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width*2, (int)height, BufferedImage.TYPE_INT_ARGB));	
 			buf = (Graphics2D)bufImage.getGraphics();
+		}
 		}
 		this.setPreferredSize(new Dimension((int)obj[1]+(int)obj[2], this.getHeight()));
 		this.revalidate();
@@ -211,11 +217,12 @@ void addHeaderColumn(Object column) {
 	header.add(obj);
 	
 	if((int)obj[1]+(int)obj[2] > this.getWidth()) {
+		if(bufImage.getWidth() != 1) {
 		if(bufImage.getWidth() < (int)obj[1]+(int)obj[2]) {
 			bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width*2, (int)height, BufferedImage.TYPE_INT_ARGB));	
 			buf = (Graphics2D)bufImage.getGraphics();
 		}
-		
+		}
 	}
 	this.setPreferredSize(new Dimension((int)obj[1]+(int)obj[2], this.getHeight()));
 	this.revalidate();

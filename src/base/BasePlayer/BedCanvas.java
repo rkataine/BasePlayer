@@ -68,6 +68,8 @@ private static final long serialVersionUID = 1L;
 	TabixReaderMod.Iterator iterator = null;
 	TabixReaderMod.Iterator bedIterator = null;
 	ArrayList<Double> trackDivider = new ArrayList<Double>();
+	String scaletext = "";
+	int scalewidth = 0;
 	ArrayList<Double> tempDivider;	
 	BedTrack track;
 	static int counter = 0;
@@ -100,6 +102,7 @@ private static final long serialVersionUID = 1L;
 	private int bedheight=0;
 	private int mouseX =0;
 	private boolean zoomDrag=false;
+	int overlapindex = 0;
 	boolean lineZoomer = false;
 	private String zoomtext= "";
 	private int zoompostemp=0;
@@ -156,7 +159,13 @@ private static final long serialVersionUID = 1L;
 
 void drawScreen(Graphics g) {
 	
-	
+	if(Main.readingbeds) {
+		buf.setColor(Draw.backColor);
+		buf.fillRect(Main.sidebarWidth, 0, this.getWidth(), nodeImage.getHeight());	
+		buf.drawString("Loading tracks...", 10, Main.bedScroll.getViewport().getHeight());
+		g.drawImage(bufImage, 0, 0, null);	
+		return;
+	}
 	if(this.trackDivider.size() > 0 && this.trackDivider.get(this.trackDivider.size()-1) != 1.0) {	
 		 for(int i = 0 ; i<Main.bedCanvas.trackDivider.size(); i++) {
 			 Main.bedCanvas.trackDivider.set(i, ((i+1)*(this.getHeight()/(double)trackDivider.size())/this.getHeight()));
@@ -164,10 +173,7 @@ void drawScreen(Graphics g) {
 	}
 	
 	drawSidebar();
-	buf.setStroke(Draw.doubleStroke);
-	
-	//buf.drawImage(Draw.image, Main.sidebarWidth, 0, this.getWidth(),(int)Main.screenSize.getHeight(), this);
-	
+		
 	buf.setColor(Draw.backColor);
 	buf.fillRect(Main.sidebarWidth, 0, this.getWidth(), nodeImage.getHeight());	
 	
@@ -184,12 +190,7 @@ void drawScreen(Graphics g) {
 	}	
 	
 	
-	if(resize) {		
-		buf.drawImage(nodeImage, Main.sidebarWidth, 0, nodeImage.getWidth(),(int)(Main.vardivider*Main.varPaneDivider.getY()), null);
-	}
-	else {		
-		buf.drawImage(nodeImage, Main.sidebarWidth, 0, null);
-	}
+	
 	
 	if(resizer && !mouseDrag) {
 		resizer = false;
@@ -215,16 +216,30 @@ void drawScreen(Graphics g) {
 				buf.setColor(Color.white);				
 			}
 			if(bedTrack.get(i).getLogscale().isSelected()) {
-				buf.drawString("Log scale [" +MethodLibrary.round(bedTrack.get(i).minvalue, 2) +", " +MethodLibrary.round(bedTrack.get(i).maxvalue,2) +"]", Main.sidebarWidth+10, (int)(trackDivider.get(i)*this.getHeight())-5);
+				scaletext = "Log scale [" +MethodLibrary.round(bedTrack.get(i).minvalue, 2) +", " +MethodLibrary.round(bedTrack.get(i).maxvalue,2) +"]";
+				
+				scalewidth = buf.getFontMetrics().stringWidth(scaletext);
+				buf.fillRoundRect(Main.sidebarWidth+5,  (int)(trackDivider.get(i)*this.getHeight())-5-(Main.defaultFontSize+4), scalewidth+4, Main.defaultFontSize+4, 4, 4);
+				buf.setColor(Color.black);	
+				buf.drawString(scaletext, Main.sidebarWidth+7, (int)(trackDivider.get(i)*this.getHeight())-9);
 				
 			}
 			else {
-				buf.drawString("Scale [" +MethodLibrary.round(bedTrack.get(i).minvalue, 2) +", " +MethodLibrary.round(bedTrack.get(i).maxvalue,2) +"]", Main.sidebarWidth+10, (int)(trackDivider.get(i)*this.getHeight())-5);
+				scaletext="Scale [" +MethodLibrary.round(bedTrack.get(i).minvalue, 2) +", " +MethodLibrary.round(bedTrack.get(i).maxvalue,2) +"]";
+				scalewidth = buf.getFontMetrics().stringWidth(scaletext);
+				buf.fillRoundRect(Main.sidebarWidth+5,  (int)(trackDivider.get(i)*this.getHeight())-5-(Main.defaultFontSize+4), scalewidth+4, Main.defaultFontSize+4, 4, 4);
+				buf.setColor(Color.black);	
+				buf.drawString(scaletext, Main.sidebarWidth+7, (int)(trackDivider.get(i)*this.getHeight())-9);
 			}
 			buf.setColor(Color.black);
 		}
 	}
-
+	if(resize) {		
+		buf.drawImage(nodeImage, Main.sidebarWidth, 0, nodeImage.getWidth(),(int)(Main.vardivider*Main.varPaneDivider.getY()), null);
+	}
+	else {		
+		buf.drawImage(nodeImage, Main.sidebarWidth, 0, null);
+	}
 	if(!resizer && !overlapping) {		
 		if(getCursor().getType() != Cursor.DEFAULT_CURSOR) {			
 			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
@@ -236,7 +251,8 @@ void drawScreen(Graphics g) {
 		buf.setStroke(Draw.dashed);			
 		buf.drawLine((Main.drawCanvas.getDrawWidth())/2+Main.sidebarWidth+2, 0, ((Main.drawCanvas.getDrawWidth()))/2+Main.sidebarWidth+2, Main.bedScroll.getViewport().getHeight());
 		buf.drawLine((int)((Main.drawCanvas.getDrawWidth())/2+Main.drawCanvas.splits.get(0).pixel+Main.sidebarWidth+2), 0, (int)(((Main.drawCanvas.getDrawWidth()))/2+Main.drawCanvas.splits.get(0).pixel+Main.sidebarWidth+2), Main.bedScroll.getViewport().getHeight());
-		buf.setStroke(Draw.basicStroke);
+//		buf.setStroke(Draw.doubleStroke);
+		buf.setStroke(Draw.basicStroke);	
 	}	
 	for(int i = 1; i<Main.drawCanvas.splits.size(); i++) {
 		buf.setColor(Color.gray);
@@ -296,9 +312,14 @@ void drawSidebar() {
 					bedTrack.get(i).playTriangle.addPoint(bedTrack.get(i).playbox.x+(Main.defaultFontSize/5), bedTrack.get(i).playbox.y+(bedTrack.get(i).playbox.width-(Main.defaultFontSize/5)));
 					bedTrack.get(i).playTriangle.addPoint(bedTrack.get(i).playbox.x+(bedTrack.get(i).playbox.width-(Main.defaultFontSize/5)),bedTrack.get(i).playbox.y +bedTrack.get(i).playbox.height/2);						
 					bedTrack.get(i).graphBox.setBounds(bedTrack.get(i).playbox.x+(int)(Main.defaultFontSize*1.4)+Main.defaultFontSize, trackstart+Main.defaultFontSize, (int)(Main.defaultFontSize*1.4), (int)(Main.defaultFontSize*1.4));
+					if(bedTrack.get(i).settingsButton == null) {
+						bedTrack.get(i).settingsButton = new Rectangle();
+					}
 					bedTrack.get(i).settingsButton.setBounds(Main.sidebarWidth-(int)(this.remoBox.width*(1.8)),trackstart-Main.defaultFontSize , (int)(this.remoBox.width*(1.5))+2, (int)(this.remoBox.height*(1.5)));
-					
-					
+										
+				}
+				if(bedTrack.get(i).settingsButton == null) {
+					bedTrack.get(i).settingsButton = new Rectangle();
 				}
 				if(bedTrack.get(i).settingsButton.y == 0 || bedTrack.get(i).settingsButton.x != Main.sidebarWidth-(int)(this.remoBox.width*(1.8)) || bedTrack.get(i).settingsButton.width !=  (int)(this.remoBox.width*(1.5))+2) {
 					bedTrack.get(i).settingsButton.setBounds(Main.sidebarWidth-(int)(this.remoBox.width*(1.8)),trackstart-Main.defaultFontSize , (int)(this.remoBox.width*(1.5))+2, (int)(this.remoBox.height*(1.5)));
@@ -419,7 +440,7 @@ void drawSidebar() {
 		}
 		if(sidebar) {
 			buf.setColor(Color.black);
-			buf.setStroke(Draw.basicStroke);		
+			
 		
 			if(sidebar && sideMouseRect.intersects(this.remoBox)) {				
 			//	buf.setStroke(Draw.doubleStroke);
@@ -445,11 +466,11 @@ void drawSidebar() {
 		}
 		buf.setStroke(Draw.doubleStroke);
 		buf.setColor(Color.gray);
-		buf.drawLine(Main.sidebarWidth-1, 0, Main.sidebarWidth-1, Main.drawScroll.getViewport().getHeight());
-		buf.drawLine(1, 0, 1, Main.drawScroll.getViewport().getHeight());
+		buf.drawLine(Main.sidebarWidth-1, 0, Main.sidebarWidth-1, this.getHeight());
+		buf.drawLine(1, 0, 1, this.getHeight());
 		buf.setColor(Color.lightGray);
-		buf.drawLine(3, 0,3, Main.drawScroll.getViewport().getHeight());
-		buf.drawLine(Main.sidebarWidth-3, 0, Main.sidebarWidth-3, Main.drawScroll.getViewport().getHeight());
+		buf.drawLine(3, 0,3, this.getHeight());
+		buf.drawLine(Main.sidebarWidth-3, 0, Main.sidebarWidth-3, this.getHeight());
 		buf.setStroke(Draw.basicStroke);
 	}
 	
@@ -505,7 +526,7 @@ void drawZoom() {
 		}
 	
 	}
-	buf.setStroke(Draw.doubleStroke);
+	//buf.setStroke(Draw.doubleStroke);
 }
 
 void drawLogo(BedTrack track, BedNode node, int trackstart) {	
@@ -574,7 +595,7 @@ void drawNodes() {
 	nodebuf.setComposite( Main.drawCanvas.composite);		
 	nodebuf.fillRect(0,0, bufImage.getWidth(),this.getHeight());	
 	nodebuf.setComposite(this.backupComposite);	
-	
+	overlap = false;
 	for(int i = 0; i<bedTrack.size(); i++) {
 		
 		track = bedTrack.get(i);
@@ -659,18 +680,12 @@ void drawNodes() {
 			track.setCurrent(track.getHead().getNext());
 			
 		}
-	/*	
-		if(track.getCurrent().equals(track.getHead())) {
-			drawNode = track.getCurrent().getNext();
-		}
-		else {
-			
-		}*/
+
 	
 	//	if(!track.getDrawNode().equals(track.getCurrent())) {
 			track.setDrawNode(track.getCurrent());
 	//	}
-		overlap = false;
+	
 	
 		while(track.getDrawNode() != null && track.getDrawNode().getPosition() < Main.drawCanvas.splits.get(0).end) {
 			
@@ -782,12 +797,14 @@ void drawNodes() {
 							nodebuf.fillRect(track.prepixel, testRect.y,bedwidth,bedheight);
 						}
 				}
-				if(mouseRect.intersects(testRect)) {					
+				if(!sidebar && mouseRect.intersects(testRect)) {
+					
 					nodebuf.setColor(Color.white);
 					nodebuf.fillRect(testRect.getBounds().x, testRect.getBounds().y,(int)testRect.getWidth(), (int)testRect.getHeight());
 					if(infoNode != track.getDrawNode()) {
 						infoNode = track.getDrawNode();
 					}
+					overlapindex = trackstart;
 					overlap = true;					
 				}				
 			}
@@ -856,12 +873,13 @@ void drawNodes() {
 						
 						if((track.getDrawNode().level-1)*(selexheight+15)+(track.mouseWheel*((selexheight+15)*2))+5 >= 5 && (track.getDrawNode().level-1)*(selexheight+15)+(track.mouseWheel*((selexheight+15)*2))+15 < this.trackheight) {
 							testRect.setBounds((int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel),trackstart+((track.getDrawNode().level-1)*(selexheight+15))+(track.mouseWheel*((selexheight+15)*2)),bedwidth,10);
-							if(testRect.intersects(mouseRect)) {
+							if(!sidebar && testRect.intersects(mouseRect)) {
 								nodebuf.setColor(Color.white);
 								nodebuf.fillRect(testRect.x,testRect.y,bedwidth,10);
 								if(infoNode != track.getDrawNode()) {
 									infoNode = track.getDrawNode();
 								}
+								overlapindex = trackstart;
 								overlap = true;
 							}
 							else {
@@ -898,12 +916,13 @@ void drawNodes() {
 						
 						if((track.getDrawNode().level-1)*(track.nodeHeight+(track.nodeHeight/2))+(track.mouseWheel*75)+5 >= 5) {
 							testRect.setBounds((int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel), trackstart+((track.getDrawNode().level-1)*(track.nodeHeight+(track.nodeHeight/2)))+(track.mouseWheel*75),bedwidth, track.nodeHeight);
-							if(testRect.intersects(mouseRect)) {
+							if(!sidebar && testRect.intersects(mouseRect)) {
 								nodebuf.setColor(Color.white);
 								nodebuf.fillRect(testRect.x, testRect.y,bedwidth, track.nodeHeight);	
 								if(infoNode != track.getDrawNode()) {
 									infoNode = track.getDrawNode();
 								}
+								overlapindex = trackstart;
 								overlap = true;								
 							}
 							else {
@@ -952,9 +971,7 @@ void drawNodes() {
 			track.setDrawNode(track.getDrawNode().getNext());
 		}
 		
-		if(overlap ) {
-			drawInfo();
-		}
+		
 		if(Main.drawCanvas.splits.size() > 1) {
 			nodebuf.setComposite( Main.drawCanvas.composite);		
 			nodebuf.fillRect(Main.drawCanvas.splits.get(1).chromOffset,0, bufImage.getWidth(),this.getHeight());	
@@ -989,6 +1006,9 @@ void drawNodes() {
 		
 		
 	}	
+	if(overlap ) {
+		drawInfo();
+	}
 	}
 	catch(Exception e) {
 		e.printStackTrace();
@@ -1040,10 +1060,10 @@ void drawInfo() {
 		}
 		
 		nodebuf.setColor(Color.white);
-		nodebuf.fillRoundRect(10, trackstart+10, boxmetrics.width+8, boxmetrics.height*infolist.size(),10,10);
+		nodebuf.fillRoundRect(10, overlapindex+10, boxmetrics.width+8, boxmetrics.height*infolist.size(),10,10);
 		nodebuf.setColor(Color.black);
 		for(int i = 0; i<infolist.size(); i++) {
-			nodebuf.drawString(infolist.get(i), 14, (trackstart+6)+(boxmetrics.height*(i+1)));
+			nodebuf.drawString(infolist.get(i), 14, (overlapindex+6)+(boxmetrics.height*(i+1)));
 		}	
 	//}
 }
@@ -3129,6 +3149,7 @@ boolean checkIntersect(VarNode current, Object[] t1, Object[] t2) {
 }
 public void mouseEntered(MouseEvent arg0) {}	
 public void mouseExited(MouseEvent arg0) {}	
+@SuppressWarnings("unchecked")
 public void mousePressed(MouseEvent event) {
 	resize =false;
 	pressY = event.getY();
@@ -3314,6 +3335,7 @@ public void getMoreBeds(BedTrack track) {
 	}
 }
 
+@SuppressWarnings("unchecked")
 public void mouseDragged(MouseEvent event) {
 	switch(event.getModifiers()) {	
 	

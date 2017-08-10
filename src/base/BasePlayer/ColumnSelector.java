@@ -21,12 +21,11 @@ import java.awt.event.ActionListener;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
+
 import java.io.FileInputStream;
-import java.io.FileWriter;
+
 import java.io.InputStreamReader;
-import java.io.Serializable;
+
 import java.util.zip.GZIPInputStream;
 
 import javax.swing.DefaultCellEditor;

@@ -15,17 +15,13 @@ import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.util.BlockCompressedInputStream;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 import htsjdk.tribble.Feature;
-import htsjdk.tribble.bed.BEDCodec;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.index.tabix.TabixIndexCreator;
 import htsjdk.tribble.util.TabixUtils;
-import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
 import htsjdk.variant.vcf.VCFHeaderVersion;
-
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
@@ -47,8 +43,6 @@ import java.util.Comparator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
-
-import javax.swing.SwingWorker;
 
 public class MethodLibrary {
 
@@ -77,19 +71,20 @@ public class MethodLibrary {
 	public static class ChromSorter implements Comparator<String> {
 
 		public int compare(String o1, String o2) {  
-			Integer n1= null, n2=null;
-			if(o1.matches("^-?\\d+$")) { n1 = Integer.parseInt(o1); }
-			else if(o1.equals("X")) { n1 = 23; }			
-			else if(o1.equals("Y")) { n1 = 24; }			
-			else if(o1.equals("M")) { n1 = 25; }			
-			else if(o1.equals("MT")) { n1 = 25; }		
+			Long n1= null, n2=null;
+			if(o1.matches("^-?\\d+$")) { n1 = Long.parseLong(o1); }
 			
-			if(o2.matches("^-?\\d+$")) { n2 = Integer.parseInt(o2); }
-			else if(o2.equals("X")) { n2 = 23; }
-			else if(o2.equals("Y")) { n2 = 24; }
-			else if(o2.equals("M")) { n2 = 25; }
-			else if(o2.equals("MT")) { n2 = 25; }
-			
+		/*	else if(o1.equals("X")) { n1 = 23L; }			
+			else if(o1.equals("Y")) { n1 = 24L; }			
+			else if(o1.equals("M")) { n1 = 25L; }			
+			else if(o1.equals("MT")) { n1 = 25L; }		
+		*/
+			if(o2.matches("^-?\\d+$")) { n2 = Long.parseLong(o2); }
+		/*	else if(o2.equals("X")) { n2 = 23L; }
+			else if(o2.equals("Y")) { n2 = 24L; }
+			else if(o2.equals("M")) { n2 = 25L; }
+			else if(o2.equals("MT")) { n2 = 25L; }
+			*/
 			if(n1 != null && n2 != null) {
 			
 		        if ( n1 < n2 ) {  
@@ -102,7 +97,7 @@ public class MethodLibrary {
 		        	return 0;
 		        }        
 			}
-			else if (n1 == null && n2 == null) {
+		/*	else if (n1 == null && n2 == null) {
 				if ( o1.compareTo(o2) < 0 ) {  
 	                return -1;  
 	        } 
@@ -121,7 +116,8 @@ public class MethodLibrary {
 				else {
 					return 1;
 				}
-			}
+			}*/
+			return 0;
 	}  
 	}
 	public static class mateListSorter implements Comparator<ReadNode> {

@@ -26,6 +26,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
@@ -42,6 +43,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -143,7 +145,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JCheckBox writetofile;
 	static JCheckBox indelFilters;
 	static JLabel SNVFilters;
-	static JFrame frame = new JFrame("Variant Manager");    
+	static JFrame frame;    
 	static JLabel totalVars;
 	static JLabel totalVarsIndel;
 	static JLabel empty;	
@@ -179,6 +181,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static OwnVCFCodec vcfCodec= new OwnVCFCodec();
 	static String format = "GT:DP:AD:GQ";
 	int moveX=0, moveY=0, pressX=0,pressY=0;
+	static JLabel adder, adder2, adder3, adder4, adder5;
 	//final int buttonHeight = 15, buttonWidth = 40;
 	int buttonHeight = (int)(11);
 	int buttonWidth = 12*6;
@@ -325,6 +328,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		menuPanel.add(new JLabel("Hard filters"));
 		menuPanelIndel.add(new JLabel("Hard filters"));
 		setFonts(Main.menuFont);
+		
 	}
 	
 	 protected void paintComponent(Graphics g) {
@@ -412,7 +416,9 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		writetofile = new JCheckBox("Write directly to a file");
 		indelFilters = new JCheckBox("Use indel specific filters");
 		SNVFilters = new JLabel("SNV & indel filters");
-		
+		SNVFilters.setName("header");
+		indelFilters.setName("header");
+		comparison.setName("header");
 		totalVars = new JLabel("Variant count on screen: 0");
 		totalVarsIndel = new JLabel("Variant count on screen: 0");
 		empty = new JLabel("");	
@@ -574,11 +580,6 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		frame.getContentPane().setBackground(Color.white);
 		frame.setBackground(Color.white);
 		frame.addComponentListener(this);
-	//	menubar.setOpaque(true);
-//		filters.setOpaque(false);
-		
-	//	menubar.add(filters);
-		
 		menuScroll = new JScrollPane(menuPanel);	
 	//	menuScroll.setMinimumSize(new Dimension(200, 100));
 		menuPanel.setBackground(Color.white);	
@@ -607,7 +608,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		GridBagConstraints c = new GridBagConstraints();	
 		c.anchor = GridBagConstraints.WEST;		
 		c.fill = GridBagConstraints.HORIZONTAL;
-		c.insets = new Insets(4,4,4,4);
+		c.insets = new Insets(2,4,0,4);
 		c.gridx = 0;
 		c.gridy = 0;
 		c.weightx = 0;
@@ -617,7 +618,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		qualityLabel.setToolTipText("Click for hard filters (advanced)");
 		qualityLabel.addMouseListener(this);
 		c.gridx = 1;
-		JLabel adder2 = new JLabel("__________________________________");
+		adder2 = new JLabel("__________________________________");
 		adder2.setForeground(Draw.sidecolor);
 		filterpanel.add(adder2,c);
 		filterpanel.add(totalVars,c);		
@@ -645,7 +646,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		filterpanel.add(maxCoverageSlider,c);
 		c.gridy++;
 		c.gridx = 0;		
-		JLabel adder = new JLabel("__________________________________");
+		adder = new JLabel("__________________________________");
 		adder.setForeground(Draw.sidecolor);
 		filterpanel.add(adder,c);
 		filterpanel.add(callsLabel,c);
@@ -667,9 +668,9 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		filterpanelIndel.add(indelFilters,c);
 		qualityLabelIndel.setToolTipText("Click for hard filters (advanced)");
 		qualityLabelIndel.addMouseListener(this);
-		c.insets = new Insets(4,4,4,4);
+		c.insets = new Insets(2,4,0,4);
 		c.gridx = 1;
-		JLabel adder4 = new JLabel("__________________________________");
+		adder4 = new JLabel("__________________________________");
 		adder4.setForeground(Draw.sidecolor);
 		filterpanelIndel.add(adder4,c);
 		filterpanelIndel.add(totalVarsIndel,c);		
@@ -700,7 +701,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		filterpanelIndel.add(maxCoverageSliderIndel,c);
 		c.gridy++;
 		c.gridx = 0;
-		JLabel adder3 = new JLabel("__________________________________");
+		adder3 = new JLabel("__________________________________");
 		adder3.setForeground(Draw.sidecolor);
 		filterpanelIndel.add(adder3,c);
 		filterpanelIndel.add(callsLabelIndel,c);
@@ -714,7 +715,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		filterpanelIndel.add(new JLabel(),c);			
 		
 		
-		c.insets = new Insets(0,4,0,0);
+		c.insets = new Insets(0,4,0,4);
 		
 	//	gb.anchor = GridBagConstraints.WEST;
 		c.gridx = 0;
@@ -730,7 +731,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		c.gridy++;
 		hidepanel.add(hideHomos,c);
 		c.gridy++;
-		freeze.setBackground(new Color(100,150,255,50));
+		freeze.setBackground(new Color(170,220,255));
 		hidepanel.add(freeze,c);
 		freezeIndels(true);
 		c.gridy++;
@@ -743,7 +744,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		c.gridx = 0;
 		c.gridy = 0;
 		c.gridwidth = 1;
-		c.insets = new Insets(4,4,4,4);
+		c.insets = new Insets(2,4,0,4);
 		c.weightx = 0;
 		c.weighty = 0;
 		comparepanel.add(comparison,c);
@@ -751,7 +752,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	//	comparepanel.add(new JLabel(""));
 		
 		comparepanel.add(geneLabel,c);
-		JLabel adder5 = new JLabel("__________________________________________");
+		adder5 = new JLabel("__________________________________________");
 		adder5.setForeground(Draw.sidecolor);
 		comparepanel.add(adder5,c);
 		c.gridx = 1;
@@ -971,7 +972,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	private static void createAndShowGUI() {	
 		try {
 			
-			
+			frame = new JFrame("Variant Manager");
 		    frame.setResizable(true);    
 		    JComponent newContentPane = new VariantHandler();
 		    newContentPane.setOpaque(true); 
@@ -1509,14 +1510,11 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 				    	   output = new BufferedWriter(new FileWriter(outfile));
 				       }    
 		    		 
-		    		 if(output != null) {
-		    			 	
+		    		 if(output != null) {		    			 	
 					    	//TODO
 		    			 	OutputRunner runner = new OutputRunner(output, null,null);
-		    			 	runner.execute();
-					    	
+		    			 	runner.execute();					    	
 		    		 }
-		    		 
 		    	 }
 		    	 else if(vcf.isSelected()) {
 		    		 BlockCompressedOutputStream outputgz;
@@ -1543,9 +1541,6 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		    			 	runner.execute();
 					    	
 		    		 }
-		    		 	
-			    	
-					 
 		    	 }
 		    	 /*else if(forVEP.isSelected()) {
 		    		
@@ -1706,15 +1701,17 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 							}
 						}
 						else {
-							JCheckBox field = (JCheckBox)menuPanel.getComponent(i+1);
-							
-							if(Main.drawCanvas.drawVariables.advQDraw == null) {
-								Main.drawCanvas.drawVariables.advQDraw = new ArrayList<QualEntry>();
-							}							
-							if(field.isSelected()) {
-								Main.drawCanvas.drawVariables.advQDraw.add(new QualEntry(field.getText(), 1F, ""));	
-								JCheckBox fieldIndel = (JCheckBox)menuPanelIndel.getComponent(i+1);
-								fieldIndel.setSelected(true);
+							if(menuPanel.getComponent(i+1) instanceof JCheckBox) {
+								JCheckBox field = (JCheckBox)menuPanel.getComponent(i+1);
+								
+								if(Main.drawCanvas.drawVariables.advQDraw == null) {
+									Main.drawCanvas.drawVariables.advQDraw = new ArrayList<QualEntry>();
+								}							
+								if(field.isSelected()) {
+									Main.drawCanvas.drawVariables.advQDraw.add(new QualEntry(field.getText(), 1F, ""));	
+									JCheckBox fieldIndel = (JCheckBox)menuPanelIndel.getComponent(i+1);
+									fieldIndel.setSelected(true);
+								}
 							}
 						}
 					}					
@@ -3118,6 +3115,11 @@ void writeGeneListToVCF(ArrayList<Gene> genelist, BufferedWriter output, BlockCo
 				outputmenu.revalidate();
 			}
 			else if(tabs.getSelectedIndex() == tabs.indexOfComponent(statsScroll)) {
+				if(stattable.bufImage.getWidth() == 1) {
+					
+					stattable.bufImage = MethodLibrary.toCompatibleImage(new BufferedImage(Main.screenSize.width,Main.screenSize.height, BufferedImage.TYPE_INT_ARGB));	
+					stattable.buf = (Graphics2D)stattable.bufImage.getGraphics();
+				}
 				VariantHandler.aminoCount.setText(stattable.variants +" variants");
 				outputmenu.setText("Stats output");
 				outputmenu.revalidate();
@@ -3126,6 +3128,10 @@ void writeGeneListToVCF(ArrayList<Gene> genelist, BufferedWriter output, BlockCo
 				VariantHandler.oncodrive.setVisible(false);
 			}
 			else if(tabs.getSelectedIndex() == tabs.indexOfComponent(clusterScroll)) {
+				if(clusterTable.bufImage.getWidth() == 1) {
+					clusterTable.bufImage = MethodLibrary.toCompatibleImage(new BufferedImage(Main.screenSize.width,Main.screenSize.height, BufferedImage.TYPE_INT_ARGB));	
+					clusterTable.buf = (Graphics2D)clusterTable.bufImage.getGraphics();
+				}
 				VariantHandler.aminoCount.setText(clusterTable.variants +" variants");
 				outputmenu.setText("Variant output");
 				vcf.setVisible(true);
@@ -3231,7 +3237,13 @@ void writeGeneListToVCF(ArrayList<Gene> genelist, BufferedWriter output, BlockCo
 		
 		if(value) {
 			for(int i =2;i<filterpanel.getComponentCount(); i++) {
-				if(filterpanel.getComponent(i).equals(freeze)) {
+				if(filterpanel.getComponent(i).equals(freeze) ) {
+					if(filterpanelIndel.getComponent(i) instanceof JLabel) {
+						JLabel label = (JLabel)filterpanelIndel.getComponent(i);
+						if(label.getText().contains("___")) {
+							continue;
+						}
+					}
 					continue;
 				}
 				filterpanel.getComponent(i).setEnabled(false);
@@ -3240,6 +3252,12 @@ void writeGeneListToVCF(ArrayList<Gene> genelist, BufferedWriter output, BlockCo
 			}
 			for(int i =2;i<filterpanelIndel.getComponentCount(); i++) {
 				if(filterpanelIndel.getComponent(i).equals(freeze)) {
+					if(filterpanelIndel.getComponent(i) instanceof JLabel) {
+						JLabel label = (JLabel)filterpanelIndel.getComponent(i);
+						if(label.getText().contains("___")) {
+							continue;
+						}
+					}
 					continue;
 				}
 				filterpanelIndel.getComponent(i).setEnabled(false);
@@ -3265,15 +3283,31 @@ void writeGeneListToVCF(ArrayList<Gene> genelist, BufferedWriter output, BlockCo
 static void setFonts(Font menuFont) {
 	try {
 		
-		for(int i = 0 ; i<VariantHandler.filterpanel.getComponentCount(); i++) {	   
-	    	VariantHandler.filterpanel.getComponent(i).setFont(menuFont);	    	
-	    }
+		for(int i = 0 ; i<VariantHandler.filterpanel.getComponentCount(); i++) {	 
+			if(VariantHandler.filterpanel.getComponent(i).getName() != null) {
+				VariantHandler.filterpanel.getComponent(i).setFont(Main.menuFontBold);	 
+			}
+			else {
+				VariantHandler.filterpanel.getComponent(i).setFont(menuFont);	    	
+			}
+		}
 		
-	    for(int i = 0 ; i<VariantHandler.filterpanelIndel.getComponentCount(); i++) {	   
-	    	VariantHandler.filterpanelIndel.getComponent(i).setFont(menuFont);	    	
+	    for(int i = 0 ; i<VariantHandler.filterpanelIndel.getComponentCount(); i++) {	
+	    	if(VariantHandler.filterpanelIndel.getComponent(i).getName() != null) {
+	    		VariantHandler.filterpanelIndel.getComponent(i).setFont(Main.menuFontBold);	    	
+	    	}
+	    	else {
+	    		VariantHandler.filterpanelIndel.getComponent(i).setFont(menuFont);	    	
+	    	}
+	    	
 	    }
-	    for(int i = 0 ; i<VariantHandler.comparepanel.getComponentCount(); i++) {	   
-	    	VariantHandler.comparepanel.getComponent(i).setFont(menuFont);	    	
+	    for(int i = 0 ; i<VariantHandler.comparepanel.getComponentCount(); i++) {	
+	    	if(VariantHandler.comparepanel.getComponent(i).getName() != null) {
+	    		VariantHandler.comparepanel.getComponent(i).setFont(Main.menuFontBold);	    	
+	    	}
+	    	else {
+	    		VariantHandler.comparepanel.getComponent(i).setFont(menuFont);	   
+	    	}
 	    }
 	    for(int i = 0 ; i<VariantHandler.aminopanel.getComponentCount(); i++) {	   
 	    	VariantHandler.aminopanel.getComponent(i).setFont(menuFont);	    	
@@ -3306,6 +3340,7 @@ static void setFonts(Font menuFont) {
 	    
 		    VariantHandler.table.rowHeight = menuFont.getSize() +5;
 		    VariantHandler.table.fm = VariantHandler.table.buf.getFontMetrics();
+		  
 		    VariantHandler.stattable.buf.setFont(menuFont);
 		    VariantHandler.stattable.rowHeight = menuFont.getSize() +5;
 		    VariantHandler.clusterTable.buf.setFont(menuFont);
@@ -3358,6 +3393,12 @@ static void freezeIndels(boolean value) {
 	if(value) {
 		for(int i =2;i<filterpanelIndel.getComponentCount(); i++) {
 			if(filterpanelIndel.getComponent(i).equals(freeze)) {
+				if(filterpanelIndel.getComponent(i) instanceof JLabel) {
+					JLabel label = (JLabel)filterpanelIndel.getComponent(i);
+					if(label.getText().contains("___")) {
+						continue;
+					}
+				}
 				continue;
 			}
 			filterpanelIndel.getComponent(i).setEnabled(false);

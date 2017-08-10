@@ -29,7 +29,7 @@ package base.BasePlayer;
 import htsjdk.tribble.TribbleException;
 import htsjdk.tribble.readers.LineIterator;
 import htsjdk.tribble.util.ParsingUtils;
-import htsjdk.variant.utils.GeneralUtils;
+
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.LazyGenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -97,7 +97,8 @@ public class OwnVCFCodec extends AbstractVCFCodec {
      * @param lineIterator the line reader to take header lines from
      * @return The parsed header
      */
-    @Override
+    @SuppressWarnings("static-access")
+	@Override
     public Object readActualHeader(final LineIterator lineIterator) {
         final List<String> headerStrings = new ArrayList<String>();
 
@@ -146,7 +147,7 @@ public class OwnVCFCodec extends AbstractVCFCodec {
         if (parts == null)
             parts = new String[Math.min(header.getColumnCount(), NUM_STANDARD_FIELDS+1)];
 
-        final int nParts = ParsingUtils.split(line, parts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
+ //       final int nParts = ParsingUtils.split(line, parts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
 
         // if we have don't have a header, or we have a header with no genotyping data check that we
         // have eight columns.  Otherwise check that we have nine (normal columns + genotyping data)
@@ -168,12 +169,9 @@ public class OwnVCFCodec extends AbstractVCFCodec {
         VariantContextBuilder builder = new VariantContextBuilder();
         builder.source(getName());
 
-        // increment the line count
-        // TODO -- because of the way the engine utilizes Tribble, we can parse a line multiple times (especially when
-        // TODO --   the first record is far along the contig) and the line counter can get out of sync
         lineNo++;
 
-        // parse out the required fields
+       
         final String chr = getCachedString(parts[0]);
         builder.chr(chr);
         int pos = -1;
@@ -316,12 +314,12 @@ public class OwnVCFCodec extends AbstractVCFCodec {
                     key = infoFields.get(i);
                     final VCFInfoHeaderLine headerLine = header.getInfoHeaderLine(key);
                     if ( headerLine != null && headerLine.getType() != VCFHeaderLineType.Flag ) {
-                        if ( GeneralUtils.DEBUG_MODE_ENABLED && ! warnedAboutNoEqualsForNonFlag ) {
+                      /*  if ( GeneralUtils.DEBUG_MODE_ENABLED && ! warnedAboutNoEqualsForNonFlag ) {
                             System.err.println("Found info key " + key + " without a = value, but the header says the field is of type "
                                                + headerLine.getType() + " but this construct is only value for FLAG type fields");
                             warnedAboutNoEqualsForNonFlag = true;
                         }
-
+*/
                         value = VCFConstants.MISSING_VALUE_v4;
                     } else {
                         value = true;

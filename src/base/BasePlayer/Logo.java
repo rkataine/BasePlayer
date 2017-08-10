@@ -27,11 +27,7 @@ public class Logo extends JPanel {
 	static JFrame frame = new JFrame("Launcher");    
 	static JLabel image = new JLabel();
 	private static final long serialVersionUID = 1L;
-//	static Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 	static Image iconimage;
-//	static GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-//	static int width = gd.getDisplayMode().getWidth();
-//	static int height = gd.getDisplayMode().getHeight();
 	
 	public Logo(){
 		
@@ -64,7 +60,7 @@ public class Logo extends JPanel {
 				
 				
 		JFrame.setDefaultLookAndFeelDecorated(false);
-		Logo logo = new Logo();
+		//Logo logo = new Logo();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); 
 	   frame.setAlwaysOnTop(true);
 	   int width = Toolkit.getDefaultToolkit().getScreenSize().width;

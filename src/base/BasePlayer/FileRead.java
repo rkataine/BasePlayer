@@ -15,7 +15,7 @@ import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.QueryInterval;
 import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.SAMReadGroupRecord;
+
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SamReader;
@@ -32,12 +32,13 @@ import htsjdk.samtools.cram.ref.ReferenceSource;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 
 import java.awt.Dimension;
+
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
-import java.awt.event.InputEvent;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -46,7 +47,7 @@ import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.RandomAccessFile;
+
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,13 +58,12 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.zip.GZIPInputStream;
-
-import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.SwingWorker;
 
 import org.apache.commons.io.FilenameUtils;
 
+@SuppressWarnings("deprecation")
 public class FileRead extends SwingWorker< String, Object >  {
 	
 	Boolean readVCF = false, changeChrom = false, readBAM = false,searchInsSites = false, varcalc = false, getreads = false;
@@ -591,7 +591,7 @@ static String getVCFLine(String chrom, int start, int end, Sample sample) {
 			}
 			if(sample.getTabixFile() != null) {
 			
-				String searchChrom = setVCFFileStart(chrom, start, end+3, sample);
+				setVCFFileStart(chrom, start, end+3, sample);
 				boolean vcf = sample.getVCFReader() != null;
 				while(line != null) {
 					if(vcf) {
@@ -658,7 +658,7 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 	String[] split;
 	cancelfileread = false;
 	cancelvarcount = false;
-	Draw.updatevars = true;
+	
 	
 	try {	
 		if(!(VariantHandler.hideIndels.isSelected() && VariantHandler.hideSNVs.isSelected())) { 		
@@ -787,6 +787,7 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 				if(sample.getVCFReader() != null) {
 					sample.getVCFReader().close();
 				}
+				Draw.updatevars = true;
 				if(sample.getIndex()*Main.drawCanvas.drawVariables.sampleHeight < Main.drawScroll.getViewport().getHeight()+Main.drawCanvas.drawVariables.sampleHeight) {
 					if(Main.drawCanvas.splits.get(0).viewLength < 2000000) {						
 						Main.chromDraw.updateExons = true;
@@ -913,7 +914,7 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 				}
 				else {
 					
-					getVariants(chrom, 1, Main.drawCanvas.splits.get(0).chromEnd, Main.drawCanvas.sampleList.get(i));
+					getVariants(chrom, 0, Main.drawCanvas.splits.get(0).chromEnd, Main.drawCanvas.sampleList.get(i));
 				}	
 				
 			}
@@ -990,7 +991,7 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 			Draw.calculateVars = true;
 		}
 		if(novars) {
-			Main.drawCanvas.variantsStart= 1;
+			Main.drawCanvas.variantsStart= 0;
 			Main.drawCanvas.variantsEnd = Main.drawCanvas.splits.get(0).chromEnd;
 		}
 		FileRead.novars = false;
@@ -1024,6 +1025,7 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 			}
 			if(ChromDraw.exonReader != null) {
 				ChromDraw.exonReader.close();
+				
 			}
 			ChromDraw.exonReader = new TabixReader(Main.genomehash.get(Main.defaultGenome).get(Main.annotation).getCanonicalPath());
 			
@@ -1232,7 +1234,7 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 			ErrorLog.addError(e.getStackTrace());
 			e.printStackTrace();
 		}
-	
+		Draw.updateReads = true;
 		 Draw.updatevars = true;
 		 Main.drawCanvas.repaint();
 }	  	
@@ -1380,7 +1382,7 @@ static void checkMulti(Sample sample) {
 		}*/
 	}
 	
-	
+	checkSamples();
 	line = null;
 	reader.close();
 	if(gzip != null) {
@@ -1809,7 +1811,7 @@ private void readVCF(File[] files) {
 		  }
 		  else {
 			//  iterator = tabixreader.query(Main.drawCanvas.sampleList.get(i).vcfchr +Main.chromosomeDropdown.getSelectedItem().toString());
-			  Main.drawCanvas.variantsStart = 1;
+			  Main.drawCanvas.variantsStart = 0;
 			  Main.drawCanvas.variantsEnd = Main.drawCanvas.splits.get(0).chromEnd;
 			  getVariants(Main.chromosomeDropdown.getSelectedItem().toString(), Main.drawCanvas.variantsStart,Main.drawCanvas.variantsEnd, Main.drawCanvas.sampleList.get(i));
 				 
@@ -1902,6 +1904,7 @@ private void readVCF(File[] files) {
   	 
   	}
 	Main.opensamples.setText("Add samples");
+	checkSamples();
   	annotate();
   	 if(fileindex > -1) {
 		 SearchBamFiles search = new SearchBamFiles(files, fileindex, sampletemp);
@@ -1978,6 +1981,14 @@ private void readVCF(File[] files) {
 	}
 	
 static void checkSamples() {
+	/*if(Main.varsamples == 0) {
+		Main.drawCanvas.varbuffer = MethodLibrary.toCompatibleImage(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB));	
+		Main.drawCanvas.g2v = (Graphics2D)Main.drawCanvas.varbuffer.getGraphics();
+	}
+	else {*/
+//		Main.drawCanvas.varbuffer = MethodLibrary.toCompatibleImage(new BufferedImage(Main.screenSize.width, Main.screenSize.height, BufferedImage.TYPE_INT_ARGB));	
+//		Main.drawCanvas.g2v = (Graphics2D)Main.drawCanvas.varbuffer.getGraphics();
+//	}
 	if(Main.varsamples < 2) {
 		VariantHandler.commonSlider.setMaximum(1);
 		VariantHandler.commonSlider.setValue(1);
@@ -1986,6 +1997,7 @@ static void checkSamples() {
 		VariantHandler.geneSlider.setValue(1);
 		VariantHandler.filterPanes.setEnabledAt(VariantHandler.filterPanes.getTabCount()-1, false);
 		VariantHandler.filterPanes.setToolTipTextAt(VariantHandler.filterPanes.getTabCount()-1, "Open more samples to compare variants.");
+		
 	}
 	else {
 		VariantHandler.commonSlider.setMaximum(Main.varsamples);
@@ -1998,11 +2010,29 @@ static void checkSamples() {
 	}
 	
 	if(Main.readsamples > 0) {
+	/*	Main.drawCanvas.readbuffer = MethodLibrary.toCompatibleImage(new BufferedImage(Main.screenSize.width, Main.screenSize.height, BufferedImage.TYPE_INT_ARGB));	
+		Main.drawCanvas.rbuf = (Graphics2D)Main.drawCanvas.readbuffer.getGraphics();
+		Main.drawCanvas.backupr = Main.drawCanvas.rbuf.getComposite();
+		Main.drawCanvas.rbuf.setRenderingHints(Draw.rh);
+		Main.drawCanvas.coveragebuffer = MethodLibrary.toCompatibleImage(new BufferedImage(Main.screenSize.width, Main.screenSize.height, BufferedImage.TYPE_INT_ARGB));	
+		Main.drawCanvas.cbuf = (Graphics2D)Main.drawCanvas.coveragebuffer.getGraphics();
+		Main.drawCanvas.backupc = Main.drawCanvas.cbuf.getComposite();
+		*/
 		Main.average.setEnabled(true);
 		
 		Main.variantCaller.setEnabled(true);
+		
+		
 	}
 	else {
+/*		Main.drawCanvas.readbuffer = MethodLibrary.toCompatibleImage(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB));	
+		Main.drawCanvas.rbuf = (Graphics2D)Main.drawCanvas.readbuffer.getGraphics();
+		Main.drawCanvas.backupr = Main.drawCanvas.rbuf.getComposite();
+		Main.drawCanvas.rbuf.setRenderingHints(Draw.rh);
+		Main.drawCanvas.coveragebuffer = MethodLibrary.toCompatibleImage(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB));	
+		Main.drawCanvas.cbuf = (Graphics2D)Main.drawCanvas.coveragebuffer.getGraphics();
+		Main.drawCanvas.backupc = Main.drawCanvas.cbuf.getComposite();
+		*/
 		Main.average.setEnabled(false);
 		Main.average.setToolTipText("No bam/cram files opened");
 		Main.variantCaller.setEnabled(false);
@@ -3132,6 +3162,7 @@ static void annotate() {
 			
 		}	*/		
 	}
+
 	Iterator<SAMRecord> getBamIterator(Reads readClass, String chrom, int startpos, int endpos) {
 		
 		try {
@@ -3387,7 +3418,7 @@ static void annotate() {
 					}
 					
 					if(firstSample) {	
-					
+						
 						splitIndex.setReference(new ReferenceSeq(splitIndex.chrom,startpos-searchwindow-1,  endpos+searchwindow +200, Main.referenceFile));
 						
 					}
@@ -3397,8 +3428,8 @@ static void annotate() {
 						
 					}
 					catch(Exception e) {
-						
-						try {
+						e.printStackTrace();
+					/*	try {
 						
 						}
 						catch(java.lang.IllegalArgumentException ex) {
@@ -3406,7 +3437,7 @@ static void annotate() {
 							System.out.println("Chromosome " +chrom +" not found in " +readClass.sample.samFile.getName());
 							ErrorLog.addError(ex.getStackTrace());
 							return null;
-						}						
+						}	*/					
 					}
 					
 					startpos = startpos - searchwindow;
@@ -3582,7 +3613,7 @@ static void annotate() {
 					
 				}
 				catch(htsjdk.samtools.SAMFormatException ex) {
-				//	ex.printStackTrace();					
+					ex.printStackTrace();					
 				}
 				
 				if(samRecord.getReadUnmappedFlag()) {						
@@ -3637,7 +3668,7 @@ static void annotate() {
 					}
 				*/
 				if(samRecord.getUnclippedEnd() > readClass.getCoverageEnd()-1) {
-				
+					
 					double[][] coverages = new double[(int)(readClass.getCoverages().length +(samRecord.getUnclippedEnd()-samRecord.getUnclippedStart() + (int)splitIndex.viewLength))][8];
 					
 					//pointer = coverages.length-1;
@@ -3743,8 +3774,8 @@ static void annotate() {
 					}
 					
 					if(viewLength <= Settings.readDrawDistance) {	
-						
-						if(right && readClass.getLastRead() != null && (samRecord.getUnclippedStart() <= startpos /* || samRecord.getReadName().equals(readClass.getLastRead().getName())*/)) {
+					
+						if(right && readClass.getLastRead() != null && (samRecord.getUnclippedStart() <= startpos)) {
 							
 							continue;
 						}
@@ -3755,7 +3786,7 @@ static void annotate() {
 						}
 						mismatches = getMismatches(samRecord, readClass, coverageArray);
 						if(left) {
-						
+							
 							if(readClass.getFirstRead().getPosition() > samRecord.getUnclippedStart()) {							
 								
 								ReadNode addNode = new ReadNode(samRecord, readClass.sample.getComplete(), chrom, readClass.sample, splitIndex,readClass, mismatches);
@@ -4403,11 +4434,9 @@ void readBED(File[] files) {
 		    	  addTrack.getSelectorButton().setVisible(false);
 		    	  Main.bedCanvas.getBEDfeatures(addTrack, (int)Main.drawCanvas.splits.get(0).start, (int)Main.drawCanvas.splits.get(0).end);
 			 }
-	      else {
-	    	 
+	      else {	    	 
 	    	  setBedTrack(addTrack);
-	      }
-	     
+	      }   
 	     
 		 setTable(addTrack);
 		
@@ -4418,9 +4447,16 @@ void readBED(File[] files) {
 	 if(!Main.trackPane.isVisible()) {
 		  Main.trackPane.setVisible(true);			 
 		  Main.varpane.setDividerSize(3);	  
-		  Main.varpane.setResizeWeight(files.length *0.1);
-		  Main.trackPane.setDividerLocation(files.length *0.1);
-		  Main.varpane.setDividerLocation(files.length *0.1);			  
+		  if(files.length < 5) {
+			  Main.varpane.setResizeWeight(files.length *0.1);
+			  Main.trackPane.setDividerLocation(files.length *0.1);
+			  Main.varpane.setDividerLocation(files.length *0.1);			  
+		  }
+		  else {
+			  Main.varpane.setResizeWeight(files.length *0.5);
+			  Main.trackPane.setDividerLocation(files.length *0.5);
+			  Main.varpane.setDividerLocation(files.length *0.5);	
+		  }
 		  Main.trackPane.revalidate();
 		  Main.varpane.revalidate();
 		  
@@ -4486,8 +4522,7 @@ static void setBedTrack(BedTrack addTrack) {
 			  if(reader.readLine().startsWith("#")) {
 				  continue;
 			  }
-			  split = reader.readLine().split("\\t");
-			  
+			  split = reader.readLine().split("\\t");			  
 			  
 			  if(split.length > 4) {
 				  if(!Double.isNaN(Double.parseDouble(split[4]))) {		    					 
@@ -5127,7 +5162,7 @@ void readSam(String chrom, Reads readClass, SAMRecord samRecordBuffer, java.util
 			
 		}
 		//preRecord = readClass.samRecordBuffer;
-		checkSamples();
+		
 	}
 	catch(Exception e) {
 		ErrorLog.addError(e.getStackTrace());

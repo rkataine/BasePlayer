@@ -12,8 +12,7 @@
 package base.BasePlayer;
 import java.awt.Color;
 import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FontMetrics;
+
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Polygon;
@@ -57,28 +56,23 @@ private static final long serialVersionUID = 1L;
 		int samplecount = 0;
 		Enumeration<String> e;
 		String base;
-		private FontMetrics fm;	
+		
 		ArrayList<String> geneheader =  new ArrayList<String>();
 		String[] header =  {"Sample","Variants", "SNVs", "DELs", "INSs", "Coding", "Hetero/homo-rate", "TS/TV-rate", "T>A", "T>C", "T>G", "C>A", "C>G", "C>T", "Avg.call/cov"}; 
 		
 		int[][] headerlengths = new int[header.length][2];
 		private int genemutcount;	
 		VarNode hoverVar;
-		private VarNode selectedVar;
-		private int listAdd;
-		private String[] selectedString;
-		private int pointer;
+		
 		int headerHover;
 		boolean dot = false;		
 		Polygon sortTriangle = new Polygon();
-		private int hoverSample = -1;
-		private int mutcount;
+		
 		ArrayList<SampleNode> vararray = new ArrayList<SampleNode>(), controlarray;
-		private Color textcolor;
-		private double casefreq;
+		
 		VarNode varAdd;
 		Map.Entry<String, ArrayList<SampleNode>>  entry;
-		private int textWidth = 0;
+	
 		MethodLibrary.controlsorter ctrlsort = new MethodLibrary.controlsorter();
 		private Color linecolor;
 		private Sample sample;
@@ -87,12 +81,12 @@ private static final long serialVersionUID = 1L;
 			this.width = width;
 			this.height = height;
 			this.tablescroll = tablescroll;
-			
-			bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width, (int)height, BufferedImage.TYPE_INT_ARGB));	
+			bufImage = MethodLibrary.toCompatibleImage(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB));	
+		//	bufImage = MethodLibrary.toCompatibleImage(new BufferedImage((int)width, (int)height, BufferedImage.TYPE_INT_ARGB));	
 			buf = (Graphics2D)bufImage.getGraphics();
 			this.addMouseListener(this);
 			this.addMouseMotionListener(this);
-			fm = buf.getFontMetrics();
+		
 			controlarray = new ArrayList<SampleNode>();
 			headerlengths[0][0] = 0;
 			headerlengths[0][1] = tablescroll.getViewport().getWidth()/header.length;
@@ -133,7 +127,7 @@ void drawScreen(Graphics g) {
 	if(sampleArray.size() > 0) {		
 		
 		hoverVar = null;
-		hoverSample = -1;
+		
 		
 		for(int i = 0; i<sampleArray.size(); i++) {
 			dot = false;
@@ -277,7 +271,7 @@ void clear() {
 		vararray.clear();
 	//	vardraw = null;
 		hoverVar = null;
-		selectedVar = null;
+		
 	
 }
 int getTableSize() {
@@ -308,7 +302,7 @@ public void mouseClicked(MouseEvent event) {
 		case InputEvent.BUTTON3_MASK: {		
 			
 			selectedNode = null;
-			selectedVar = null;
+		
 			repaint();
 		}
 	}

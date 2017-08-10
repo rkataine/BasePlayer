@@ -13,7 +13,7 @@ package base.BasePlayer;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.FontMetrics;
+
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Polygon;
@@ -55,7 +55,7 @@ public class BedTable extends JPanel implements MouseMotionListener, MouseListen
 		int samplecount = 0, variants = 0;
 		Enumeration<String> e;
 		String base;
-		private FontMetrics fm;
+	//	private FontMetrics fm;
 		final BedTrack bedtrack;
 	//	ArrayList<String> geneheader =  new ArrayList<String>();
 		ArrayList<Object[]> geneheader =  new ArrayList<Object[]>();
@@ -111,7 +111,7 @@ public class BedTable extends JPanel implements MouseMotionListener, MouseListen
 			this.addMouseListener(this);
 			this.addMouseMotionListener(this);
 			this.controlarray = VariantHandler.table.controlarray;
-			fm = buf.getFontMetrics();
+	//		fm = buf.getFontMetrics();
 			this.bedtrack = bedtrack;
 			headerlengths[0][0] = 0;
 			headerlengths[0][1] = (int)(0.15*width);

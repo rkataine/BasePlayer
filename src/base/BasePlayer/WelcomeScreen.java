@@ -10,31 +10,22 @@
  *  
  */
 package base.BasePlayer;
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.GridLayout;
 import java.awt.Image;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
-
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
-import javax.swing.text.html.HTMLEditorKit;
-import javax.swing.text.html.StyleSheet;
 
 public class WelcomeScreen  extends JPanel implements ActionListener {
 	static boolean downloading = false;
@@ -95,15 +86,15 @@ public class WelcomeScreen  extends JPanel implements ActionListener {
 			htmlPage.setPreferredSize(new Dimension(400, 500));
 			htmlPage.addHyperlinkListener(new HyperlinkListener() {
 			public void hyperlinkUpdate(HyperlinkEvent hyperlinkEvent) {
-			    HyperlinkEvent.EventType type = hyperlinkEvent.getEventType();
-			    final URL url = hyperlinkEvent.getURL();
-			    if (type == HyperlinkEvent.EventType.ACTIVATED) {
+			//    HyperlinkEvent.EventType type = hyperlinkEvent.getEventType();
+			 //   final URL url = hyperlinkEvent.getURL();
+			   /* if (type == HyperlinkEvent.EventType.ACTIVATED) {
 			    	if(!downloading) {
 			    		downloading = true;
 			    		Main.downloadGenome(url.toString().substring(5));
 			    		downloading = false;
 			    	}
-			    }
+			    }*/
 			  }
 		});
 		htmlPage.setCaretPosition(0);

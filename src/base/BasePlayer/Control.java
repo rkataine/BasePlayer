@@ -19,8 +19,7 @@ import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.zip.GZIPInputStream;
 public class Control {
-	private static final long serialVersionUID = 1L;
-   
+	
     static String path = Launcher.ctrldir;
 	static String offsetString ="";
 	static boolean hold = false;
@@ -410,7 +409,7 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 	try {
 	String line = firstline, controlvar = "";
 	String[] split, templist = null;
-	int position, count = 0, ref= 0, alt = 0, endindex = -1, acendindex = -1;
+	int position, count = 0, endindex = -1, acendindex = -1;
 	ArrayList<SampleNode> samplelist = null;
 	int alleles = 0;
 	 
@@ -852,7 +851,7 @@ static void addFiles(File[] filestemp) {
 		  Main.trackPane.setVisible(true);
 		  //Main.trackPane.setDividerLocation(controlData.fileArray.size()*64);
 		 
-		  Main.varpane.setDividerSize(4);	  
+		  Main.varpane.setDividerSize(2);	  
 		//  Main.varpane.setResizeWeight(0.1);
 		  
 		  Main.varpane.setDividerLocation(controlData.fileArray.size()*64);
@@ -863,7 +862,7 @@ static void addFiles(File[] filestemp) {
 		  Main.varpane.setDividerLocation(Main.varpane.getDividerLocation()+70);
 		  
 		  if(Main.bedScroll.isVisible()) {
-			  Main.trackPane.setDividerSize(4);
+			  Main.trackPane.setDividerSize(2);
 		  }
 	 }
 	 

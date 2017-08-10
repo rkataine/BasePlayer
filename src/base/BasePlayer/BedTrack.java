@@ -155,6 +155,7 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	
 	public void setmenu() {
 		try {
+			settingsButton = new Rectangle();
 			if(menuBoxes == null) {
 				intersectBox = new JCheckBox("Intersect");				
 				zerobased = new JCheckBox("Zero Based");
@@ -215,8 +216,12 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			con.gridy++;
 			menu.add(columnSelector,con);
 			
-		
+			limitField.setPreferredSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("Value limit"), Main.defaultFontSize+4));
+			limitField.setMinimumSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("Value limit"), Main.defaultFontSize+4));
+			limitField.setToolTipText("Value limit");
 			if(limitValue != (double)Integer.MIN_VALUE) {
+				
+				
 				limitField.setText(""+limitValue);
 			}
 			

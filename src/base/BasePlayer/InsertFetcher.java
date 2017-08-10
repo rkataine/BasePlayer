@@ -27,9 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-
-
-
+@SuppressWarnings("deprecation")
 public class InsertFetcher {
 
 	byte[] seqresult;
@@ -105,10 +103,10 @@ public class InsertFetcher {
 			int maxbase = 0, allbases=0, disbases=0, disbasetemp = 0;
 			List<Integer> maxindex = new ArrayList<Integer>();
 			int del = 0;
-			Double startX;
+		
 			String readString = "";
 			Hashtable<Integer, Integer> startVote = new Hashtable<Integer, Integer>(), endVote = new Hashtable<Integer, Integer>();
-			int readPos =0,startY, miscounter=0, clusterStart = 0, startReadMisSum =0, endReadMisSum = 0, clusterEnd = 0, max = 0, sum = 0, refReads = 0, altReads5 = 0, altReads3 = 0, breakPointStart = 0, breakPointEnd =0, support5=0, support3=0;
+			int readPos =0, miscounter=0, clusterStart = 0, startReadMisSum =0, endReadMisSum = 0, clusterEnd = 0, max = 0, sum = 0, refReads = 0, altReads5 = 0, altReads3 = 0, breakPointStart = 0, breakPointEnd =0, support5=0, support3=0;
 			java.util.List<Integer> positionList = Collections.synchronizedList(new ArrayList<Integer>());
 			java.util.List<Object[]> startReadList = Collections.synchronizedList(new ArrayList<Object[]>());
 			java.util.List<Object[]> endReadList = Collections.synchronizedList(new ArrayList<Object[]>());
@@ -624,7 +622,7 @@ void searchInsSites2(SAMFileReader samFileReader, RandomAccessFile reference) {
 			String readString = "";
 			int interval = 1000;
 			int seqStart = 0, seqEnd = interval;
-			Cigar cigar;
+			
 			Iterator<SAMRecord> iter = samFileReader.iterator();
 			List<CigarElement> elements;
 			int count = 0, miscount = 0;

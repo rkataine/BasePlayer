@@ -10,19 +10,19 @@
  *  
  */
 package base.BasePlayer;
-
-import htsjdk.samtools.SAMRecord;
+import java.util.HashMap;
+/*import htsjdk.samtools.SAMRecord;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
-import java.util.HashMap;
+
 
 import javax.swing.JFrame;
 import javax.swing.filechooser.FileSystemView;
-
+*/
 public class Test {
 
 	 	static HashMap<String, Integer> baseMap = new HashMap<String, Integer>();
