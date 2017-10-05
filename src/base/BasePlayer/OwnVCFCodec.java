@@ -147,15 +147,15 @@ public class OwnVCFCodec extends AbstractVCFCodec {
         if (parts == null)
             parts = new String[Math.min(header.getColumnCount(), NUM_STANDARD_FIELDS+1)];
 
- //       final int nParts = ParsingUtils.split(line, parts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
+        final int nParts = ParsingUtils.split(line, parts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
 
         // if we have don't have a header, or we have a header with no genotyping data check that we
         // have eight columns.  Otherwise check that we have nine (normal columns + genotyping data)
-       /* if (( (header == null || !header.hasGenotypingData()) && nParts != NUM_STANDARD_FIELDS) ||
+        if (( (header == null || !header.hasGenotypingData()) && nParts != NUM_STANDARD_FIELDS) ||
                 (header != null && header.hasGenotypingData() && nParts != (NUM_STANDARD_FIELDS + 1)) )
             throw new TribbleException("Line " + lineNo + ": there aren't enough columns for line " + line + " (we expected " + (header == null ? NUM_STANDARD_FIELDS : NUM_STANDARD_FIELDS + 1) +
                     " tokens, and saw " + nParts + " )");
-*/
+
         return parseVCFLine(parts, includeGenotypes);
     }
 
@@ -173,6 +173,7 @@ public class OwnVCFCodec extends AbstractVCFCodec {
 
        
         final String chr = getCachedString(parts[0]);
+      
         builder.chr(chr);
         int pos = -1;
         try {

@@ -714,11 +714,17 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		else if(e.getSource() == bigFileField) {
 			try {
 				settings.put("bigFile", Integer.parseInt(bigFileField.getText()));
-				
+				for(int i = 0 ; i< Main.bedCanvas.bedTrack.size(); i++) {
+					if(Main.bedCanvas.bedTrack.get(i).file.length() / 1048576 < Settings.settings.get("bigFile")) {
+						Main.bedCanvas.bedTrack.get(i).small = true;			    	      	 
+				    }
+					else {
+						Main.bedCanvas.bedTrack.get(i).small = false;	
+					}
+				}				
 			}
 			catch(Exception ex) {
-				settings.put("bigFile", 200);
-				
+				settings.put("bigFile", 200);				
 			}
 		}
 	}

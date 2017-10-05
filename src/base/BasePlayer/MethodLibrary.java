@@ -412,6 +412,14 @@ public class MethodLibrary {
 		
 		
 	}
+	public static int map(int value, int low1, int high1, int low2, int high2) {
+			if((high1 - low1) == 0) {
+				return 0;
+			}
+			else {
+				 return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+			}
+	}
 	
 	public static int getBaseLength(ArrayList<Map.Entry<String, ArrayList<SampleNode>>> vars, int baselength ) {
 		int len = 1;

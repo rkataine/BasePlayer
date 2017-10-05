@@ -75,6 +75,7 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 	JLabel genomeFileText;
 	JLabel annotationFileText;
 	static JTextField genomeName;	
+	static JLabel sizeError = new JLabel("Not enough space on storage.");
 	JButton openRef, openAnno, add, checkUpdates;
 	static JButton download, remove;
 	static int longestName = 0;
@@ -83,7 +84,7 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 	static boolean downloading = false;
 	static HashMap<String, URL[]> genomeHash = new HashMap<String, URL[]>();
 	static ArrayList<String> removables = new ArrayList<String>();
-	static Object[] headers = {"Ensembl genomes"}, remheaders = {"Installed genomes"}; 
+	static Object[] headers = {"Ensembl genomes", "Size (MB)"}, remheaders = {"Installed genomes"}; 
     static String[][] data = {}, remdata = {}; 
     static HashMap<String, Integer[]> sizeHash = new HashMap<String, Integer[]>();
     static JPanel panel = new JPanel(new GridBagLayout());
@@ -97,29 +98,21 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 	static DefaultTableModel model = new DefaultTableModel(data, headers) {
 	 
 		private static final long serialVersionUID = 1L;
-
-		@Override
-		
-	    public boolean isCellEditable(int row, int column) {
-	      
+		@Override		
+	    public boolean isCellEditable(int row, int column) {	      
 	       return false;
 	    }
 	};
 	static DefaultTableModel remmodel = new DefaultTableModel(remdata, remheaders) {
 		 
 		private static final long serialVersionUID = 1L;
-
-		@Override
-		
-	    public boolean isCellEditable(int row, int column) {
-	      
+		@Override		
+	    public boolean isCellEditable(int row, int column) {	      
 	       return false;
 	    }
 	};
 	static JTable genometable = new JTable(model);
 	static JTable remtable = new JTable(remmodel);
-	
-	
 	
 	static void checkGenomes() {
 		//DefaultMutableTreeNode
@@ -151,20 +144,15 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 				
 				AddGenome.removables.add(addDir[f].getName());
 	  			checkAnnodir = new File(checkdir +"/" +addDir[f].getName() +"/annotation/");
-	  			annodir = checkAnnodir.listFiles();
-	  			
+	  			annodir = checkAnnodir.listFiles();	  			
 	  			DefaultMutableTreeNode genome = new DefaultMutableTreeNode(addDir[f].getName());
-	  			
-	  			
 	  			root.add(genome);
 	  			if(annodir == null) {
 	  				counter++;
 	  				genome.add(new DefaultMutableTreeNode("Add new annotation..."));
 	  			}
 	  			else {
-	  			//	DefaultMutableTreeNode annotations = new DefaultMutableTreeNode("Annotations");
-	  			//	genome.add(annotations);
-		  			counter+=annodir.length+3;
+	  				counter+=annodir.length+3;
 		  			for(int a = 0; a<annodir.length; a++) {
 		  				currentlen = genometable.getFontMetrics(genometable.getFont()).stringWidth(annodir[a].getName());
 						if(currentlen > length) {
@@ -174,7 +162,6 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		  			}
 		  			genome.add(new DefaultMutableTreeNode("Add new annotation..."));
 	  			}	  			
-	  			
   			}
   			catch(Exception e) {
   				e.printStackTrace();
@@ -186,10 +173,10 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
   		}
   		counter++;
   		root.add(new DefaultMutableTreeNode("Add new reference..."));  	
-  		
+  		genometable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 		for(int i = 0 ; i< organisms.size(); i++) {
 			if(!AddGenome.removables.contains(organisms.get(i))) {
-				Object[] row = {organisms.get(i)};			
+				Object[] row = {organisms.get(i), ""+sizeHash.get(organisms.get(i))[0]/1048576};			
 				model.addRow(row);			
 				currentlen = genometable.getFontMetrics(genometable.getFont()).stringWidth(organisms.get(i));
 				if(currentlen > length) {
@@ -197,26 +184,27 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 				}	
 			}
 		}
-		
-		AddGenome.longestName = length;
-		
-	  	
+	
+		AddGenome.longestName = length;  	
 		
 		if(genometable.getRowCount() > 15) {
-			genometable.setPreferredScrollableViewportSize((new Dimension(AddGenome.longestName+20,genometable.getRowHeight()*15)));
+			genometable.setPreferredScrollableViewportSize((new Dimension(AddGenome.longestName+20+Main.defaultFontSize*8,genometable.getRowHeight()*15)));
 			genometable.setMinimumSize(new Dimension(AddGenome.longestName+20,genometable.getRowHeight()*15));
 		}
 		else {			
-			genometable.setPreferredScrollableViewportSize((new Dimension(AddGenome.longestName+20,genometable.getRowHeight()*(genometable.getRowCount()+1))));
+			genometable.setPreferredScrollableViewportSize((new Dimension(AddGenome.longestName+20+Main.defaultFontSize*8,genometable.getRowHeight()*(genometable.getRowCount()+1))));
 			genometable.setMinimumSize(new Dimension(AddGenome.longestName+20,genometable.getRowHeight()*(genometable.getRowCount()+1)));
 		}
 		
 		if(remtable.getRowCount() > 15) {
-			remtable.setPreferredScrollableViewportSize((new Dimension(AddGenome.longestName+20,remtable.getRowHeight()*15)));
+			remtable.setPreferredScrollableViewportSize((new Dimension(AddGenome.longestName+20+Main.defaultFontSize*8,remtable.getRowHeight()*15)));
 		}
 		else {			
-			remtable.setPreferredScrollableViewportSize((new Dimension(AddGenome.longestName+20,remtable.getRowHeight()*(remtable.getRowCount()+1))));
+			remtable.setPreferredScrollableViewportSize((new Dimension(AddGenome.longestName+20+Main.defaultFontSize*8,remtable.getRowHeight()*(remtable.getRowCount()+1))));
 		}
+		Main.defaultFontSize = 12;
+		genometable.getColumnModel().getColumn(0).setPreferredWidth(AddGenome.longestName+10);
+	//	genometable.getColumnModel().getColumn(1).setPreferredWidth(Main.defaultFontSize*8);
 		DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
 		model.reload();
 		int rowheight = tree.getRowHeight();
@@ -224,10 +212,10 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 			rowheight=Main.defaultFontSize+4;
 		}
 	
-		treescroll.setPreferredSize(new Dimension(AddGenome.longestName+50, counter*rowheight));
-  		treescroll.setMinimumSize(new Dimension(AddGenome.longestName+50, counter*rowheight));
+		treescroll.setPreferredSize(new Dimension(AddGenome.longestName+20+Main.defaultFontSize*8, counter*rowheight));
+  		treescroll.setMinimumSize(new Dimension(AddGenome.longestName+20+Main.defaultFontSize*8, counter*rowheight));
 		tree.expandPath(new TreePath(root));  		
-		frame.pack();
+		setFonts(Main.menuFont);
 	}
 	public static void setFonts(Font menuFont) {
 		for(int i = 0 ; i<panel.getComponentCount(); i++) {
@@ -248,7 +236,8 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		makeGenomes();		
 		tree = new JTree(root);
 		tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
-
+		sizeError.setForeground(Draw.redColor);
+		sizeError.setVisible(true);
 		treemodel = (DefaultTreeModel) tree.getModel();
 		tree.setCellRenderer(new DefaultTreeCellRenderer() {
 			private static final long serialVersionUID = 1L;
@@ -385,8 +374,11 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		panel.add(scroll,c);		
 		c.gridy++;
 		c.fill = GridBagConstraints.NONE;
-		panel.add(download,c);	
+		panel.add(download,c);
+		c.gridx = 1;
+		panel.add(sizeError, c);
 		c.gridy++;
+		c.gridx = 0;
 		c.fill = GridBagConstraints.BOTH;
 		panel.add(new JLabel("Add/Remove installed genomes manually"),c);
 		c.gridy++;
@@ -528,7 +520,7 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 				else if(files[i].getName().contains("mus_musculus")) {
 					urls[4] = "http://hgdownload.cse.ucsc.edu/goldenPath/mm10/database/cytoBand.txt.gz";
 				}
-				System.out.print(urls[0]+"\t" +urls[1] +"\t" +urls[2] +"\t" +urls[3]);
+			//	System.out.print(urls[0]+"\t" +urls[1] +"\t" +urls[2] +"\t" +urls[3]);
 				if(urls[4] != null) {
 					System.out.print("\t" +urls[4]);
 				}
@@ -550,10 +542,10 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 			String[] split;
 			
 			while((line = reader.readLine()) != null) {
-				split = line.split("\t");
-				
+				split = line.split("\t");				
 				name = split[0].substring(split[0].lastIndexOf("/")+1, split[0].indexOf(".dna."));
 				organisms.add(name);
+				
 				if(split.length == 5) {
 					URL[] urls = {new URL(split[0]),new URL(split[2]),new URL(split[4])};
 					genomeHash.put(name, urls);
@@ -679,6 +671,7 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		}
 		
 		protected String doInBackground() {
+			
 			frame.setState(Frame.ICONIFIED);
 			try{
 				if(Main.drawCanvas != null) {
@@ -686,6 +679,7 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 					Main.drawCanvas.loading("Processing files...");
 				}
 				if(createGenome) {
+					
 					createGenome(genomeName, genomefile, annotationFile);
 					createGenome = false;
 				}
@@ -1076,8 +1070,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			}
 			else {
 				reader = new BufferedReader(new FileReader(fastafile));	
-				if(!new File(targetDir+"/" +fastafile.getName()).exists()) {
-					
+				if(!new File(targetDir+"/" +fastafile.getName()).exists()) {					
 					fastaWriter = new BufferedWriter(new FileWriter(targetDir +fastafile.getName()));
 				}
 				if(!new File(targetDir+"/" +fastafile.getName() +".fai").exists()) {
@@ -1087,10 +1080,14 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			}
 			String line;
 			
-			long counter = 0, chromlength = 0, pointer = 0;
+			long counter = 0, chromlength = 0, pointer = 0, filesize = fastafile.length();
 			String[] split;
+			Main.drawCanvas.loadbarAll = 0;
 			
 			while((line = reader.readLine()) != null) {
+				if(!Main.drawCanvas.loading) {
+					break;
+				}
 				if(fastaWriter != null) {
 					fastaWriter.write(line +"\n");
 				}
@@ -1099,6 +1096,8 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 					if(faiList.size() > 0) {
 						faiList.get(faiList.size()-1)[1] = ""+chromlength;
 					}					
+					Main.drawCanvas.loadbarAll = (int)((counter/(double)filesize)*100);
+					Main.drawCanvas.loadBarSample = Main.drawCanvas.loadbarAll;
 					
 					String[] row = new String[5];
 					faiList.add(row);
@@ -1162,7 +1161,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 		    JComponent newContentPane = new AddGenome();
 		    frame.setContentPane(newContentPane);
 		    frame.pack();
-	   
+		    sizeError.setVisible(false);
 	}
 	public static void main(String[] args) {
 		try {
@@ -1188,18 +1187,19 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 	    	}			
 		}
 		else if(event.getSource() == checkUpdates) {
-			//TODO kattoo onko päivityksiä annotaatioon
+			URL testfile = null;
+			try {
+			// kattoo onko päivityksiä annotaatioon
 				String ref = selectedNode.toString();
 				if(AddGenome.genomeHash.get(ref) != null) {
 					ArrayList<String> testfiles = new ArrayList<String>();
 					if(Main.drawCanvas != null) {
 						for(int i = 0 ; i<Main.genomehash.get(ref).size();i++) {
-							testfiles.add(Main.genomehash.get(ref).get(i).getName().replace(".bed.gz",""));
-							
+							testfiles.add(Main.genomehash.get(ref).get(i).getName().replace(".bed.gz",""));							
 						}
 					}
-					URL testfile = AddGenome.genomeHash.get(ref)[1];
-					try {
+					testfile = AddGenome.genomeHash.get(ref)[1];					
+						
 						String result = Main.checkFile(testfile, testfiles);
 						if(result.length() == 0) {
 							
@@ -1218,12 +1218,13 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 							
 						}
 						
-					}
-					catch(Exception e) {
-						e.printStackTrace();
-					}
+					
 				}
-				
+			}
+			catch(Exception e) {
+				Main.showError("Cannot connect to " +testfile.getHost() +".\nTry again later.", "Error");
+				e.printStackTrace();
+			}				
 		}
 		else if(event.getSource() == remove) {		
 			if(!selectedNode.isLeaf()) {
@@ -1234,8 +1235,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 						if(removeref.equals(Main.refDropdown.getSelectedItem().toString())) {
 							Main.referenceFile.close();
 					//		same = true;
-							if(ChromDraw.exonReader != null) {
-								
+							if(ChromDraw.exonReader != null) {								
 								ChromDraw.exonReader.close();
 							}							
 						}
@@ -1261,13 +1261,8 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 								break;
 							}
 						}
-					}
-					
-					
-					
-					//TODO remove from filemenu
-					
-					
+					}					
+									
 					FileUtils.deleteDirectory(new File(userDir +"/genomes/" +removeref));
 					checkGenomes();
 					Main.setAnnotationDrop("");
@@ -1284,15 +1279,12 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			}
 			else  {
 				try {
-					if(Main.drawCanvas != null ) {
-						
+					if(Main.drawCanvas != null ) {						
 						if(ChromDraw.exonReader != null) {
 							ChromDraw.exonReader.close();
-						}							
-						
+						}					
 					}
-					Main.removeAnnotationFile(selectedNode.getParent().toString(), selectedNode.toString());
-					
+					Main.removeAnnotationFile(selectedNode.getParent().toString(), selectedNode.toString());					
 					FileUtils.deleteDirectory(new File(userDir +"/genomes/" +selectedNode.getParent().toString() +"/annotation/"+selectedNode.toString()));
 					
 					
@@ -1367,8 +1359,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 	   	  
 	          int returnVal = chooser.showOpenDialog((Component)this.getParent());	         
 	          
-	         if (returnVal == JFileChooser.APPROVE_OPTION) {
-	        	 
+	         if (returnVal == JFileChooser.APPROVE_OPTION) {	        	 
 	        	 genomeFile = chooser.getSelectedFile(); 
 	        	 Main.writeToConfig("DownloadDir=" +genomeFile.getParent());
 	        	 genomeFileText.setText(genomeFile.getName());
@@ -1491,6 +1482,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			        	 genomeFile = chooser.getSelectedFile(); 
 			        	 Main.writeToConfig("DownloadDir=" +genomeFile.getParent());
 			        	 OutputRunner runner = new OutputRunner(genomeFile.getName(), genomeFile, null);
+			        	 runner.createGenome = true;
 			        	 runner.execute();
 			        	 
 			          }
@@ -1525,13 +1517,19 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 				 }
 				 catch(Exception ex) {
 					 ex.printStackTrace();
-				 }		
-				
-			}
-	      
+				 }				
+			}	      
 		}
 		if(e.getSource() == genometable) {
-			download.setEnabled(true);
+			
+			if(new File(".").getFreeSpace()/1048576 < sizeHash.get(genometable.getValueAt(genometable.getSelectedRow(), 0))[0]/1048576) {
+				sizeError.setVisible(true);
+				download.setEnabled(false);
+			}
+			else {			
+				sizeError.setVisible(false);
+				download.setEnabled(true);
+			}
 			tree.clearSelection();
 			remove.setEnabled(false);
 			checkUpdates.setEnabled(false);

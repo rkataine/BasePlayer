@@ -161,7 +161,7 @@ void drawScreen(Graphics g) {
 	
 	if(Main.readingbeds) {
 		buf.setColor(Draw.backColor);
-		buf.fillRect(Main.sidebarWidth, 0, this.getWidth(), nodeImage.getHeight());	
+		buf.fillRect(Main.sidebarWidth-4, 0, this.getWidth(), nodeImage.getHeight());	
 		buf.drawString("Loading tracks...", 10, Main.bedScroll.getViewport().getHeight());
 		g.drawImage(bufImage, 0, 0, null);	
 		return;
@@ -175,7 +175,7 @@ void drawScreen(Graphics g) {
 	drawSidebar();
 		
 	buf.setColor(Draw.backColor);
-	buf.fillRect(Main.sidebarWidth, 0, this.getWidth(), nodeImage.getHeight());	
+	buf.fillRect(Main.sidebarWidth-4, 0, this.getWidth(), this.getHeight());	
 	
 	//buf.setColor(Color.gray);
 	
@@ -194,6 +194,12 @@ void drawScreen(Graphics g) {
 	
 	if(resizer && !mouseDrag) {
 		resizer = false;
+	}
+	if(resize) {		
+		buf.drawImage(nodeImage, Main.sidebarWidth-4, 0, nodeImage.getWidth(),(int)(Main.vardivider*Main.varPaneDivider.getY()), null);
+	}
+	else {		
+		buf.drawImage(nodeImage, Main.sidebarWidth-4, 0, null);
 	}
 	for(int i = 0 ; i<bedTrack.size(); i++) {
 		if(i <bedTrack.size()-1) {
@@ -234,11 +240,9 @@ void drawScreen(Graphics g) {
 			buf.setColor(Color.black);
 		}
 	}
-	if(resize) {		
-		buf.drawImage(nodeImage, Main.sidebarWidth, 0, nodeImage.getWidth(),(int)(Main.vardivider*Main.varPaneDivider.getY()), null);
-	}
-	else {		
-		buf.drawImage(nodeImage, Main.sidebarWidth, 0, null);
+	if(overlap ) {
+		
+		drawInfo();
 	}
 	if(!resizer && !overlapping) {		
 		if(getCursor().getType() != Cursor.DEFAULT_CURSOR) {			
@@ -249,8 +253,8 @@ void drawScreen(Graphics g) {
 		// Middle line		
 		buf.setColor(Color.black);
 		buf.setStroke(Draw.dashed);			
-		buf.drawLine((Main.drawCanvas.getDrawWidth())/2+Main.sidebarWidth+2, 0, ((Main.drawCanvas.getDrawWidth()))/2+Main.sidebarWidth+2, Main.bedScroll.getViewport().getHeight());
-		buf.drawLine((int)((Main.drawCanvas.getDrawWidth())/2+Main.drawCanvas.splits.get(0).pixel+Main.sidebarWidth+2), 0, (int)(((Main.drawCanvas.getDrawWidth()))/2+Main.drawCanvas.splits.get(0).pixel+Main.sidebarWidth+2), Main.bedScroll.getViewport().getHeight());
+		buf.drawLine((Main.drawCanvas.getDrawWidth())/2+Main.sidebarWidth-2, 0, ((Main.drawCanvas.getDrawWidth()))/2+Main.sidebarWidth-2, Main.bedScroll.getViewport().getHeight());
+		buf.drawLine((int)((Main.drawCanvas.getDrawWidth())/2+Main.drawCanvas.splits.get(0).pixel+Main.sidebarWidth-2), 0, (int)(((Main.drawCanvas.getDrawWidth()))/2+Main.drawCanvas.splits.get(0).pixel+Main.sidebarWidth-2), Main.bedScroll.getViewport().getHeight());
 //		buf.setStroke(Draw.doubleStroke);
 		buf.setStroke(Draw.basicStroke);	
 	}	
@@ -271,7 +275,7 @@ void drawScreen(Graphics g) {
 void drawSidebar() {
 	
 	buf.setColor(Draw.sidecolor.darker());
-	buf.fillRect(0, 0, Main.sidebarWidth, this.getHeight());
+	buf.fillRect(0, 0, Main.sidebarWidth-4, this.getHeight());
 //	buf.setColor(Draw.softColor);
 //	buf.fillRect(0, 0, Main.sidebarWidth, this.getHeight());
 	buf.setColor(Color.black);
@@ -315,22 +319,18 @@ void drawSidebar() {
 					if(bedTrack.get(i).settingsButton == null) {
 						bedTrack.get(i).settingsButton = new Rectangle();
 					}
-					bedTrack.get(i).settingsButton.setBounds(Main.sidebarWidth-(int)(this.remoBox.width*(1.8)),trackstart-Main.defaultFontSize , (int)(this.remoBox.width*(1.5))+2, (int)(this.remoBox.height*(1.5)));
+					bedTrack.get(i).settingsButton.setBounds(Main.sidebarWidth-(int)(this.remoBox.width*(1.8))-4,trackstart-Main.defaultFontSize , (int)(this.remoBox.width*(1.5))+2, (int)(this.remoBox.height*(1.5)));
 										
 				}
 				if(bedTrack.get(i).settingsButton == null) {
 					bedTrack.get(i).settingsButton = new Rectangle();
 				}
 				if(bedTrack.get(i).settingsButton.y == 0 || bedTrack.get(i).settingsButton.x != Main.sidebarWidth-(int)(this.remoBox.width*(1.8)) || bedTrack.get(i).settingsButton.width !=  (int)(this.remoBox.width*(1.5))+2) {
-					bedTrack.get(i).settingsButton.setBounds(Main.sidebarWidth-(int)(this.remoBox.width*(1.8)),trackstart-Main.defaultFontSize , (int)(this.remoBox.width*(1.5))+2, (int)(this.remoBox.height*(1.5)));
+					bedTrack.get(i).settingsButton.setBounds(Main.sidebarWidth-(int)(this.remoBox.width*(1.8)),trackstart-Main.defaultFontSize-4 , (int)(this.remoBox.width*(1.5))+2, (int)(this.remoBox.height*(1.5)));
 					
 				}
-				if(Main.varsamples > 0) {
+				if(Main.varsamples > 0 || FileRead.caller) {
 					if(bedTrack.get(i).getCurrent() != null || (!bedTrack.get(i).small || bedTrack.get(i).getZoomlevel() != null)) {
-					//	buf.setColor(Color.lightGray);
-					//	buf.fillRect(bedTrack.get(i).playbox.getBounds().x,bedTrack.get(i).playbox.getBounds().y,bedTrack.get(i).playbox.getBounds().width,bedTrack.get(i).playbox.getBounds().height );
-						
-						
 						buf.setColor(Color.white);
 						buf.fillRoundRect(bedTrack.get(i).playbox.getBounds().x-1,bedTrack.get(i).playbox.getBounds().y-1,bedTrack.get(i).playbox.getBounds().width, bedTrack.get(i).playbox.getBounds().height,2,2 );
 						buf.setColor(Color.gray);
@@ -418,15 +418,15 @@ void drawSidebar() {
 				}				
 			}
 			if(trackheight > bedTrack.get(i).settingsButton.height) {
-				if(this.sideMouseRect.intersects(bedTrack.get(i).settingsButton)) {								
+				/*if(this.sideMouseRect.intersects(bedTrack.get(i).settingsButton)) {								
 					buf.setColor(Color.white);
 				}
 				else {			
-					buf.setColor(Draw.sidecolor.darker());
-				}
-				
+					
+				}*/
+				buf.setColor(Draw.sidecolor.darker());
 				buf.fillRect(bedTrack.get(i).settingsButton.x, bedTrack.get(i).settingsButton.y,bedTrack.get(i).settingsButton.width,bedTrack.get(i).settingsButton.height);
-				buf.drawImage(Main.settingsIcon.getImage(),Main.sidebarWidth-(int)(this.remoBox.width*(1.8)),trackstart-Main.defaultFontSize , (int)(this.remoBox.width*(1.5)), (int)(this.remoBox.height*(1.5)), this);
+				buf.drawImage(Main.settingsIcon.getImage(),Main.sidebarWidth-(int)(this.remoBox.width*(1.8))-4,trackstart-Main.defaultFontSize , (int)(this.remoBox.width*(1.5)), (int)(this.remoBox.height*(1.5)), this);
 			}
 		}
 		
@@ -450,8 +450,8 @@ void drawSidebar() {
 			}
 			else {				
 				removeTrack = -1;
-				if(this.remoBox.getBounds().x != Main.sidebarWidth-(Main.defaultFontSize+10) || this.remoBox.getBounds().y != (int)(trackDivider.get(hoverIndex)*this.getHeight()) -(Main.defaultFontSize+6)) {
-					this.remoBox.setBounds(Main.sidebarWidth-(Main.defaultFontSize+10), (int)(trackDivider.get(hoverIndex)*this.getHeight()) -(Main.defaultFontSize+6), Main.defaultFontSize+3, Main.defaultFontSize+3);
+				if(this.remoBox.getBounds().x != Main.sidebarWidth-(Main.defaultFontSize+10)-4 || this.remoBox.getBounds().y != (int)(trackDivider.get(hoverIndex)*this.getHeight()) -(Main.defaultFontSize+6)) {
+					this.remoBox.setBounds(Main.sidebarWidth-(Main.defaultFontSize+10)-4, (int)(trackDivider.get(hoverIndex)*this.getHeight()) -(Main.defaultFontSize+6), Main.defaultFontSize+3, Main.defaultFontSize+3);
 				}
 			/*	if(this.remoBox.getBounds().y != (int)(trackDivider.get(hoverIndex)*this.getHeight())-11|| this.remoBox.getBounds().x != Main.sidebarWidth-11) {
 					this.remoBox.setBounds(Main.sidebarWidth-11, (int)(trackDivider.get(hoverIndex)*this.getHeight())-11, 8, 8);
@@ -466,11 +466,11 @@ void drawSidebar() {
 		}
 		buf.setStroke(Draw.doubleStroke);
 		buf.setColor(Color.gray);
-		buf.drawLine(Main.sidebarWidth-1, 0, Main.sidebarWidth-1, this.getHeight());
+		buf.drawLine(Main.sidebarWidth-5, 0, Main.sidebarWidth-5, this.getHeight());
 		buf.drawLine(1, 0, 1, this.getHeight());
 		buf.setColor(Color.lightGray);
 		buf.drawLine(3, 0,3, this.getHeight());
-		buf.drawLine(Main.sidebarWidth-3, 0, Main.sidebarWidth-3, this.getHeight());
+		buf.drawLine(Main.sidebarWidth-7, 0, Main.sidebarWidth-7, this.getHeight());
 		buf.setStroke(Draw.basicStroke);
 	}
 	
@@ -479,21 +479,16 @@ void drawSidebar() {
 
 void drawZoom() {	
 	
-	if(lineZoomer ) {
-		
+	if(lineZoomer ) {		
 		buf.setColor(Color.black);
-		buf.setStroke(Draw.dashed);
-		
-		buf.drawLine(Main.drawCanvas.pressX, pressY, mouseX, mouseY);
-	
+		buf.setStroke(Draw.dashed);		
+		buf.drawLine(Main.drawCanvas.pressX, pressY, mouseX, mouseY);	
 		
 	}
 	else if(zoomDrag) {
-		
-		
-//		buf.setStroke(Draw.dashed);
+
 		buf.setColor(Color.white);
-	//	buf.setFont(ChromDraw.seqFont);
+
 		if(this.mouseX-Main.drawCanvas.pressX >= 0) {
 			buf.drawRect(Main.drawCanvas.pressX+1, 0, this.mouseX-Main.drawCanvas.pressX-2, this.getHeight());	
 			if(Main.drawCanvas.getDrawWidth()-this.mouseX > 200) {
@@ -513,20 +508,14 @@ void drawZoom() {
 	
 			}
 			buf.setColor(Draw.zoomColor);
-			buf.fillRect(Main.drawCanvas.pressX, 0, this.mouseX-Main.drawCanvas.pressX, this.getHeight());
-		
+			buf.fillRect(Main.drawCanvas.pressX, 0, this.mouseX-Main.drawCanvas.pressX, this.getHeight());		
 		}
-		else {
-			
+		else {			
 			lineZoomer = true;
 			Main.drawCanvas.lineZoomer = true;
-			zoomDrag = false;
-		
-		
-		}
-	
+			zoomDrag = false;		
+		}	
 	}
-	//buf.setStroke(Draw.doubleStroke);
 }
 
 void drawLogo(BedTrack track, BedNode node, int trackstart) {	
@@ -540,8 +529,6 @@ void drawLogo(BedTrack track, BedNode node, int trackstart) {
 			selexheight = (trackstart +this.trackheight) - (trackstart+15+((node.level-1)*(selexheight+15))+(track.mouseWheel*((selexheight+15)*2)));
 		}		
 		selexstart = (int)((node.getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel);
-	//	nodebuf.setColor(Color.white);
-	//	nodebuf.fillRect(selexstart, trackstart+10+((node.level-1)*(40+15))+(track.mouseWheel*((40+15)*2)),(int)(matrix[0].length*Main.drawCanvas.splits.get(0).pixel), 40);
 		
 		if(matrix != null && (trackstart +this.trackheight) > trackstart+10+((node.level-1)*(40+15))+(track.mouseWheel*((40+15)*2))) {
 			
@@ -550,7 +537,6 @@ void drawLogo(BedTrack track, BedNode node, int trackstart) {
 				for(int j = 0; j<matrix[0].length; j++) {
 					prevY = trackstart+10+((node.level-1)*(40+15))+(track.mouseWheel*((40+15)*2));
 					sum = matrix[0][j] + matrix[1][j] +matrix[2][j] +matrix[3][j];
-				//	System.out.print((100*(matrix[0][j]/(double)sum)) +"\t" +(100*(matrix[1][j]/(double)sum)) +"\t" +(100*(matrix[2][j]/(double)sum)) +"\t" +(100*(matrix[3][j]/(double)sum)) +"\n");
 					nodebuf.drawImage(Main.A, (int)(selexstart+(j*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[0][j]/(double)sum)), null);
 					prevY += (int)(selexheight*(matrix[0][j]/(double)sum));
 					nodebuf.drawImage(Main.C, (int)(selexstart+(j*Main.drawCanvas.splits.get(0).pixel)), prevY, (int)Main.drawCanvas.splits.get(0).pixel, (int)(selexheight*(matrix[1][j]/(double)sum)), null);
@@ -592,7 +578,8 @@ void drawLogo(BedTrack track, BedNode node, int trackstart) {
 
 void drawNodes() {
 	try {
-	nodebuf.setComposite( Main.drawCanvas.composite);		
+		
+	nodebuf.setComposite( Main.drawCanvas.composite);	
 	nodebuf.fillRect(0,0, bufImage.getWidth(),this.getHeight());	
 	nodebuf.setComposite(this.backupComposite);	
 	overlap = false;
@@ -716,6 +703,7 @@ void drawNodes() {
 			}
 			
 			if(!track.getColors().isEmpty()) {
+				
 				bedcolor = track.getColors().get(track.getDrawNode().color);
 			}
 			else if(track.getDrawNode().forward == null) {
@@ -884,27 +872,22 @@ void drawNodes() {
 							}
 							else {
 								nodebuf.fillRect(testRect.x,testRect.y,bedwidth,10);
-							}
-							
+							}							
 							
 							if(track.getDrawNode().name != null) {
 								fm = nodebuf.getFontMetrics();
 								textWidth = fm.getStringBounds(track.getDrawNode().name, nodebuf);							
 								nodebuf.setColor(Color.black);
 								
-									if(bedwidth > textWidth.getWidth()) {
-										nodebuf.drawString(track.getDrawNode().name, (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel),trackstart+(track.getDrawNode().level*(selexheight+15))-(selexheight+7)+(track.mouseWheel*((selexheight+15)*2))+1);
-									}
-									else {
-										lettercount = (int)(bedwidth/fm.getStringBounds("R", nodebuf).getWidth());
-										nodebuf.drawString(track.getDrawNode().name.substring(0, lettercount), (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel),trackstart+(track.getDrawNode().level*(selexheight+15))-(selexheight+7)+(track.mouseWheel*((selexheight+15)*2))+1);
-										
-									}		
-								
-							}
-							
-							drawLogo(track,track.getDrawNode(), trackstart);
-							
+								if(bedwidth > textWidth.getWidth()) {
+									nodebuf.drawString(track.getDrawNode().name, (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel),trackstart+(track.getDrawNode().level*(selexheight+15))-(selexheight+7)+(track.mouseWheel*((selexheight+15)*2))+1);
+								}
+								else {
+									lettercount = (int)(bedwidth/fm.getStringBounds("R", nodebuf).getWidth());
+									nodebuf.drawString(track.getDrawNode().name.substring(0, lettercount), (int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel),trackstart+(track.getDrawNode().level*(selexheight+15))-(selexheight+7)+(track.mouseWheel*((selexheight+15)*2))+1);
+								}							
+							}							
+							drawLogo(track,track.getDrawNode(), trackstart);							
 						}
 					}
 					else {
@@ -1006,9 +989,7 @@ void drawNodes() {
 		
 		
 	}	
-	if(overlap ) {
-		drawInfo();
-	}
+	
 	}
 	catch(Exception e) {
 		e.printStackTrace();
@@ -1059,11 +1040,11 @@ void drawInfo() {
 			
 		}
 		
-		nodebuf.setColor(Color.white);
-		nodebuf.fillRoundRect(10, overlapindex+10, boxmetrics.width+8, boxmetrics.height*infolist.size(),10,10);
-		nodebuf.setColor(Color.black);
+		buf.setColor(Color.white);
+		buf.fillRoundRect(Main.sidebarWidth +10, overlapindex+10, boxmetrics.width+8, boxmetrics.height*infolist.size(),10,10);
+		buf.setColor(Color.black);
 		for(int i = 0; i<infolist.size(); i++) {
-			nodebuf.drawString(infolist.get(i), 14, (overlapindex+6)+(boxmetrics.height*(i+1)));
+			buf.drawString(infolist.get(i), Main.sidebarWidth +14, (overlapindex+6)+(boxmetrics.height*(i+1)));
 		}	
 	//}
 }
@@ -1282,9 +1263,7 @@ public class Annotator extends SwingWorker<String, Object> {
 			track.used = false;
 			if(track.small) {
 				Main.bedCanvas.getMoreBeds(track);
-			}
-			//track.intersect = false;
-		//	removeBedhits(track);
+			}			
 		}
 		removeBeds(track);
 		if(FileRead.bigcalc) {
@@ -1371,7 +1350,7 @@ public class BedReader extends SwingWorker<String, Object> {
 						bedreader = new BufferedReader(new FileReader(track.file.getCanonicalPath()));						
 					}
 					else {
-						try {
+						try {							
 							tabixReader = new TabixReaderMod(track.file.getCanonicalPath());  
 						}
 						catch(Exception e) {
@@ -1380,18 +1359,14 @@ public class BedReader extends SwingWorker<String, Object> {
  					}
 				}
 			}
-			else {
-				
-				stream = SeekableStreamFactory.getInstance().getStreamFor(track.url);
-				
+			else {				
+				stream = SeekableStreamFactory.getInstance().getStreamFor(track.url);				
 				if(track.index != null) {
 					tabixReader = new TabixReaderMod(track.url.toString(), track.index.toString(), stream);
 				}
 				else {
-					try {
-						
-						if(track.getBBfileReader() == null) {
-							
+					try {						
+						if(track.getBBfileReader() == null) {							
 						 track.setBBfileReader(new BBFileReader(track.url.toString(), stream, track));
 						}
 						 if(track.first) {
@@ -1443,7 +1418,7 @@ public class BedReader extends SwingWorker<String, Object> {
 								}
 							}
 						}
-					
+						
 						if( track.getZoomlevel() == 1) {
 						
 							 wigiter = track.getBBfileReader().getBigWigIterator(track.chr+Main.chromosomeDropdown.getSelectedItem().toString() , start, track.chr+Main.chromosomeDropdown.getSelectedItem().toString(), end, false);
@@ -1494,22 +1469,31 @@ public class BedReader extends SwingWorker<String, Object> {
 				 }
 				
 				 else {
+					
 					 if(track.first) {
 						
 						 if(track.chr == null) {
 							 track.chr = "";
 						 }
-						 String chr = tabixReader.getChromosomes().iterator().next();
-						 if(chr.contains("chr")) {
-							
-							 track.chr = "chr";
-						 }
-						 
-						 track.first = false;
+						 String chr;
+						 Iterator<String> chriterator = tabixReader.getChromosomes().iterator();
+						 while(chriterator.hasNext()) {
+							 chr = chriterator.next();
+							 if(chr.matches("\\d+")) {
+								 break;
+							 }
+							 else if(chr.startsWith("chr")) {
+								 track.chr = "chr";
+								 break;
+							 }
+						 }						
 						
+						 track.first = false;						
 					 }					
 					try {
+						 
 						bedIterator = tabixReader.query(track.chr +Main.chromosomeDropdown.getSelectedItem().toString() +":" +start +"-" +end);
+						 
 					}
 					catch(Exception e) {
 						track.getHead().putNext(null);						
@@ -1676,7 +1660,7 @@ public class BedReader extends SwingWorker<String, Object> {
 		}
 		
 		getNodes();
-		Main.drawCanvas.ready("Loading track...");
+		Main.drawCanvas.ready("Loading track " +track.file.getName());
 		return "";
 	}
 	
@@ -1760,15 +1744,15 @@ void getGeneTxt(BedTrack track) {
 void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 	
 	try {
-	String line;
-	 BedNode addNode = track.getHead();
-	 track.maxvalue = 0;
+		String line;
+		BedNode addNode = track.getHead();
+		track.maxvalue = 0;
 		track.minvalue = Double.MAX_VALUE;
 		chrom = Main.chromosomeDropdown.getSelectedItem().toString();
 		addNode = track.getHead();
 		track.getHead().putNext(null);
-		 track.setCurrent(track.getHead());
-		 boolean first = true, bedgraph = false, firstrow = true;
+		track.setCurrent(track.getHead());
+		boolean first = true, bedgraph = false, firstrow = true;
 		
 		 BEDFeature features;
 		 BEDCodecMod bedcodec = new BEDCodecMod();
@@ -1776,8 +1760,7 @@ void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 			track.limitValue = (double)Integer.MIN_VALUE;
 		}
 		
-	   while((line = reader.readLine()) != null) {
-			
+	   while((line = reader.readLine()) != null) {			
 		   
 	    	try {
 	    		if(line.startsWith("#") || line.length() < 10) {
@@ -1794,8 +1777,7 @@ void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 	    		if(!features.getContig().equals(track.chr +chrom)) {
 	    			break;
 	    		}
-	    		if(track.selex && (features.getName() == null || !Main.SELEXhash.containsKey(features.getName()))) {
-	    			
+	    		if(track.selex && (features.getName() == null || !Main.SELEXhash.containsKey(features.getName()))) {	    			
 					continue;
 				}
 	    		
@@ -1828,15 +1810,12 @@ void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 				if(features.getName() != null) {					
 					
 					if(first) {						
-						
-						if(Main.SELEXhash.containsKey(features.getName())) {
-						
+						if(Main.SELEXhash.containsKey(features.getName())) {						
 							track.selex = true;
 							track.getAffinityBox().setVisible(true);
 							track.iszerobased = 1;
 							track.getZerobased().setSelected(false);
-						}
-						
+						}						
 					}
 					if(track.selex) {
 						addNode.id = features.getName();
@@ -1845,8 +1824,7 @@ void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 					}
 					else {
 						addNode.name = features.getName();
-					}
-					
+					}					
 				}
 				
 				if(bedgraph) {
@@ -1854,8 +1832,7 @@ void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 					
 				}
 				else {
-					addNode.value = (double)features.getScore();
-					
+					addNode.value = (double)features.getScore();					
 				}				
 				
 				if(!Double.isNaN(addNode.value)) {
@@ -1867,22 +1844,21 @@ void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 						track.minvalue = addNode.value;
 					}
 				}
-				if(features.getStrand() != null) {
-					
+				if(features.getStrand() != null) {					
 					addNode.forward = features.getStrand().equals(Strand.NEGATIVE) ? false : true;
 				}
 				
-				if(features.getColor() != null) {				
-					if(track.getColors().containsKey(features.getColor().getRGB())) {
-						addNode.color = features.getColor().getRGB();
+				if(features.getColor() != null) {	
+					if(features.getColor().getRGB() != -16777216) {
+						if(track.getColors().containsKey(features.getColor().getRGB())) {
+							addNode.color = features.getColor().getRGB();
+						}
+						else {						
+							track.getColors().put(features.getColor().getRGB(),features.getColor());
+							addNode.color = features.getColor().getRGB();
+						}
 					}
-					else {
-						
-						track.getColors().put(features.getColor().getRGB(),features.getColor());
-						addNode.color = features.getColor().getRGB();
-					}
-				}
-			
+				}			
 	    	}
 	    	catch(Exception ex) {
 	    		ex.printStackTrace();
@@ -1967,15 +1943,12 @@ void iterateBED(TabixReaderMod.Iterator iterator, BedTrack track) {
 				if(features.getName() != null) {					
 					
 					if(first) {						
-						
-						if(Main.SELEXhash.containsKey(features.getName())) {
-						
+						if(Main.SELEXhash.containsKey(features.getName())) {						
 							track.selex = true;
 							track.getAffinityBox().setVisible(true);
 							track.iszerobased = 1;
 							track.getZerobased().setSelected(false);
-						}
-						
+						}						
 					}
 					if(track.selex) {
 						addNode.id = features.getName();
@@ -1999,8 +1972,7 @@ void iterateBED(TabixReaderMod.Iterator iterator, BedTrack track) {
 				
 				if(!Double.isNaN(addNode.value)) {
 					if(track.maxvalue < addNode.value) {
-						track.maxvalue = addNode.value;
-						
+						track.maxvalue = addNode.value;						
 					}
 					if(track.minvalue > addNode.value) {
 						track.minvalue = addNode.value;
@@ -2011,14 +1983,17 @@ void iterateBED(TabixReaderMod.Iterator iterator, BedTrack track) {
 					addNode.forward = features.getStrand().equals(Strand.NEGATIVE) ? false : true;
 				}
 				
-				if(features.getColor() != null) {				
-					if(track.getColors().containsKey(features.getColor().getRGB())) {
-						addNode.color = features.getColor().getRGB();
-					}
-					else {
+				if(features.getColor() != null) {	
+					if(features.getColor().getRGB() != -16777216) {
 						
-						track.getColors().put(features.getColor().getRGB(),features.getColor());
-						addNode.color = features.getColor().getRGB();
+						if(track.getColors().containsKey(features.getColor().getRGB())) {
+							addNode.color = features.getColor().getRGB();
+						}
+						else {
+							
+							track.getColors().put(features.getColor().getRGB(),features.getColor());
+							addNode.color = features.getColor().getRGB();
+						}
 					}
 				}
 			
@@ -2516,10 +2491,11 @@ void getBEDfeatures(BedTrack track, int start, int end) {
 	if(track.url != null) {
 		track.used = false;	
 	}
+	
 	track.bedstart = start;
 	track.bedend = end;
 	if(!Main.bedCanvas.annotator) {
-		Main.drawCanvas.loading("Loading track...");	
+		Main.drawCanvas.loading("Loading track " +track.file.getName());	
 	}
 	BedReader reader = new BedReader(track, start, end);	
 	if(Main.nothread) {
@@ -2653,14 +2629,14 @@ public void mouseClicked(MouseEvent event) {
 			else if(removeTrack > -1) {
 				removeTrack(removeTrack);
 			}	
-				break;
-	}
-	case InputEvent.BUTTON3_MASK: {	
-		
-		if(!sidebar) {
-			this.bedTrack.get(hoverIndex).getPopup().show(this, mouseX, mouseY);
+			break;
 		}
-	}
+		case InputEvent.BUTTON3_MASK: {	
+			
+			if(!sidebar) {
+				this.bedTrack.get(hoverIndex).getPopup().show(this, mouseX, mouseY);
+			}
+		}
 	}
 	Draw.updatevars = true;
 	repaint();	
@@ -2736,8 +2712,7 @@ void removeTrack(int removeTrack) {
 	FileRead.removeTable(remtrack);
 	this.bedTrack.remove(removeTrack);
 	this.trackDivider.remove(removeTrack);
-	
-//	VariantHandler.clusterTable.removeHeaderColumn(remtrack.file.getName());
+
 	if(this.bedTrack.size() == 0) {
 		
 		track = null;

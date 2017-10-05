@@ -577,17 +577,24 @@ void drawScreen(Graphics g) {
 								
 								if(Control.controlData.controlsOn) {
 									cases = 0;
+									
 									for(int v =0;v<aminoarray.get(s).getNode().vars.size(); v++) {
 										if(aminoarray.get(s).getNode().vars.get(v).getKey().equals(aminoarray.get(s).getRow()[5])) {
-											if(aminoarray.get(s).getNode().vars.get(v).getValue().get(0).isHomozygous()) {											
-												cases += Integer.parseInt(aminoarray.get(s).getRow()[1])*2;
+											for(int j = 0; j<aminoarray.get(s).getNode().vars.get(v).getValue().size(); j++) {
+												if(aminoarray.get(s).getNode().vars.get(v).getValue().get(j).alleles != null) {
+													continue;
+												}
+												if(aminoarray.get(s).getNode().vars.get(v).getValue().get(j).isHomozygous()) {											
+													cases += 2;
+												}
+												else {												
+													cases += 1;																						
+												}	
 											}
-											else {												
-												cases += Integer.parseInt(aminoarray.get(s).getRow()[1]);																						
-											}	
 										}																				
 									}
-									casefreq = cases/(double)(Main.varsamples*2-cases);									
+									casefreq = cases/(double)(Main.varsamples*2-cases);			
+									
 								}								
 							}
 							buf.setColor(textcolor);
@@ -637,6 +644,7 @@ void drawScreen(Graphics g) {
 														buf.setColor(Color.black);
 														buf.fillRect((int)geneheader.get(this.geneheaderlength+e*2+1)[1]+11, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
 														buf.setColor(textcolor);
+														
 														buf.drawString(""+MethodLibrary.round(casefreq/(controlarray[e].alleles/(double)(controlarray[e].allelenumber-controlarray[e].alleles)),2) +" (p=" +MethodLibrary.round(fe.getRightTailedP(cases, Main.varsamples*2-cases, controlarray[e].alleles, controlarray[e].allelenumber-controlarray[e].alleles) ,2) +")", (int)geneheader.get(this.geneheaderlength+e*2+1)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
 												
 													}													
@@ -1437,6 +1445,7 @@ void getAminos(Gene gene) {
 	for(int t = 0; t<gene.varnodes.size(); t++) {
 		
 		varnode = gene.varnodes.get(t);
+		
 		if(gene.intergenic) {
 			
 			for(int v = 0; v<varnode.vars.size(); v++) {
@@ -1467,21 +1476,21 @@ void getAminos(Gene gene) {
 				}
 				
 				base = entry.getKey();
-				String[] addrow = new String[9];					
-					if(varnode.getTranscripts() == null) {
-						addrow[0] = gene.getName();		
-					}
-					else if(varnode.getTranscripts().size() == 2) {
-						addrow[0] = gene.getName() +" ... " +varnode.getTranscripts().get(1).getGenename();		
-					}
-					else if(varnode.getPosition() < gene.getStart()) {
-						addrow[0] = "... " +varnode.getTranscripts().get(1).getGenename();	
-					}
-					else {
-						addrow[0] = gene.getName() +" ...";	
-					}
+				String[] addrow = new String[9];
 				
-								
+				if(varnode.getTranscripts() == null) {
+					addrow[0] = gene.getName();		
+				}
+				else if(varnode.getTranscripts().size() == 2) {
+					addrow[0] = gene.getName() +" ... " +varnode.getTranscripts().get(1).getGenename();		
+				}
+				else if(varnode.getPosition() < gene.getStart()) {
+					addrow[0] = "... " +varnode.getTranscripts().get(1).getGenename();	
+				}
+				else {
+					addrow[0] = gene.getName() +" ...";	
+				}
+												
 				addrow[1] = ""+mutcount;
 				addrow[2] = gene.getChrom() +":"+MethodLibrary.formatNumber((varnode.getPosition()+1));
 				addrow[3] = "Intergenic";

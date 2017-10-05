@@ -55,10 +55,8 @@ public class SampleNode {
 		switch(Settings.selectedVarDraw) {	
 		
 			case 0: {	
-				if(sample.getMaxCoverage() < coverage) {
-					
-					sample.setMaxCoverage((float)(coverage));
-					
+				if(sample.getMaxCoverage() < coverage) {					
+					sample.setMaxCoverage((float)(coverage));					
 				}	
 				this.heightValue = coverage;
 				break;

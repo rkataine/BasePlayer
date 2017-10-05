@@ -82,49 +82,51 @@ public class ReferenceSeq {
 	}
 	public byte[] getSeq(String chrom, int start, int end, RandomAccessFile seqchrom) {
 		try {
-		
-		if(!Main.chromIndex.containsKey(Main.refchrom +chrom)) {
-			if(!Main.chromIndex.containsKey(chrom.replace("chr", ""))) {
+			if(chrom == null) {
 				return null;
 			}
-			else {
-				chrom = chrom.replace("chr", "");
-			}			
-		}		
-		if(start < 0) {
-			start = 0;
-			this.startpos = 0;
-		}		
-		
-		byte[] seqresult = new byte[(end-start+1)+((end-start)/(Main.chromIndex.get(Main.refchrom +chrom)[2].intValue()-1))];		
-		byte[] temp = new byte[end-start];
-		
-		seqchrom.seek((Main.chromIndex.get(Main.refchrom +chrom)[0]+(start)+((start)/Main.chromIndex.get(Main.refchrom +chrom)[2].intValue())));
-		if(seqchrom.getFilePointer() + seqresult.length > seqchrom.length()) {
-			seqresult = new byte[(int)((seqchrom.length())-(seqchrom.getFilePointer()))];
-		}
-		seqchrom.readFully(seqresult);
-		
-		if(seqresult[0] == 10) {
+			if(!Main.chromIndex.containsKey(Main.refchrom +chrom)) {
+				if(!Main.chromIndex.containsKey(chrom.replace("chr", ""))) {
+					return null;
+				}
+				else {
+					chrom = chrom.replace("chr", "");
+				}			
+			}		
+			if(start < 0) {
+				start = 0;
+				this.startpos = 0;
+			}		
 			
-			seqchrom.seek((Main.chromIndex.get(Main.refchrom +chrom)[0]+(start+1)+((start)/Main.chromIndex.get(Main.refchrom +chrom)[2].intValue())));
-			if(seqchrom.getFilePointer() + seqresult.length > seqchrom.length()-1) {
+			byte[] seqresult = new byte[(end-start+1)+((end-start)/(Main.chromIndex.get(Main.refchrom +chrom)[2].intValue()-1))];		
+			byte[] temp = new byte[end-start];
+			
+			seqchrom.seek((Main.chromIndex.get(Main.refchrom +chrom)[0]+(start)+((start)/Main.chromIndex.get(Main.refchrom +chrom)[2].intValue())));
+			if(seqchrom.getFilePointer() + seqresult.length > seqchrom.length()) {
 				seqresult = new byte[(int)((seqchrom.length())-(seqchrom.getFilePointer()))];
 			}
-			seqchrom.readFully(seqresult);			
-		}	
-		int pointer =0;
-		for(int i = 0 ; i<seqresult.length;i++) {
-			if(pointer > temp.length-1) {				
-				break;
+			seqchrom.readFully(seqresult);
+			
+			if(seqresult[0] == 10) {
+				
+				seqchrom.seek((Main.chromIndex.get(Main.refchrom +chrom)[0]+(start+1)+((start)/Main.chromIndex.get(Main.refchrom +chrom)[2].intValue())));
+				if(seqchrom.getFilePointer() + seqresult.length > seqchrom.length()-1) {
+					seqresult = new byte[(int)((seqchrom.length())-(seqchrom.getFilePointer()))];
+				}
+				seqchrom.readFully(seqresult);			
+			}	
+			int pointer =0;
+			for(int i = 0 ; i<seqresult.length;i++) {
+				if(pointer > temp.length-1) {				
+					break;
+				}
+				if(seqresult[i] != 10) {
+					temp[pointer] = seqresult[i];
+					pointer++;
+				}			
 			}
-			if(seqresult[i] != 10) {
-				temp[pointer] = seqresult[i];
-				pointer++;
-			}			
-		}
-		seqresult = null;
-		return temp;
+			seqresult = null;
+			return temp;
 		}
 		catch(Exception e) {
 			

@@ -68,7 +68,7 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	private transient BBFileHeader bbfileheader = null;
 	public boolean nulled = false;
 	private transient JPopupMenu menu;
-	private transient JCheckBox zerobased, logscale, intersectBox, collapseBox, affinityChange;
+	private transient JCheckBox zerobased, logscale, intersectBox, collapseBox, affinityChange, varcalc;
 	private transient JTextField limitField;
 	private transient JButton columnSelector;
 	Double limitValue = (double)Integer.MIN_VALUE;
@@ -77,9 +77,7 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	private transient base.BBfile.BBFileHeader fileheader;
 	private transient base.BBfile.BBZoomLevels zoomlevels;
 	private transient BBFileReader bbfileReader;
-	private transient Integer zoomLevel = null;
-	
-	
+	private transient Integer zoomLevel = null;	
 	
 	public Integer getZoomlevel() {
 		return this.zoomLevel;
@@ -136,6 +134,9 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	public JCheckBox getZerobased() {
 		return this.zerobased;
 	}
+	public JCheckBox getVarcalc() {
+		return this.varcalc;
+	}
 	public BedTrack(File file, int indexnro) {		
 		this.file = file;
 		url = null;
@@ -159,15 +160,17 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			if(menuBoxes == null) {
 				intersectBox = new JCheckBox("Intersect");				
 				zerobased = new JCheckBox("Zero Based");
+				varcalc = new JCheckBox("Apply in annotation");
 				logscale = new JCheckBox("Log Scale");				
 				collapseBox = new JCheckBox("Auto collapse");
 				affinityChange = new JCheckBox("Report affinity changes");
-				menuBoxes = new ArrayList<JCheckBox>();
+				menuBoxes = new ArrayList<JCheckBox>();				
 				menuBoxes.add(intersectBox);
 				menuBoxes.add(zerobased);
 				menuBoxes.add(logscale);
 				menuBoxes.add(collapseBox);
 				menuBoxes.add(affinityChange);
+				menuBoxes.add(varcalc);
 				zerobased.setSelected(true);
 				intersectBox.setSelected(true);
 				affinityChange.setVisible(false);
@@ -178,7 +181,13 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 				logscale = menuBoxes.get(2);
 				collapseBox = menuBoxes.get(3);
 				affinityChange = menuBoxes.get(4);
-				
+				if(menuBoxes.size() > 5) {
+					varcalc = menuBoxes.get(5);
+				}
+				else {
+					varcalc = new JCheckBox("Apply in annotation");
+					
+				}
 			}
 			
 			columnSelector = new JButton("File format");
@@ -197,7 +206,7 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			con.anchor = GridBagConstraints.NORTHWEST;
 			//sizeSlider.setPreferredSize(new Dimension(30,18));
 			
-			con.gridheight = 7;
+			con.gridheight = 8;
 			menu.add(sizeSlider,con);
 			con.gridx = 1;
 			con.gridy++;
@@ -212,6 +221,8 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			con.gridy++;
 			menu.add(affinityChange,con);	
 			con.gridy++;
+			menu.add(varcalc, con);
+			con.gridy++;
 			menu.add(limitField,con);
 			con.gridy++;
 			menu.add(columnSelector,con);
@@ -219,9 +230,7 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			limitField.setPreferredSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("Value limit"), Main.defaultFontSize+4));
 			limitField.setMinimumSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("Value limit"), Main.defaultFontSize+4));
 			limitField.setToolTipText("Value limit");
-			if(limitValue != (double)Integer.MIN_VALUE) {
-				
-				
+			if(limitValue != (double)Integer.MIN_VALUE) {				
 				limitField.setText(""+limitValue);
 			}
 			

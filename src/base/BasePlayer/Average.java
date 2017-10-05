@@ -418,7 +418,7 @@ static void calcAverage() {
 	
 
 }
-private static void createAndShowGUI() {
+static void createAndShowGUI() {
 	
 	frame = new JFrame("Coverage handler");    	
 	JFrame.setDefaultLookAndFeelDecorated(true);

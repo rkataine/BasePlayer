@@ -89,6 +89,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JSplitPane;
@@ -497,28 +498,25 @@ import org.apache.commons.net.ftp.FTPFile;
 				  g.setColor(Color.white);
 				  g.drawRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2+1, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4+1, Main.canceltextwidth+Main.defaultFontSize-2, Draw.loadingFont.getSize()+Main.defaultFontSize/2-2);					 
 					 
-					  if(cancelhover) {
+				  if(cancelhover) {
 
-						if(getCursor().getType() != Cursor.HAND_CURSOR) {
-							setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+					if(getCursor().getType() != Cursor.HAND_CURSOR) {
+						setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+					}
+					 
+					 g.setColor(Color.gray);
+					  g.fillRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					
+					 
+					  g.setColor(Color.white);
+					  g.drawRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					 
+						
+				  }
+				  else {
+					  if(getCursor().getType() != Cursor.WAIT_CURSOR) {
+							setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 						}
-						 
-						 g.setColor(Color.gray);
-						  g.fillRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					
-						 
-						  g.setColor(Color.white);
-						  g.drawRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					 
-							
-					  }
-					  else {
-						  if(getCursor().getType() != Cursor.WAIT_CURSOR) {
-								setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-							}
-						  g.setColor(Color.black);
-					  }
-				  
-				
-		//		  g.setFont(ChromDraw.seqFont);
+					  g.setColor(Color.black);
+				  }
 				  g.drawString("Cancel", drawScroll.getWidth()/2-Main.canceltextwidth/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3+Draw.loadingFont.getSize()-4);
 				/*  g.setColor(ChromDraw.backTransparent);
 					 for(int i=0;i<snow.length; i++) {
@@ -642,6 +640,7 @@ try {
 	panel = new JPanel(new GridBagLayout());
 	//menuFont = menuFont.deriveFont(Font.PLAIN,12);
 	Draw.defaultFont = menuFont;
+	
 	gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
 	width = gd.getDisplayMode().getWidth();
 	height = gd.getDisplayMode().getHeight();
@@ -741,6 +740,7 @@ try {
 	mutTypes.put("GC", 4);
 	mutTypes.put("CT", 5);
 	mutTypes.put("GA", 5);
+	
 	getBase.put((byte)'A', "A");
 	getBase.put((byte)'C', "C");
 	getBase.put((byte)'G', "G");
@@ -995,6 +995,7 @@ try {
 //	path = "V:/cg8/projects/joint-calling/";
 //	    drawCanvas.loading("note");
 	try {
+		
 		File genomedir = new File(userDir +"/genomes/"), annodir;
 		File[] genomes = genomedir.listFiles(new FilenameFilter() {
 						 public boolean accept(File dir, String name) {
@@ -1503,7 +1504,7 @@ void setButtons() {
 	addcontrols.setMargin(new Insets(0, 0, 0, 0));
 	addcontrols.setPreferredSize(buttonDimension);
 	*/
-	manage.setEnabled(false);
+	
 	menubar.setOpaque(true);
 	panel.add(menubar, c);
 	c.gridx = 1;
@@ -2206,68 +2207,38 @@ static class MyFilterVCF extends javax.swing.filechooser.FileFilter {
 		
 		public String getDescription() { return "All files"; }
 }
-	public static void zoomout() {
-		
-		
-		drawCanvas.setStartEnd(0.0,(double)drawCanvas.splits.get(0).chromEnd);
-		
-		if(samples > 0) {
-			
-			if(drawCanvas.splits.get(0).chromEnd > Settings.settings.get("readDrawDistance")) {
-			
-			Main.drawCanvas.clearReads();	
-			
-			
+public static void zoomout() {		
+	drawCanvas.setStartEnd(0.0,(double)drawCanvas.splits.get(0).chromEnd);
+	
+	if(samples > 0) {			
+		if(drawCanvas.splits.get(0).chromEnd > Settings.settings.get("readDrawDistance")) {			
+			Main.drawCanvas.clearReads();			
 		}
 		drawCanvas.removeSplits();
 		chromDraw.varnode = null;
 		chromDraw.vardraw = null;
-//		drawCanvas.drawVariables.visiblestart = 0;
-//		drawCanvas.drawVariables.visiblesamples = (short)(Main.samples);
-//		Main.drawCanvas.checkSampleZoom();
-	//	drawCanvas.drawVariables.visibleend = (short)(Main.samples-1);
-		/*if(Main.samples*drawCanvas.sampleHeight > drawScroll.getViewport().getHeight()) {
-			drawCanvas.drawVariables.visibleend = (short)(drawScroll.getViewport().getHeight()/drawCanvas.sampleHeight);			}
-		else {
-			drawCanvas.drawVariables.visibleend = (short)(samples-1);
-		}
 		
-		*/
 		VariantHandler.table.hoverNode = null;
-		VariantHandler.table.selectedNode = null;
-	//	Main.drawCanvas.get(i).resizeCanvas(drawCanvas.get(i).getWidth(), drawScroll.getViewport().getHeight());
-		Draw.updatevars = true;
-		
-	//	drawCanvas.eraseReads();
-//		drawCanvas.eraseReads = true;
+		VariantHandler.table.selectedNode = null;	
+		Draw.updatevars = true;	
 		drawCanvas.splits.get(0).getReadBuffer().setComposite( drawCanvas.composite);					
 		drawCanvas.splits.get(0).getReadBuffer().fillRect(0,0, drawCanvas.splits.get(0).getReadImage().getWidth(),Main.drawScroll.getViewport().getHeight());	
 		drawCanvas.splits.get(0).getReadBuffer().setComposite(drawCanvas.splits.get(0).getBackupr());		
 		drawCanvas.rbuf.setComposite( drawCanvas.composite);				
 		drawCanvas.rbuf.fillRect(0,0, drawCanvas.getWidth(),Main.drawScroll.getViewport().getHeight());	
-		drawCanvas.rbuf.setComposite(drawCanvas.backupr);		
-		/*drawCanvas.rbuf.setComposite( drawCanvas.composite);				
-		drawCanvas.rbuf.fillRect(0,0, (int)Main.screenSize.getWidth(),Main.drawScroll.getViewport().getHeight());	
-		drawCanvas.rbuf.setComposite(drawCanvas.backupr);		
-	*/
-	}
-	
-	
-//	if(drawScroll.getViewport().getHeight() > 0) {
-//		Main.drawCanvas.resizeCanvas(drawCanvas.getWidth(), drawScroll.getViewport().getHeight());
-//	}
-		if(Main.bedCanvas.bedTrack.size() > 0) {
-			for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
-				Main.bedCanvas.getMoreBeds(Main.bedCanvas.bedTrack.get(i));
-			}
+		drawCanvas.rbuf.setComposite(drawCanvas.backupr);			
+	}	
+
+	if(Main.bedCanvas.bedTrack.size() > 0) {
+		for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
+			Main.bedCanvas.getMoreBeds(Main.bedCanvas.bedTrack.get(i));
 		}
-		bedCanvas.repaint();
-		Main.chromDraw.updateExons = true;
-		drawCanvas.repaint();
-		
-//		Draw.setScrollbar(0);
-		Main.chromDraw.repaint();
-	
+	}
+	bedCanvas.repaint();
+	Main.chromDraw.updateExons = true;
+	drawCanvas.repaint();
+	Main.chromDraw.repaint();
+
 }
 public void actionPerformed(ActionEvent e) {
 	//Logo.frame.setVisible(false);
@@ -2290,17 +2261,21 @@ public void actionPerformed(ActionEvent e) {
 		
 	}
 	else if(e.getSource() == variantCaller) {
+		
+		//FileRead.checkSamples();
+		
 		if(VariantCaller.frame == null) { 
+			
 			VariantCaller.main(argsit);
+			
 		}
 		VariantCaller.frame.setLocation(frame.getLocationOnScreen().x+frame.getWidth()/2 - VariantCaller.frame.getWidth()/2, frame.getLocationOnScreen().y+frame.getHeight()/6);			
-		
 		VariantCaller.frame.setState(JFrame.NORMAL);
 		VariantCaller.frame.setVisible(true);
 	}
 	else if(e.getSource() == average) {
 		if(Average.frame == null) {
-		 Average.main(argsit);
+		 Average.createAndShowGUI();
 		}
 		Average.setSamples();
 		
@@ -2457,10 +2432,10 @@ public void actionPerformed(ActionEvent e) {
 				      			Main.drawCanvas.loadingtext = loading + " 0MB";
 				      			String line;
 				      			StringBuffer buffer = new StringBuffer("");
-				      			while((line=reader.readLine()) != null) {
-				      				
+				      			while((line=reader.readLine()) != null) {		
 				      				
 				      				buffer.append(line);
+				      				
 				      			}
 				      			inputStream.close();
 				      			reader.close();
@@ -2481,7 +2456,8 @@ public void actionPerformed(ActionEvent e) {
 				    			
 				      			for(int i = 0; i<split.length; i++) {
 				      				
-				      				if(!split[i].contains("lastLocation")) {					      					
+				      				if(!split[i].contains("lastLocation")) {		
+				      					
 				      					continue;
 				      				}
 				      				
@@ -2492,12 +2468,16 @@ public void actionPerformed(ActionEvent e) {
 				      				location = location.replace("/mnt", loc) +"/wgspipeline/align/" +filename;
 				      				
 				      				if(!new File(location).exists()) {
-				      					System.out.println(location);
+				      					
 				      					location = split2.substring(0,split2.indexOf("\"}"));
 					      				filename = location.substring(location.lastIndexOf("/"))+".snps_indels.hc.vcf.gz";
 				      					location = location.replace("/mnt", loc) +"/wgspipeline/" +filename;
-				      					
-				      					array.add(new File(location));
+				      					if(!new File(location).exists()) {
+					      					System.out.println(location);
+					      				}
+				      					else {
+				      						array.add(new File(location));
+				      					}
 				      				}
 				      				else {
 				      					
@@ -2506,16 +2486,19 @@ public void actionPerformed(ActionEvent e) {
 				      				
 				      			}
 				      			
+				      			
 				      			File[] files = new File[array.size()];
 				      			for(int i = 0; i<files.length; i++) {
+				      				
 				      				files[i] = array.get(i);
 				      			}
-				      			
+				      			/*
 				      			 FileRead filereader = new FileRead(files);
 				      			 filereader.start = (int)drawCanvas.selectedSplit.start;
 				        		 filereader.end = (int)drawCanvas.selectedSplit.end;
 				        		 filereader.readVCF = true;
 				        		 filereader.execute();					      			
+	        			*/
 	        				}
 		        		  }
 		        		  catch(Exception ex) {
@@ -2809,8 +2792,7 @@ static void clearData() {
 	try {
 	FileRead.checkSamples();
 	Main.drawCanvas.bam = false;
-	undoList.clear();
-	manage.setEnabled(false);
+	undoList.clear();	
 	undoPointer = 0;
 	bedCanvas.bedOn = false;
 	back.setEnabled(false);
@@ -3146,7 +3128,7 @@ public void componentResized(ComponentEvent e) {
 	  }
 	  else if(drawCanvas.loadingtext.contains("Loading variants")) {
 		  Main.drawCanvas.ready("all");
-		 // Main.drawCanvas.ready("Loading variants...");
+		
 		  drawCanvas.current = null;
 		   drawCanvas.currentDraw = null;
 		   chromDraw.vardraw = null;
@@ -3186,14 +3168,13 @@ public void componentResized(ComponentEvent e) {
 				    	pair = (Map.Entry<SplitClass, Reads>)it.next();
 				        reads = pair.getValue();
 				        reads.loading = false;
+				        reads.setLastRead(null);
 				    }						  
 			   }
 	      }
 		  FileRead.cancelfileread = true;
-		  Main.drawCanvas.clearReads();	
-		 
-		  
-		 Main.drawCanvas.ready("all");			  
+		  Main.drawCanvas.clearReads();		  
+		  Main.drawCanvas.ready("all");			  
 		 
 		  Draw.updateReads = true;
 		  Draw.updateCoverages = true;
@@ -3219,7 +3200,7 @@ public void componentResized(ComponentEvent e) {
 		   Main.drawCanvas.ready("Updating BasePlayer... (downloading BasePlayer.jar from http://baseplayer.fi/update/");
 	  }
 	  else if(drawCanvas.loadingtext.contains("Annotating")) {
-		   FileRead.cancelfileread = true;
+		  /* FileRead.cancelfileread = true;
 		   BedCanvas.annoTrack.intersect = false;
 		   BedCanvas.annoTrack.used = false;
 		   
@@ -3229,6 +3210,20 @@ public void componentResized(ComponentEvent e) {
 		   Main.drawCanvas.ready(Main.drawCanvas.loadingtext);
 		   Main.drawCanvas.ready("Annotating variants");
 		   Main.drawCanvas.ready("Loading variants...");
+		   */
+		   
+		   FileRead.cancelvarcount = true;
+		   drawCanvas.current = null;
+		   drawCanvas.currentDraw = null;
+		   chromDraw.vardraw = null;
+		   chromDraw.varnode = null;
+		   drawCanvas.variantsStart = 0;
+		   drawCanvas.variantsEnd = 1;
+		   FileRead.head.putNext(null);
+		   Draw.updatevars = true;
+		   FileRead.cancelvarcount = true;
+		   FileRead.cancelfileread = true;
+		   Main.drawCanvas.ready("all");
 	  }
 	  else {
 		  Main.drawCanvas.ready("all");
@@ -3405,13 +3400,10 @@ static void removeAnnotationFile(String genomeName, String annotationFile) {
 	for(int i = 0; i<genomehash.get(genomeName).size();i++) {
 		
 		if(genomehash.get(genomeName).get(i).getName().contains(annotationFile.replace(".gff3.gz", ""))) {
-			genomehash.get(genomeName).remove(i);
-			
+			genomehash.get(genomeName).remove(i);			
 			break;
-		}
-		
+		}		
 	}
-	
 	
 	Main.defaultAnnotation = "";
 	setChromDrop(genomeName);
@@ -3619,7 +3611,7 @@ public class CheckUpdates extends SwingWorker<String, Object> {
 	}
 }
 static void showError(String error, String dialogtype) {
-	
+	VariantHandler.frame.setAlwaysOnTop(false);
 	if(dialogtype.equals("Error")) {
 	
 		JOptionPane.showMessageDialog(Main.drawCanvas, error, dialogtype, JOptionPane.ERROR_MESSAGE);
@@ -3628,6 +3620,7 @@ static void showError(String error, String dialogtype) {
 	else {
 		JOptionPane.showMessageDialog(Main.drawCanvas, error, dialogtype, JOptionPane.INFORMATION_MESSAGE);
 	}
+	VariantHandler.frame.setAlwaysOnTop(true);
 	
 }
 public static void gotoURL(String url) {
@@ -4647,7 +4640,7 @@ static void setAnnotationDrop(String ref) {
 static void setChromDrop(String dir) {
 	try {
 		
-		if(!new File(userDir +"/genomes/" +dir).exists()) {
+		if(!new File(userDir +"/genomes/" +dir).exists() || dir.length() == 0) {
 			
 			/*String[] empty = {""};			
 			chromModel = new DefaultComboBoxModel<String>(empty);
@@ -4659,7 +4652,9 @@ static void setChromDrop(String dir) {
 				chromosomeDropdown.revalidate();
 				chromosomeDropdown.repaint();
 				Main.searchTable.clear();
-				Main.drawCanvas.splits.get(0).clearGenes();
+				if(Main.drawCanvas.splits.size() > 0) {
+					Main.drawCanvas.splits.get(0).clearGenes();
+				}
 				Main.chromDraw.updateExons = true;
 				Main.chromDraw.repaint();
 			}
@@ -4831,16 +4826,16 @@ public static class OpenProject extends SwingWorker<String, Object> {
 			};
 			
 			try {
-					drawCanvas.sampleList = (ArrayList<Sample>)ois.readObject();							
-				
-				
+					drawCanvas.sampleList = (ArrayList<Sample>)ois.readObject();			
 					drawCanvas.splits = (ArrayList<SplitClass>) ois.readObject();
+					
 					for(int i = 0; i<drawCanvas.splits.size(); i++) {
 						drawCanvas.splits.get(i).resetSplits();
 					}
 				
-				Main.samples = (short)drawCanvas.sampleList.size();
-				drawCanvas.drawVariables = (DrawVariables)ois.readObject();		
+					Main.samples = (short)drawCanvas.sampleList.size();
+					drawCanvas.drawVariables = (DrawVariables)ois.readObject();		
+					
 				for(int i = 0 ; i<drawCanvas.sampleList.size(); i++) {
 					
 					drawCanvas.sampleList.get(i).resetreadHash();
@@ -4871,6 +4866,9 @@ public static class OpenProject extends SwingWorker<String, Object> {
 						}*/
 					//	Main.varsamples++;
 						
+					}
+					else if(drawCanvas.sampleList.get(i).calledvariants) {
+						Main.varsamples++;
 					}
 					
 					if(drawCanvas.sampleList.get(i).samFile != null) {
@@ -4992,7 +4990,8 @@ public static class OpenProject extends SwingWorker<String, Object> {
 							bedCanvas.bedTrack.get(i).getSelectorButton().setVisible(false);
 						}
 						else if(bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith(".bedgraph") || bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith(".bedgraph.gz")) {
-							bedCanvas.bedTrack.get(i).getSelectorButton().setVisible(false);
+							 bedCanvas.bedTrack.get(i).setSelector();
+							bedCanvas.bedTrack.get(i).getSelectorButton().setVisible(true);
 					    	  
 					    }
 						else {
@@ -5612,6 +5611,7 @@ public class Seqfetcher extends SwingWorker<String, Object> {
 	
 
 @Override
+
 public void keyPressed(KeyEvent e) {
 	keyCode = e.getKeyCode();
 	
@@ -5632,6 +5632,48 @@ public void keyPressed(KeyEvent e) {
 				Serializer ser = new Serializer();
 				ser.serialize(drawCanvas.drawVariables.projectFile);
 			}
+		}
+		if(keyCode == KeyEvent.VK_W) {
+			
+			System.out.println("\n----\n");
+			JPopupMenu menu = new JPopupMenu();
+			/*
+				int[][] array = new int[Main.varsamples][VariantHandler.callSlider.getUpperValue()+1];
+				
+					for(int i = 0; i<array.length; i++) {
+						for(int j = 0; j<array[i].length; j++) {
+							array[i][j] = 0;
+						}
+					}
+					/*VarNode node = FileRead.head.getNext();
+					int counter = 0;
+					while(node != null) {
+						if(!drawCanvas.hideNode(node)) {					
+							counter++;
+							for(int i = 0; i<node.vars.size(); i++) {
+								if(!drawCanvas.hideNodeVar(node, node.vars.get(i))) {
+									for(int j = 0;j<node.vars.get(i).getValue().size(); j++) {
+										if(!drawCanvas.hideVar(node.vars.get(i).getValue().get(j), false)) {
+											array[node.vars.get(i).getValue().get(j).getSample().getIndex()][(int)(MethodLibrary.round(node.vars.get(i).getValue().get(j).getAlleleFraction()*100,2))]++;
+										}
+										
+									}
+									
+									
+								}						
+							}
+						}
+				
+						node = node.getNext();
+					}*/
+				int width = drawWidth;
+				
+			Plotter plotter = new Plotter(FileRead.array, width);			
+			
+			plotter.setPreferredSize(new Dimension(width+30,400));
+			menu.add(plotter);
+			menu.pack();
+			menu.show(Main.drawCanvas, 0, 0);
 		}
 		if(keyCode == KeyEvent.VK_PLUS || keyCode == 107) {
 			
