@@ -48,7 +48,7 @@ public class Launcher  {
 				  }
 				  else if(line.startsWith("DefaultDir")) {
 				//	  if(!line.contains(defaultDir)) {
-						  defaultDir = line.substring(line.indexOf("=")+1).replace(" ", "");
+						  defaultDir = line.substring(line.indexOf("=")+1).trim();
 				//	  }				  
 				  }
 				  else if(line.startsWith("DefaultControlDir")) {

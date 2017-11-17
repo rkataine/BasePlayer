@@ -103,19 +103,13 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JLabel maxCoverageLabelIndel = new JLabel();
 	static JLabel qualityLabelIndel = new JLabel(), gqLabelIndel = new JLabel();
 	static JLabel slideLabel = new JLabel("Common variants in 1/1 samples");	
-	static JLabel clusterLabel = new JLabel("Window size for variant clusters");
-	
-	
+	static JLabel clusterLabel = new JLabel("Window size for variant clusters");	
 	static JSlider qualitySliderIndel = new JSlider(0,60);
 	static JSlider gqSliderIndel = new JSlider(0,60);
 	static JSlider coverageSliderIndel = new JSlider(1,40);
-	static JSlider maxCoverageSliderIndel = new JSlider(1,2000);
-	//static JSlider callSliderIndel = new JSlider(0,100);		
+	static JSlider maxCoverageSliderIndel = new JSlider(1,2000);	
 	
-	
-//	static JMenuBar menubar = new JMenuBar();
-	static JMenu filters;
-	
+	static JMenu filters;	
 	static JMenuBar aminobar;
 	static JMenu aminomenu;
 	static JMenu outputmenu;
@@ -136,6 +130,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JCheckBox hideSNVs;
 	static JCheckBox hideHomos;
 	static JCheckBox onlyStats;
+	static JCheckBox outputContexts;
 	static JCheckBox hideIndels;
 	static JCheckBox synonymous;
 	static JCheckBox nonsense;
@@ -408,6 +403,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		hideSNVs = new JCheckBox("Hide SNVs");
 		hideHomos = new JCheckBox("Hide homozygotes");
 		onlyStats = new JCheckBox("Only stats");
+		outputContexts = new JCheckBox("Output contexts");
 		hideIndels = new JCheckBox("Hide indels");
 		synonymous = new JCheckBox("Only non-synonymous");
 		nonsense = new JCheckBox("Only truncs");
@@ -789,7 +785,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		aminomenu.add(allChroms);
 		aminomenu.add(onlyselected);
 		onlyStats.addActionListener(this);
-		aminomenu.add(onlyStats);
+		aminomenu.add(onlyStats);		
 		aminomenu.add(writetofile);
 		if(Main.settingsIcon == null) {
 			URL imgUrl = getClass().getResource("icons/settings.png");
@@ -857,6 +853,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			variantSettings.put("allChroms", 0);
 			variantSettings.put("onlySel", 0);
 			variantSettings.put("onlyStats", 0);
+			variantSettings.put("contexts", 0);
 			variantSettings.put("writeFile", 0);			
 			variantSettings.put("tsv", 1);
 			variantSettings.put("compact", 0);
@@ -916,6 +913,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		VariantHandler.allChroms.setSelected(variantSettings.get("allChroms") == 1);
 		VariantHandler.onlyselected.setSelected(variantSettings.get("onlySel") == 1);
 		VariantHandler.onlyStats.setSelected(variantSettings.get("onlyStats") == 1);
+		VariantHandler.outputContexts.setSelected(variantSettings.get("contexts") == 1);
 		VariantHandler.writetofile.setSelected(variantSettings.get("writeFile") == 1);
 		checkWriteFiles();
 		
@@ -963,6 +961,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		variantSettings.put("allChroms", VariantHandler.allChroms.isSelected() ? 1 : 0);
 		variantSettings.put("onlySel", VariantHandler.onlyselected.isSelected() ? 1 : 0);
 		variantSettings.put("onlyStats", VariantHandler.onlyStats.isSelected() ? 1 : 0);
+		variantSettings.put("contexts", VariantHandler.outputContexts.isSelected() ? 1 : 0);
 		variantSettings.put("writeFile", VariantHandler.writetofile.isSelected() ? 1 : 0);
 	
 		variantSettings.put("tsv", VariantHandler.tsv.isSelected() ? 1 : 0);
@@ -1299,55 +1298,59 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		}
 		
 		else if(event.getSource() == varcalc) {
-			/*if(VariantHandler.onlyStats.isSelected()) {
-				try {
-			  		String outfname = "";
-			  		String path =Main.savedir;			 		    		   		    
-		    		JFileChooser chooser = new JFileChooser(path);		    
-		    		int returnVal = chooser.showSaveDialog((Component)this.getParent());		    		
-		    		
-		    		if(returnVal == JFileChooser.APPROVE_OPTION) {  		    	  
-			    		 outfname = chooser.getSelectedFile().getAbsolutePath();		      	
-			    		 BufferedWriter output = null, sigOutput =null;
-			    		 Main.savedir = chooser.getSelectedFile().getParent();
-			        	 Main.writeToConfig("DefaultSaveDir=" +chooser.getSelectedFile().getParent());
-			        	 lastWrittenPos = 0;
-				    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected()) {
-				    		   if(!outfname.contains(".tsv")) {
-						    	   File outfile = new File(outfname +".tsv");						    	
-						    	   FileRead.outputName = outfname +".tsv";
-						    	   output = new BufferedWriter(new FileWriter(outfile));
-						       }
-						       else {
-						    	   File outfile = new File(outfname);
-						    	   FileRead.outputName = outfname;						    	
-						    	   output = new BufferedWriter(new FileWriter(outfile));
-						       }    
-				    		 
-								 if(output != null) {
-									sigOutput = new BufferedWriter(new FileWriter(outfname +"_signatures.tsv"));
-									String header = createTSVHeader();
-									output.write(header);
-									VariantHandler.table.clear();
-									VariantHandler.table.headerHover = 2;
-									VariantHandler.table.sorter.ascending = true;
-									VariantHandler.table.createPolygon();
-									VariantHandler.table.repaint();	
-									FileRead.output = output;	
-									FileRead.sigOutput = sigOutput;
-									FileRead calculator = new FileRead();
-									calculator.varcalc = true;
-									calculator.execute();						    							    	
-								 }			    		 
-				    	 	}				    	  	 
-			    		}
+			if(VariantHandler.onlyStats.isSelected()) {
+				if(VariantHandler.outputContexts.isSelected()) {
+					try {
+				  		String outfname = "";
+				  		String path =Main.savedir;			 		    		   		    
+			    		JFileChooser chooser = new JFileChooser(path);		    
+			    		int returnVal = chooser.showSaveDialog((Component)this.getParent());		    		
+			    		
+			    		if(returnVal == JFileChooser.APPROVE_OPTION) {  		    	  
+				    		 outfname = chooser.getSelectedFile().getAbsolutePath();		      	
+				    		 BufferedWriter output = null, sigOutput =null;
+				    		 Main.savedir = chooser.getSelectedFile().getParent();
+				        	 Main.writeToConfig("DefaultSaveDir=" +chooser.getSelectedFile().getParent());
+				        	 lastWrittenPos = 0;
+					    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected()) {
+					    		   if(!outfname.contains(".tsv")) {
+							    	   File outfile = new File(outfname +".tsv");						    	
+							    	   FileRead.outputName = outfname +".tsv";
+							    	   output = new BufferedWriter(new FileWriter(outfile));
+							       }
+							       else {
+							    	   File outfile = new File(outfname);
+							    	   FileRead.outputName = outfname;						    	
+							    	   output = new BufferedWriter(new FileWriter(outfile));
+							       }    
+					    		 
+									 if(output != null) {
+										sigOutput = new BufferedWriter(new FileWriter(outfname +"_signatures.tsv"));
+										String header = createTSVHeader();
+										output.write(header);
+										FileRead.output = output;	
+										FileRead.sigOutput = sigOutput;
+																	    	
+									 }			    		 
+					    	 	}				    	  	 
+				    		}
+					     }
+				     catch(Exception e) {
+				    	 JOptionPane.showMessageDialog(Main.chromDraw, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+				    	 e.printStackTrace();
 				     }
-			     catch(Exception e) {
-			    	 JOptionPane.showMessageDialog(Main.chromDraw, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-			    	 e.printStackTrace();
-			     }
+				}			
+				VariantHandler.table.clear();
+				VariantHandler.table.headerHover = 2;
+				VariantHandler.table.sorter.ascending = true;
+				VariantHandler.table.createPolygon();
+				VariantHandler.table.repaint();	
+				
+				FileRead calculator = new FileRead();
+				calculator.varcalc = true;
+				calculator.execute();						    
 			}
-			else */if(writetofile.isSelected()) {
+			else if(writetofile.isSelected()) {
 				try {
 			  		String outfname = "";
 			  		String path =Main.savedir;			 		    		   		    
@@ -1510,10 +1513,20 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			else {
 				aminomenu.remove(allChromsfrom);		
 				aminomenu.remove(onlyAutosomes);	
-				aminomenu.getPopupMenu().pack();
+				aminomenu.getPopupMenu().pack();				
 			}
 		}
-		
+		else if (event.getSource() == onlyStats) {
+			if(onlyStats.isSelected()) {				
+				aminomenu.add(outputContexts,aminomenu.getPopupMenu().getComponentIndex(onlyStats)+1);		
+				aminomenu.getPopupMenu().pack();
+			}
+			else {
+				outputContexts.setSelected(false);
+				aminomenu.remove(outputContexts);	
+				aminomenu.getPopupMenu().pack();
+			}			
+		}
 		else if(event.getSource() == write) {
 			
 			 try {
@@ -1540,6 +1553,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		     try {
 		    	 File outfile = null;
 		    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected()) {
+		    		
 		    		 if(!outfname.contains(".tsv")) {
 				    	  outfile = new File(outfname +".tsv");
 				    	  
@@ -2044,7 +2058,7 @@ static void addMenuComponents(String line) {
 	}*/
 	String createVCFHeader() {
 		StringBuffer headerstring = new StringBuffer("##fileformat=VCFv4.1"+Main.lineseparator
-				+ "##BasePlayer=<Version: " +Main.version +" output " +new SimpleDateFormat("dd.MM.yyyy HH:mm").format(Calendar.getInstance().getTime())+Main.lineseparator
+				+ "##BasePlayer=<Version: " +Main.version +" output " +new SimpleDateFormat("dd.MM.yyyy HH:mm").format(Calendar.getInstance().getTime()) +">"+Main.lineseparator
 				+ "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">"+Main.lineseparator
 				+ "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth\">"+Main.lineseparator
 				+ "##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">" +Main.lineseparator
@@ -2177,49 +2191,46 @@ static void addMenuComponents(String line) {
   			headerstring.append("##Indel: " +Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key +": " +Main.drawCanvas.drawVariables.advQDrawIndel.get(i).format +Main.drawCanvas.drawVariables.advQDrawIndel.get(i).value +Main.lineseparator);
   		  }
   	  }
-   	  StringBuffer controls = new StringBuffer("");	 
+   	  	StringBuffer controls = new StringBuffer("");	 
 
-	 if(Control.controlData.controlsOn) {
-		 controlarray.clear();
-		 for(int i = 0;i<Control.controlData.fileArray.size(); i++) {
-			
-			 if(!Control.controlData.fileArray.get(i).controlOn) {
-				 continue;
+		 if(Control.controlData.controlsOn) {
+			 controlarray.clear();
+			 for(int i = 0;i<Control.controlData.fileArray.size(); i++) {				
+				 if(!Control.controlData.fileArray.get(i).controlOn) {
+					 continue;
+				 }
+				 controls.append("AF: "+Control.controlData.fileArray.get(i).getName() +"\tOR\t");
+				 controlarray.add(Control.controlData.fileArray.get(i));    		
 			 }
-			 controls.append("AF: "+Control.controlData.fileArray.get(i).getName() +"\tOR\t");
-			 controlarray.add(Control.controlData.fileArray.get(i));    		
 		 }
-	 }
-	 StringBuffer tracks = new StringBuffer("");	 
-   	 if(Main.bedCanvas.bedOn) {
-   		 for(int i = 0; i<Main.bedCanvas.bedTrack.size(); i++) {
-   			 if(Main.bedCanvas.bedTrack.get(i).intersect) {
-   				 tracks.append(Main.bedCanvas.bedTrack.get(i).file.getName() +"\t");
-   			 }
-   		 }
-   	 }
-   	 String clusters = "";
-   	 if(commonSlider.getValue() > 1 && clusterSize > 0) {
-   		clusters = "ClusterID\tClusterMutCount\tClusterWidth\tClusterMutFreq\t"; 
-   	 }
+		 StringBuffer tracks = new StringBuffer("");	 
+	   	 if(Main.bedCanvas.bedOn) {
+	   		 for(int i = 0; i<Main.bedCanvas.bedTrack.size(); i++) {
+	   			 if(Main.bedCanvas.bedTrack.get(i).intersect) {
+	   				 tracks.append(Main.bedCanvas.bedTrack.get(i).file.getName() +"\t");
+	   			 }
+	   		 }
+	   	 }
+	   	 String clusters = "";
+	   	 if(commonSlider.getValue() > 1 && clusterSize > 0) {
+	   		clusters = "ClusterID\tClusterMutCount\tClusterWidth\tClusterMutFreq\t"; 
+	   	 }
    	 
-	   	if(!tabs.getSelectedComponent().equals(statsScroll)) {
+	   	if(!tabs.getSelectedComponent().equals(statsScroll) && !onlyStats.isSelected()) {
 	   		if(oncodrive.isSelected()) {
 	   			headerstring.append("#CHROM\tPOS\tREF\tALT\tSAMPLE"+Main.lineseparator);
-	   		 }
+	   		}
 	   		else {
 	   			headerstring.append("#Sample\tGene\tMutationCount\tSampleCount\tENSG\tENST\tBioType\tPosition\tStrand\tRegion\tEffect\tBaseChange\tGenotype(calls/coverage)\tQuality\tGQ\trs-code\t" +clusters +controls +tracks+"Description"+Main.lineseparator);
-	   		   
 	   		}
 	   	}
 	   	else {
-	   		if(onlyStats.isSelected()) {
+	   	//	if(onlyStats.isSelected()) {
 	   			headerstring.append("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov\tSynonymous\tNonsynonymous\tMissense\tSplice-site\tNonsense\tFrameShift\tInframe"+Main.lineseparator);
-	   		}
-	   		else {
-	   	 		headerstring.append("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov"+Main.lineseparator);
-	   	 	
-	   		}
+	   		//}
+	   		//else {
+	   //	 		headerstring.append("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov"+Main.lineseparator);
+	   	// 	}
 	     }
    	  return headerstring.toString();
 	}
@@ -2242,9 +2253,9 @@ static void addMenuComponents(String line) {
 	 	  		 for(int j = 1; j<VariantHandler.stattable.headerlengths.length; j++) {
 	 	  			output.write("\t" +VariantHandler.stattable.sampleArray.get(i)[j]);
 	 	  		 }
-	 	  		 if(onlyStats.isSelected()) {
+	 	  		 //if(onlyStats.isSelected()) {
 	 	  			 output.write("\t" +sample.syn +"\t" +sample.nonsyn +"\t" +sample.missense +"\t" +sample.splice +"\t" +sample.nonsense +"\t" +sample.fshift +"\t" +sample.inframe);
-	 	  		 }
+	 	  		 //}
 	 	  		output.write(Main.lineseparator);
 	 	  	 }
 	    	output.close();
@@ -2289,7 +2300,7 @@ static void addMenuComponents(String line) {
 	    			}
 	    	 }
 	    	 else {
-	    		
+	    		 
 	    		 output.write(createTSVHeader());  	
 	    		 for(int gene = 0; gene < table.genearray.size(); gene++) {
 	 	 		 	writeTranscriptToFile(table.genearray.get(gene), output);  	    		
@@ -2498,6 +2509,7 @@ static void	writeVariantToTSVFile(VarNode node, BufferedWriter output) {
 
 static void writeNodeToFile(VarNode node, String chrom, BufferedWriter output, BlockCompressedOutputStream outputgz) {
 	try {
+		
 	if(vcf.isSelected()) {		
 		
 		 StringBuffer info = new StringBuffer("");
@@ -2514,12 +2526,10 @@ static void writeNodeToFile(VarNode node, String chrom, BufferedWriter output, B
 		 StringBuffer AFs = new StringBuffer("");
 		 double AF = 0.0;
 		 Entry<String, ArrayList<SampleNode>> entry;
-		 String sampleinfo = null;
-		
+		 String sampleinfo = null;		
 		 int[] coverages = null;
-		 HashMap<Short, String> samplehash = new HashMap<Short, String>();
-	
-		boolean set = false, found = false;
+		 HashMap<Short, String> samplehash = new HashMap<Short, String>();	
+		 boolean set = false, found = false;
 		 
 		 for(int var = 0; var < node.vars.size(); var++) {
 			 
@@ -2529,7 +2539,7 @@ static void writeNodeToFile(VarNode node, String chrom, BufferedWriter output, B
 			 }	
 			 AF = 0;
 			 AC = 0;			
-			 
+			 avgquality = 0;
 			 if( node.vars.size() == 1) {
 				 if(node.indel && entry.getKey().length() > 1) {
 					 String[] result = MethodLibrary.makeIndelColumns(chrom, node.getPosition(), ref, entry.getKey());
@@ -2616,7 +2626,10 @@ static void writeNodeToFile(VarNode node, String chrom, BufferedWriter output, B
 						 
 					 }
 					 samplecount++;
-					 avgquality+= entry.getValue().get(sample).getQuality();
+					 if(entry.getValue().get(sample).getQuality() != null) {
+						 avgquality+= entry.getValue().get(sample).getQuality();
+					 }					
+					
 				 }				 
 			 }
 			 AF = MethodLibrary.round(AC/(double)AN,5);
@@ -2638,15 +2651,12 @@ static void writeNodeToFile(VarNode node, String chrom, BufferedWriter output, B
 			 else {
 				 sampleinfos.append("\t" +"0/0");
 			 }			
-		 }
-		 
+		 }		 
 		
 		 alts.deleteCharAt(alts.length()-1);
 		 AFs.deleteCharAt(AFs.length()-1);
 		 ACs.deleteCharAt(ACs.length()-1);
 		 info.append("AN=" +AN +";AC=" +ACs +";AF=" +AFs);
-		
-		// System.out.println(chrom +"\t" +(node.getPosition()+1) +"\t" +rscode +"\t" +refs +"\t" +alts +"\t" +MethodLibrary.round(avgquality/(double)samplecount,2) +"\t.\t" +info +"\t" +format +sampleinfos );
 		
 		 if(outputgz != null) {
 			
@@ -2689,6 +2699,7 @@ static void writeNodeToFile(VarNode node, String chrom, BufferedWriter output, B
 		 }
 	}
 	else if(oncodrive.isSelected()) {
+		
 		Entry<String, ArrayList<SampleNode>> entry;
 			String[] result = null;
 			 for(int var = 0; var < node.vars.size(); var++) {
@@ -2716,8 +2727,14 @@ static void writeNodeToFile(VarNode node, String chrom, BufferedWriter output, B
 						 
 						 
 						 if(node.indel && entry.getKey().length() > 1) {
-								
-							 output.write(node.getChrom() +"\t" +(node.getPosition()) +"\t" +result[0] +"\t" +result[1] +"\t" +entry.getValue().get(i).getSample().getName() +Main.lineseparator);
+							 if(result[0].length() > 1) {
+								 output.write(node.getChrom() +"\t" +(node.getPosition()+2) +"\t" +result[0].substring(1) +"\t-\t" +entry.getValue().get(i).getSample().getName() +Main.lineseparator);
+							//	 System.out.println(node.getPosition() +"\t" +result[0].substring(1) +"\t-\t");
+							 }
+							 else {
+								 output.write(node.getChrom() +"\t" +(node.getPosition()+2) +"\t-\t" +result[1].substring(1) +"\t" +entry.getValue().get(i).getSample().getName() +Main.lineseparator);
+							//	 System.out.println((node.getPosition()+1) +"\t-\t" +result[1].substring(1));
+							 }
 							 
 						 }
 						 else {
@@ -2744,7 +2761,7 @@ static void writeNodeToFile(VarNode node, String chrom, BufferedWriter output, B
 
 static void	writeTranscriptToFile(Gene gene, BufferedWriter output) {
 		 try {			 
-			
+			 
 			 Entry<String, ArrayList<SampleNode>> entry;
 			 VarNode node = null;
 			 SampleNode varnode;
@@ -3019,8 +3036,48 @@ static void	writeTranscriptToFile(Gene gene, BufferedWriter output) {
 	    				 }
 	    			 }	    			
 	    		 }    	 
-	    			
-	    		 
+	    			else if(oncodrive.isSelected()) {
+	    				
+	    				//Entry<String, ArrayList<SampleNode>> entry;
+	    					String[] result = null;
+	    					 for(int v = 0; v < node.vars.size(); v++) {
+	    						 
+	    						 entry = node.vars.get(v);
+	    						 if(Main.drawCanvas.hideNodeVar(node, entry)) {
+	    								continue;
+	    						 }	
+	    					if(node.indel && entry.getKey().length() > 1) {
+	    						 result = MethodLibrary.makeIndelColumns(node.getChrom(), node.getPosition(), Main.getBase.get(node.getRefBase()), entry.getKey());
+	    							
+	    					}
+	    					 for(int i = 0; i<entry.getValue().size(); i++) {
+	    		 				
+	    						 if(Main.drawCanvas.hideVar(entry.getValue().get(i), entry.getKey().length() > 1)) {
+	    							continue;
+	    						 }
+	    						
+	    						 try {
+	    							 if(output != null) {
+	    								 if(node.indel && entry.getKey().length() > 1) {
+	    									 if(result[0].length() > 1) {
+	    										 output.write(node.getChrom() +"\t" +(node.getPosition()+1) +"\t" +result[0].substring(1) +"\t-\t" +entry.getValue().get(i).getSample().getName() +Main.lineseparator);	    										
+	    									 }
+	    									 else {
+	    										 output.write(node.getChrom() +"\t" +(node.getPosition()+1) +"\t-\t" +result[1].substring(1) +"\t" +entry.getValue().get(i).getSample().getName() +Main.lineseparator);	    										
+	    									 }	    									 
+	    								 }
+	    								 else {	    									
+	    									 output.write(node.getChrom() +"\t" +(node.getPosition()+1) +"\t" +Main.getBase.get(node.getRefBase()) +"\t" +entry.getKey() +"\t" +entry.getValue().get(i).getSample().getName() +Main.lineseparator);
+	    								 }	    			    				
+	    							 }	    							
+	    						 }
+	    						 catch(Exception ex) {
+	    							 ex.printStackTrace();
+	    							 ErrorLog.addError(ex.getStackTrace());
+	    						 }
+	    					 }	    			
+	    					 }
+	    				}	    		 
 	    		}
 	    	 }					    	
 	    	 Main.drawCanvas.loadBarSample = (int)((gene.getStart()/(double)Main.drawCanvas.splits.get(0).chromEnd)*100);     

@@ -58,7 +58,8 @@ static void applyControl() {
 				 
 			 }
 			 catch(Exception tab) {
-				 JOptionPane.showMessageDialog(Main.chromDraw, "Could not find " +controlData.fileArray.get(c).getTabixFile(), "Note", JOptionPane.INFORMATION_MESSAGE);
+				 Main.showError("Could not find " +controlData.fileArray.get(c).getTabixFile(), "Note");
+				 //JOptionPane.showMessageDialog(Main.chromDraw, "Could not find " +controlData.fileArray.get(c).getTabixFile(), "Note", JOptionPane.INFORMATION_MESSAGE);
 			 }
 			 Main.drawCanvas.loadingtext = "Applying control " +controlData.fileArray.get(c).getName();				
 			

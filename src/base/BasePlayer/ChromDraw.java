@@ -1074,7 +1074,7 @@ void drawExons(SplitClass split) {
 				if(genewidth > 2) {
 					split.getExonImageBuffer().setColor(Color.black);
 					if(geneEndPos-geneStartPos >0) {
-						split.getExonImageBuffer().drawLine(geneStartPos, transcript.ypos+5, geneEndPos, transcript.ypos+exonDrawY/4);
+						split.getExonImageBuffer().drawLine(geneStartPos,transcript.ypos+exonDrawY/4, geneEndPos, transcript.ypos+exonDrawY/4);
 						
 					}
 				}

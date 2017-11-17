@@ -216,24 +216,16 @@ import org.apache.commons.net.ftp.FTPFile;
 	static JMenuItem openProject;
 	static JMenuItem clear;
 	static JMenuItem clearMemory;
-//	static JMenuItem welcome;
 	static JEditorPane area;
 	static RandomAccessFile referenceFile;    
 	static Font menuFont, menuFontBold;
 	static String[] empty = {""};	
-	static DefaultComboBoxModel<String> chromModel = new DefaultComboBoxModel<String>(empty);
-   // static JComboBox<String> chromosomeDropdown;		
-	static SteppedComboBox chromosomeDropdown = new SteppedComboBox(chromModel);	
-	/*			
-	
-	
-	*/
+	static DefaultComboBoxModel<String> chromModel = new DefaultComboBoxModel<String>(empty);  
+	static SteppedComboBox chromosomeDropdown = new SteppedComboBox(chromModel);		
 	static SteppedComboBox refDropdown;	
 	static SteppedComboBox geneDropdown;	
-	//UI		
-	
-    static MouseListener thisMainListener;
-    
+	//UI	
+    static MouseListener thisMainListener;    
     static DefaultComboBoxModel<String> refModel;
     static DefaultComboBoxModel<String> geneModel;
     static Hashtable<String, int[][]> SELEXhash = new Hashtable<String, int[][]>();
@@ -281,8 +273,8 @@ import org.apache.commons.net.ftp.FTPFile;
     				 } 
     				 if(AddGenome.frame == null) {
    					  AddGenome.createAndShowGUI();
-   				  }
-    				 AddGenome.annotation = true;	   
+   				  	}
+    				  AddGenome.annotation = true;	   
     				  AddGenome.remove.setEnabled(false);
     				  AddGenome.download.setEnabled(false);
     				  AddGenome.frame.setVisible(true);
@@ -2228,17 +2220,35 @@ public static void zoomout() {
 		drawCanvas.rbuf.fillRect(0,0, drawCanvas.getWidth(),Main.drawScroll.getViewport().getHeight());	
 		drawCanvas.rbuf.setComposite(drawCanvas.backupr);			
 	}	
-
+	
 	if(Main.bedCanvas.bedTrack.size() > 0) {
-		for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
-			Main.bedCanvas.getMoreBeds(Main.bedCanvas.bedTrack.get(i));
-		}
+		for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {			
+			if(Main.bedCanvas.bedTrack.get(i).graph) {		
+				Main.bedCanvas.bedTrack.get(i).setCurrent(Main.bedCanvas.bedTrack.get(i).getHead());
+				Main.bedCanvas.calcScale(Main.bedCanvas.bedTrack.get(i));				
+			}
+			Main.bedCanvas.getMoreBeds(Main.bedCanvas.bedTrack.get(i));			
+		}		
 	}
 	bedCanvas.repaint();
 	Main.chromDraw.updateExons = true;
 	drawCanvas.repaint();
 	Main.chromDraw.repaint();
 
+}
+
+boolean checkGenome() {
+	if(chromosomeDropdown.getItemAt(0) == null) {
+		Main.showError("Add reference genome first.", "Note");
+		if(AddGenome.frame == null) {
+			  AddGenome.createAndShowGUI();
+		 }
+		AddGenome.frame.setVisible(true);
+	    AddGenome.frame.setLocation(frame.getLocationOnScreen().x+frame.getWidth()/2 - AddGenome.frame.getWidth()/2, frame.getLocationOnScreen().y+frame.getHeight()/6);
+	    AddGenome.frame.setState(JFrame.NORMAL);
+		return false;
+	}
+	return true;
 }
 public void actionPerformed(ActionEvent e) {
 	//Logo.frame.setVisible(false);
@@ -2352,8 +2362,7 @@ public void actionPerformed(ActionEvent e) {
 		
 	}
 	else if (e.getSource() == clear) {
-		clearData();			
-		
+		clearData();		
 	}
 	else if(e.getSource() == exit) {
 		
@@ -2361,6 +2370,7 @@ public void actionPerformed(ActionEvent e) {
 	}	
 	else if (e.getSource() == opensamples) {
 		 try {			
+			 if(!checkGenome()) return;
 			 if(VariantHandler.frame != null) {
 			  VariantHandler.frame.setState(Frame.ICONIFIED);
 			 }
@@ -2482,23 +2492,19 @@ public void actionPerformed(ActionEvent e) {
 				      				else {
 				      					
 				      					array.add(new File(location));
-				      				}
-				      				
-				      			}
-				      			
+				      				}				      				
+				      			}				      			
 				      			
 				      			File[] files = new File[array.size()];
 				      			for(int i = 0; i<files.length; i++) {
 				      				
 				      				files[i] = array.get(i);
-				      			}
-				      			/*
+				      			}				      			
 				      			 FileRead filereader = new FileRead(files);
 				      			 filereader.start = (int)drawCanvas.selectedSplit.start;
 				        		 filereader.end = (int)drawCanvas.selectedSplit.end;
 				        		 filereader.readVCF = true;
-				        		 filereader.execute();					      			
-	        			*/
+				        		 filereader.execute();        			
 	        				}
 		        		  }
 		        		  catch(Exception ex) {
@@ -2530,6 +2536,7 @@ public void actionPerformed(ActionEvent e) {
 		
 	}
 	else if (e.getSource() == addcontrols) {
+		if(!checkGenome()) return;
 		if(VariantHandler.frame != null) {
 		 VariantHandler.frame.setState(Frame.ICONIFIED);
 		}
@@ -2556,6 +2563,7 @@ public void actionPerformed(ActionEvent e) {
           }
 	}		
 	else if (e.getSource() == addtracks) {
+		if(!checkGenome()) return;
 		if(VariantHandler.frame != null) {
 		 VariantHandler.frame.setState(Frame.ICONIFIED);
 		}
@@ -2701,6 +2709,7 @@ public void actionPerformed(ActionEvent e) {
         	 }
 	}
 	else if (e.getSource() == openProject) {
+		if(!checkGenome()) return;
 		if(VariantHandler.frame != null) {
 		 VariantHandler.frame.setState(Frame.ICONIFIED);
 		}
@@ -3119,17 +3128,17 @@ public void componentResized(ComponentEvent e) {
 		}			 
     }       
 }
+
 	static void cancel() {
-		  cancel = true;
-		  
-		  if(Draw.variantcalculator) {
-			  FileRead.cancelvarcount = true;
-			  Main.drawCanvas.ready("all");
+	  cancel = true;
+	  
+	  if(Draw.variantcalculator) {
+		  FileRead.cancelvarcount = true;
+		  Main.drawCanvas.ready("all");
 	  }
 	  else if(drawCanvas.loadingtext.contains("Loading variants")) {
-		  Main.drawCanvas.ready("all");
-		
-		  drawCanvas.current = null;
+		   Main.drawCanvas.ready("all");		
+		   drawCanvas.current = null;
 		   drawCanvas.currentDraw = null;
 		   chromDraw.vardraw = null;
 		   chromDraw.varnode = null;
@@ -3138,8 +3147,7 @@ public void componentResized(ComponentEvent e) {
 		   FileRead.head.putNext(null);
 		   Draw.updatevars = true;
 		   FileRead.cancelvarcount = true;
-		   FileRead.cancelfileread = true;
-		  
+		   FileRead.cancelfileread = true;		  
 	  }
 	  else if(drawCanvas.loadingtext.contains("Processing variants")) {
 		   Main.drawCanvas.ready("Processing variants...");			 
@@ -4059,6 +4067,9 @@ if(event.getSource() == refDropdown) {
 	switch(event.getModifiers()) {	
 		case InputEvent.BUTTON1_MASK: {	
 			if(Main.genomehash.size() == 0) {
+				if(AddGenome.frame == null) {
+				  AddGenome.createAndShowGUI();
+			  	}
 				AddGenome.frame.setTitle("Add new genome");
 				AddGenome.annotation = false;
 				AddGenome.remove.setEnabled(false);
@@ -4081,6 +4092,9 @@ else if(event.getSource() == geneDropdown) {
 	switch(event.getModifiers()) {	
 	case InputEvent.BUTTON1_MASK: {	
 		if(Main.genomehash.size() == 0) {
+			if(AddGenome.frame == null) {
+				AddGenome.createAndShowGUI();
+			}
 			AddGenome.frame.setTitle("Add new genome");
 			AddGenome.annotation = false;
 			AddGenome.remove.setEnabled(false);
@@ -4149,15 +4163,16 @@ else if(event.getSource() == searchField) {
 	
 }
 else if(event.getSource() == addGenome) {
-		
+		if(AddGenome.frame == null) {
+			AddGenome.createAndShowGUI();
+		}
 		AddGenome.frame.setTitle("Add new genome");
 		AddGenome.annotation = false;
 		AddGenome.remove.setEnabled(false);
 		AddGenome.download.setEnabled(false);
 		AddGenome.frame.setVisible(true);
 		AddGenome.frame.setLocation(frame.getLocationOnScreen().x+frame.getWidth()/2 - AddGenome.frame.getWidth()/2, frame.getLocationOnScreen().y+frame.getHeight()/6);
-		 
-	   AddGenome.frame.setState(JFrame.NORMAL);
+		AddGenome.frame.setState(JFrame.NORMAL);
 	
 }		   
 else if(event.getComponent().getName() != null) {
@@ -4167,7 +4182,9 @@ else if(event.getComponent().getName() != null) {
 	
 	try {
 		if(event.getComponent().getName().equals("add_annotation")) {
-		
+			if(AddGenome.frame == null) {
+				AddGenome.createAndShowGUI();
+			}
 			AddGenome.annotation = true;
 			AddGenome.frame.setTitle("Add new annotation file for " +Main.selectedGenome);
 			AddGenome.remove.setEnabled(false);
@@ -4940,13 +4957,27 @@ public static class OpenProject extends SwingWorker<String, Object> {
 				catch(EOFException excep) {
 					
 				}
+				try {
+					Settings.settings = (HashMap<String,Integer>)ois.readObject();
+					Settings.setValues();
+				}
+				catch(Exception excep) {
+					
+				}
+				try {
+					VariantHandler.variantSettings = (HashMap<String,Integer>)ois.readObject();
+					
+					VariantHandler.setValues();
+				}
+				catch(Exception excep) {
+					
+				}
 				
+				ois.close();
 			//	}
-				if(bedCanvas.bedTrack != null && bedCanvas.bedTrack.size() > 0) {
-					
-					
+				if(bedCanvas.bedTrack != null && bedCanvas.bedTrack.size() > 0) {					
 					  
-					 boolean first = true;
+					boolean first = true;
 					for(int i = 0 ; i< bedCanvas.bedTrack.size(); i++) {
 					
 						if(!bedCanvas.bedTrack.get(i).file.exists()) {
@@ -4994,31 +5025,29 @@ public static class OpenProject extends SwingWorker<String, Object> {
 							bedCanvas.bedTrack.get(i).getSelectorButton().setVisible(true);
 					    	  
 					    }
-						else {
-							 
+						else {							 
 							 bedCanvas.bedTrack.get(i).setSelector();
 							 bedCanvas.bedTrack.get(i).getSelectorButton().setVisible(true);
 						}
 						if((bedCanvas.bedTrack.get(i).file != null &&bedCanvas.bedTrack.get(i).file.length() / 1048576 < Settings.settings.get("bigFile")) || bedCanvas.bedTrack.get(i).getZoomlevel() != null) {
-							 bedCanvas.bedTrack.get(i).small = true;		    	
-					    	  	    	 
+							 bedCanvas.bedTrack.get(i).small = true;					    	  	    	 
 					    }	
 					    else {
 					    	 bedCanvas.bedTrack.get(i).small = false;	
 					    	 FileRead.setBedTrack(bedCanvas.bedTrack.get(i));
 					    }
 						if(bedCanvas.bedTrack.get(i).graph) {
+							if(bedCanvas.bedTrack.get(i).getCollapseBox() == null) {
+								bedCanvas.bedTrack.get(i).setCollapsebox();
+							}
 							bedCanvas.bedTrack.get(i).getCollapseBox().setText("Auto scale");
 						}
-					}
-					
+					}					
 				}
 				readingbeds = false;
-				 for(int i = 0 ; i<Control.controlData.fileArray.size(); i++) {							 
-					 
-				  MethodLibrary.addHeaderColumns(Control.controlData.fileArray.get(i));
-			
-			  }
+				 for(int i = 0 ; i<Control.controlData.fileArray.size(); i++) {				 
+					 MethodLibrary.addHeaderColumns(Control.controlData.fileArray.get(i));			
+				 }
 				 if(Average.frame != null) {
 					 if(Average.frame.isVisible()) {
 					 	Average.setSamples();
@@ -5029,23 +5058,7 @@ public static class OpenProject extends SwingWorker<String, Object> {
 				ex.printStackTrace();
 				clearData();
 			}
-			try {
-				Settings.settings = (HashMap<String,Integer>)ois.readObject();
-				Settings.setValues();
-			}
-			catch(Exception excep) {
-				
-			}
-			try {
-				VariantHandler.variantSettings = (HashMap<String,Integer>)ois.readObject();
-				
-				VariantHandler.setValues();
-			}
-			catch(Exception excep) {
-				
-			}
 			
-			ois.close();
 			
 	    	frame.setTitle("BasePlayer - Project: " +drawCanvas.drawVariables.projectName);
 	    	FileRead.checkSamples();
@@ -5636,7 +5649,7 @@ public void keyPressed(KeyEvent e) {
 		if(keyCode == KeyEvent.VK_W) {
 			
 			System.out.println("\n----\n");
-			JPopupMenu menu = new JPopupMenu();
+			
 			/*
 				int[][] array = new int[Main.varsamples][VariantHandler.callSlider.getUpperValue()+1];
 				
@@ -5666,14 +5679,14 @@ public void keyPressed(KeyEvent e) {
 				
 						node = node.getNext();
 					}*/
-				int width = drawWidth;
-				
-			Plotter plotter = new Plotter(FileRead.array, width);			
+				int width = Main.drawCanvas.getWidth()-Main.sidebarWidth;
 			
-			plotter.setPreferredSize(new Dimension(width+30,400));
+				JPopupMenu menu = new JPopupMenu();
+			Plotter plotter = new Plotter(width);			
+			plotter.setPreferredSize(new Dimension(width,400));
 			menu.add(plotter);
 			menu.pack();
-			menu.show(Main.drawCanvas, 0, 0);
+			menu.show(Main.drawCanvas,Main.sidebarWidth, drawScroll.getVerticalScrollBar().getValue());
 		}
 		if(keyCode == KeyEvent.VK_PLUS || keyCode == 107) {
 			

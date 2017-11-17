@@ -61,14 +61,14 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	double maxvalue = 0, minvalue = Double.MAX_VALUE, scale = 0;
 	boolean negatives = false, first = true, used = false, loading = false, waiting = false, hasvalues = false, updated = false;
 	String chr = "";
-
+	
 	ArrayList<JCheckBox> menuBoxes;
 	private transient BedNode drawNode = null;
 	short iszerobased = 0, nodeHeight = 10;
 	private transient BBFileHeader bbfileheader = null;
 	public boolean nulled = false;
 	private transient JPopupMenu menu;
-	private transient JCheckBox zerobased, logscale, intersectBox, collapseBox, affinityChange, varcalc;
+	private transient JCheckBox zerobased, logscale, intersectBox, subtractBox, collapseBox, affinityChange, varcalc;
 	private transient JTextField limitField;
 	private transient JButton columnSelector;
 	Double limitValue = (double)Integer.MIN_VALUE;
@@ -119,6 +119,9 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	public JCheckBox getIntersectBox() {
 		return this.intersectBox;
 	}
+	public JCheckBox getSubtracttBox() {
+		return this.subtractBox;
+	}
 	public JTextField getLimitField() {
 		return this.limitField;
 	}
@@ -153,19 +156,24 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 		this.trackIndex = indexnro;
 		setmenu();
 	}
+	public void setCollapsebox() {
+		collapseBox = new JCheckBox("Auto collapse");
+	}
 	
 	public void setmenu() {
 		try {
 			settingsButton = new Rectangle();
-			if(menuBoxes == null) {
-				intersectBox = new JCheckBox("Intersect");				
+			if(menuBoxes == null || menuBoxes.size() != 7) {
+				intersectBox = new JCheckBox("Intersect");			
+				subtractBox = new JCheckBox("Subtract");	
 				zerobased = new JCheckBox("Zero Based");
 				varcalc = new JCheckBox("Apply in annotation");
 				logscale = new JCheckBox("Log Scale");				
-				collapseBox = new JCheckBox("Auto collapse");
+				setCollapsebox();
 				affinityChange = new JCheckBox("Report affinity changes");
 				menuBoxes = new ArrayList<JCheckBox>();				
 				menuBoxes.add(intersectBox);
+				menuBoxes.add(subtractBox);
 				menuBoxes.add(zerobased);
 				menuBoxes.add(logscale);
 				menuBoxes.add(collapseBox);
@@ -173,21 +181,17 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 				menuBoxes.add(varcalc);
 				zerobased.setSelected(true);
 				intersectBox.setSelected(true);
-				affinityChange.setVisible(false);
+				affinityChange.setVisible(false);				
 			}
-			else {				
+			else {					
 				intersectBox = menuBoxes.get(0);
-				zerobased = menuBoxes.get(1);
-				logscale = menuBoxes.get(2);
-				collapseBox = menuBoxes.get(3);
-				affinityChange = menuBoxes.get(4);
-				if(menuBoxes.size() > 5) {
-					varcalc = menuBoxes.get(5);
-				}
-				else {
-					varcalc = new JCheckBox("Apply in annotation");
-					
-				}
+				subtractBox = menuBoxes.get(1);
+				zerobased = menuBoxes.get(2);
+				logscale = menuBoxes.get(3);
+				collapseBox = menuBoxes.get(4);
+				affinityChange = menuBoxes.get(5);				
+				varcalc = menuBoxes.get(6);						
+				
 			}
 			
 			columnSelector = new JButton("File format");
@@ -204,14 +208,14 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			sizeSlider.addChangeListener(this);
 			sizeSlider.setValue(nodeHeight);
 			con.anchor = GridBagConstraints.NORTHWEST;
-			//sizeSlider.setPreferredSize(new Dimension(30,18));
-			
 			con.gridheight = 8;
 			menu.add(sizeSlider,con);
 			con.gridx = 1;
 			con.gridy++;
 			con.gridheight = 1 ;
 			menu.add(intersectBox,con);
+			con.gridy++;
+			menu.add(subtractBox,con);
 			con.gridy++;
 			menu.add(zerobased,con);
 			con.gridy++;
@@ -239,6 +243,7 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			collapseBox.setSelected(true);
 			limitField.addMouseListener(this);
 			intersectBox.addActionListener(this);
+			subtractBox.addActionListener(this);
 			zerobased.addActionListener(this);
 			logscale.addActionListener(this);
 			limitField.addKeyListener(this);
@@ -322,10 +327,38 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			}
 		}
 		else if(e.getSource() == intersectBox) {
+			subtractBox.setSelected(false);
+			Object[] t1 = new Object[Main.bedCanvas.bedTrack.size()];
 			
-			Main.bedCanvas.checkIntersectAll(FileRead.head.getNext());
+			for(int i = 0; i<t1.length; i++) {
+				if(!Main.bedCanvas.bedTrack.get(i).intersect) {
+					continue;
+				}
+				if(Main.bedCanvas.bedTrack.get(i).getIntersectBox().isSelected()) {			
+					t1[i] = 1;		
+				}				
+			}	
+			
+			Main.bedCanvas.checkIntersectAll(FileRead.head.getNext(),t1);			
 			Draw.updatevars = true;
-			Main.drawCanvas.repaint();;
+			Main.drawCanvas.repaint();
+		}
+		else if(e.getSource() == subtractBox) {
+			intersectBox.setSelected(false);
+			Object[] t1 = new Object[Main.bedCanvas.bedTrack.size()];
+			
+			for(int i = 0; i<t1.length; i++) {
+				if(!Main.bedCanvas.bedTrack.get(i).intersect) {
+					continue;
+				}
+				if(Main.bedCanvas.bedTrack.get(i).getIntersectBox().isSelected()) {			
+					t1[i] = 1;		
+				}				
+			}	
+			
+			Main.bedCanvas.checkIntersectAll(FileRead.head.getNext(),t1);
+			Draw.updatevars = true;
+			Main.drawCanvas.repaint();
 		}
 		else if(e.getSource() == columnSelector) {
 			if(selector != null) {
@@ -333,10 +366,7 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			}
 			
 		}
-		/*else if(e.getSource() == collapseBox) {
-			
-			
-		}*/
+		
 		Main.bedCanvas.repaint();
 		
 	}

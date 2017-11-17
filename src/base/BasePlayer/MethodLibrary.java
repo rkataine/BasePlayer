@@ -1191,8 +1191,9 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 			
 			return "";
 		}
-	
+		
 		if(!amino.contains(";")) {
+			
 			if(!amino.contains("UTR") && (amino.contains("fs") || (amino.length() == 7 && amino.startsWith("Met1") && !amino.substring(4).equals("Met")) || amino.contains("spl"))) {
 				
 				return "nonsense";
@@ -1221,7 +1222,7 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 		}
 		else {
 			
-			if(!amino.contains("UTR") && (amino.contains("fs") ||amino.contains("spl") ||  (amino.matches(".*Met1\\D+.*") && !amino.matches(".*Met1Met.*")))) {
+			if((amino.contains("fs") || amino.contains("spl") ||  (amino.matches(".*Met1\\D+.*") && !amino.matches(".*Met1Met.*")))) {
 				return "nonsense";
 			}
 			String[] aminoTable = amino.split(";");

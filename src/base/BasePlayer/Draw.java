@@ -55,6 +55,7 @@ import java.util.TimerTask;
 
 
 
+
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -947,12 +948,15 @@ public void drawVars(int offset) {
 						
 							for(int i = 0; i<entry.getValue().size(); i++) {
 								
-								try {		
+								try {
+									if(entry.getValue().get(i).allelenumber != null) {
+										break;
+									}
 									sample = entry.getValue().get(i).getSample();
-									
+									/*
 									if(sample == null) {
 										continue;
-									}
+									}*/
 									
 									if(sample.getIndex() < drawVariables.visiblestart) {											
 										continue;
@@ -1154,11 +1158,11 @@ public void drawVars(int offset) {
 					
 				}
 			}
-				catch(Exception e) {
-					updatevars = false;
-					ErrorLog.addError(e.getStackTrace());
-					e.printStackTrace();
-				}
+			catch(Exception e) {
+				updatevars = false;
+				ErrorLog.addError(e.getStackTrace());
+				e.printStackTrace();
+			}
 		
 				if(calculateVars) {	
 					if(VariantHandler.indelFilters.isSelected()) {
@@ -1283,13 +1287,14 @@ boolean hideNode(VarNode node) {
 		}		
 	}
 	
-	if(Main.bedCanvas.bedOn && !node.bedhit) {	
+	if(Main.bedCanvas.bedOn) {	
 		
-		
-		if(!FileRead.readFiles && !Main.bedCanvas.annotator) {
-			
-			return true;
-		}		
+		if(!node.bedhit) {
+			if(!FileRead.readFiles && !Main.bedCanvas.annotator) {
+				
+				return true;
+			}		
+		}
 	}
 	
 	return false;
@@ -1547,9 +1552,16 @@ boolean hideNodeVar(VarNode node, Entry<String, ArrayList<SampleNode>> entry ) {
 				if(!entry.getValue().get(i).getControlSample().controlOn) {
 					continue;
 				}				
-				if(entry.getValue().get(i).alleles/(double)entry.getValue().get(i).allelenumber > entry.getValue().get(i).getControlSample().alleleFreq) {						
-					return true;
-				}				
+				/*if(entry.getValue().get(i).getControlSample().alleleFreq > 1) {
+					if(entry.getValue().get(i).alleles > entry.getValue().get(i).getControlSample().alleleFreq) {						
+						return true;
+					}
+				}
+				else {*/
+					if(entry.getValue().get(i).alleles/(double)entry.getValue().get(i).allelenumber > entry.getValue().get(i).getControlSample().alleleFreq) {						
+						return true;
+					}
+				//}
 			}			
 		}					
 	}	
@@ -1768,7 +1780,7 @@ void drawSidebar() {
 	sidebuf.setColor(Color.black);
 	if(drawVariables.sampleHeight < Main.defaultFontSize) {
 		sidebuf.drawString("Tracks: " +Main.samples, 10, Main.defaultFontSize + 5);
-		if(selectedSample != null) {
+		if(selectedSample != null && !selectedSample.removed) {
 			sidebuf.drawString("Selected: " +(selectedSample.getIndex()+1) +". " +selectedSample.getName(), 10, Main.defaultFontSize*3);
 		}
 		if(sidebar && selectedIndex > -1  && removeSample == null) {
@@ -2335,9 +2347,7 @@ void drawVarCurtain() {
 	else {
 		
 		if(varStartRect.x != -1) {
-			varStartRect.setBounds(-1, -1, 0,0);
-			
-			
+			varStartRect.setBounds(-1, -1, 0,0);			
 		}
 	}
 	
@@ -2396,7 +2406,7 @@ void drawNavbar() {
 
 
 void searchMate(ReadNode readnode) {
-	if(readnode.getMatePos() == -1) {
+	if(readnode.getMatePos() == -1 || clickedReadSample.getreadHash() == null || clickedReadSample.getreadHash().get(readnode.split) == null) {
 		return;
 	}
 	
@@ -2962,8 +2972,7 @@ void clearReads(SplitClass split) {
 		split.getReadBuffer().fillRect(0,0,(int)Main.screenSize.getWidth(), Main.drawScroll.getViewport().getHeight());	
 		split.getSelectbuf().fillRect(0,0,(int)Main.screenSize.getWidth(), Main.drawScroll.getViewport().getHeight());	
 		split.getSelectbuf().setComposite(split.getBackups());		
-		split.getSelectbuf().setComposite(split.getBackupr());
-		
+		split.getSelectbuf().setComposite(split.getBackupr());		
 		Reads reads;
 	
 	for(int i = 0 ; i< this.sampleList.size(); i++) {
@@ -2994,11 +3003,9 @@ void clearReads(SplitClass split) {
 		reads.setCoverageStart(Integer.MAX_VALUE);
 		reads.setCoverageEnd(0);
 
-	}
+	}	
 	
-	
-	reads = null;
-	
+	reads = null;	
 	row = null;
 	read = null;
 	selectedRead = null;
@@ -3006,7 +3013,6 @@ void clearReads(SplitClass split) {
 	saReads = null;
 	splitList.clear();
 	selectedMate = null;
-
 	split.clearedReads = true;
 
 	}
@@ -4570,6 +4576,7 @@ public void mouseMoved(MouseEvent event) {
 				sidebar = true;
 				mouseRect.setBounds(moveX, moveY-Main.drawScroll.getVerticalScrollBar().getValue(), 1,1);
 				selectedIndex = (int)((moveY)/drawVariables.sampleHeight);
+				
 			}
 			else {
 				sidebar = false;
@@ -4579,6 +4586,7 @@ public void mouseMoved(MouseEvent event) {
 			if(!sidebar) {
 				if(selectedIndex != (int)((moveY)/drawVariables.sampleHeight) ) {
 					selectedIndex = (int)((moveY)/drawVariables.sampleHeight);
+					
 					if(selectedIndex > Main.samples-1) {
 						selectedIndex =  Main.samples-1;
 					}
@@ -4827,7 +4835,7 @@ public void mouseClicked(MouseEvent event) {
 							}
 						}
 					}
-					selectedSample = sampleList.get(selectedSampleIndex);			
+					selectedSample = sampleList.get(selectedSampleIndex);
 					
 					repaint();
 					break;					
@@ -5872,7 +5880,9 @@ void release() {
 @Override
 public void mouseReleased(MouseEvent event) {
 	readScrollDrag = false;
-
+	if(sidebar) {
+		return;
+	}
 	if(zoomDrag) {
 		
 		zoom();		

@@ -155,7 +155,7 @@ public class FileRead extends SwingWorker< String, Object >  {
 	public static String outputName = "";
 	public static long filepointer = 0;	
 	HashMap<String, Integer[]> contexts;
-	static int[][] array;
+	//static int[][] array;
 	public static BufferedWriter sigOutput;
 	
 	public FileRead(File[] files) {
@@ -1398,26 +1398,47 @@ static void checkMulti(Sample sample) {
 	}
 	catch(Exception e) {
 		e.printStackTrace();
-	}
-	 
+	}	 
 }
 
 public static class SearchBamFiles extends SwingWorker<String, Object> {		
 	boolean cram = false;
 	SamReader samFileReader;	
-	int sampletemp, fileindex;
+	int sampletemp;
 	
 	CRAMFileReader CRAMReader = null;
 	File[] files;
-	public SearchBamFiles(File[] files, int fileindex, int sampletemp) {
+	ArrayList<File> bamdirs;
+	public SearchBamFiles(File[] files, ArrayList<File> bamdirs, int sampletemp) {
 		this.files = files;
-		this.fileindex = fileindex;
+		this.bamdirs = bamdirs;
+		/*this.fileindex = fileindex;*/
 		this.sampletemp = sampletemp;
+		 
 	}
 	protected String doInBackground() {		
 		try {
-			File[] bamfiles = null;
+			File[] bamfilestemp = null;
+			ArrayList<File> bamfiles = new ArrayList<File>();
 			searchingBams = true;
+			
+			for(int i = 0 ; i<bamdirs.size(); i++) {
+				
+				bamfilestemp = bamdirs.get(i).listFiles(new FilenameFilter() {
+					 public boolean accept(File dir, String name) {
+							
+					        return name.toLowerCase().endsWith(".bam") || name.toLowerCase().endsWith(".cram");
+					     }
+			  		 });
+				
+					if(bamfilestemp != null) {
+						for(int j = 0; j<bamfilestemp.length; j++) {
+							
+							bamfiles.add(bamfilestemp[j]);
+						}
+					}
+			}
+			/*
 			if(fileindex > files.length) {
 				bamfiles = files[0].listFiles(new FilenameFilter() {
 				 public boolean accept(File dir, String name) {
@@ -1439,21 +1460,20 @@ public static class SearchBamFiles extends SwingWorker<String, Object> {
 	         }
 	       	 });
 	  		*/
-	  	 if(bamfiles.length > 0) {
+	  	 if(bamfiles.size() > 0) {
 	  		
 	  		int index = -1, sampleindex;
-	  		 for(int i = 0; i<bamfiles.length; i++) {
+	  		 for(int i = 0; i<bamfiles.size(); i++) {
 	  			 
 	  			 cram = false;
 		  		 sampleindex = 0;
-		  		 index = sampleString.indexOf(bamfiles[i].getName().substring(0,bamfiles[i].getName().indexOf(".")));
-		  		
+		  		 index = sampleString.indexOf(bamfiles.get(i).getName().substring(0,bamfiles.get(i).getName().indexOf(".")));
 		  		
 		  		
 		  	 	 if (index < 0) continue; 
-		  	 	if(!checkIndex(bamfiles[i])) {
+		  	 	if(!checkIndex(bamfiles.get(i))) {
 		   			 Main.putMessage("Check Tools->View log");
-		   			 ErrorLog.addError("No index file found for " +bamfiles[i].getName());
+		   			 ErrorLog.addError("No index file found for " +bamfiles.get(i).getName());
 		   			 continue;
 		  	    	}
 		  	 	 for(char letter : sampleString.substring(0, index).toString().toCharArray()) {
@@ -1461,7 +1481,7 @@ public static class SearchBamFiles extends SwingWorker<String, Object> {
 		  	 	 }
 		  	 	Main.drawCanvas.bam = true;
 		  	 	Main.readsamples++;
-		  	 	Main.drawCanvas.sampleList.get(sampleindex+sampletemp).samFile = new File(bamfiles[i].getCanonicalPath());	 
+		  	 	Main.drawCanvas.sampleList.get(sampleindex+sampletemp).samFile = new File(bamfiles.get(i).getCanonicalPath());	 
 		  	 	Main.drawCanvas.sampleList.get(sampleindex+sampletemp).resetreadHash();
 		  	 	
 		  	 	
@@ -1469,7 +1489,7 @@ public static class SearchBamFiles extends SwingWorker<String, Object> {
 		  	 		checkSamples();
 		  	 	}
 		  	 	//samFileReader = SamReaderFactory.makeDefault().open(Main.drawCanvas.sampleList.get(sampleindex+sampletemp).samFile);
-			  	  if(bamfiles[i].getName().endsWith(".cram")){
+			  	  if(bamfiles.get(i).getName().endsWith(".cram")){
 			  		  try {
 			  			
 			  		//	CRAMReader = new CRAMFileReader(Main.drawCanvas.sampleList.get(sampleindex+sampletemp).samFile, new File(Main.drawCanvas.sampleList.get(sampleindex+sampletemp).samFile.getCanonicalFile() +".crai"),new ReferenceSource(Main.ref), ValidationStringency.LENIENT);
@@ -1529,18 +1549,17 @@ public static class SearchBamFiles extends SwingWorker<String, Object> {
 
 private void readVCF(File[] files) {
 		try {	 
-		//  boolean cram = false, diffPaths = false;
-	  	
-	  	  Main.drawCanvas.loading("Loading samples...");
-	  	  File[] addDir;
-	  	  int sampletemp = Main.samples;
-	  	  Boolean added = false;
-		   	Sample addSample = null;
-		  	sampleString = new StringBuffer(""); 
+	    Main.drawCanvas.loading("Loading samples...");
+  	    File[] addDir;
+  	    int sampletemp = Main.samples;
+  	    Boolean added = false;
+	   	Sample addSample = null;
+	  	sampleString = new StringBuffer(""); 
 		  	
-		  	int fileindex = -1;
-		  	readFiles = true;
-		  	cancelfileread = false;
+		int fileindex = -1;
+		readFiles = true;
+		cancelfileread = false;
+	  	ArrayList<File> bamdirs = new ArrayList<File>();
 	  	
 	 if(Control.controlData.controlsOn) {	    	
 	    Control.dismissControls(head);
@@ -1566,7 +1585,7 @@ private void readVCF(File[] files) {
   	    	        return name.toLowerCase().endsWith(".vcf.gz") || name.toLowerCase().endsWith(".vcf");
   	    	     }
   	    	});
-  	    	
+  	    	bamdirs.add(files[fi]);
   	    	for(int f= 0; f<addDir.length; f++) {
   	    		if(cancelfileread || !Main.drawCanvas.loading) {
   	    			current = null;
@@ -1715,15 +1734,20 @@ private void readVCF(File[] files) {
   	    	if(!files[fi].getName().endsWith(".vcf") && !files[fi].getName().endsWith(".vcf.gz")) {
   	  			continue;
   	  		}
+  	    	
+  	    	if(!bamdirs.contains(files[fi].getParentFile())) {
+  	    		bamdirs.add(files[fi].getParentFile());
+  	    	}
+  	    	
   	    	if(!checkIndex(files[fi])) {
-   			 Main.putMessage("Check Tools->View log");
-   			 ErrorLog.addError("No index file found for " +files[fi].getName());
-   			 Main.drawCanvas.loadingtext = "Creating index for " +files[fi].getName();
+	   			 Main.putMessage("Check Tools->View log");
+	   			 ErrorLog.addError("No index file found for " +files[fi].getName());
+	   			 Main.drawCanvas.loadingtext = "Creating index for " +files[fi].getName();
    			 if(files[fi].getName().endsWith(".vcf.gz")) {
    				 MethodLibrary.createVCFIndex(files[fi]);
    			 }
    			 else {
-   				MethodLibrary.createVCFIndex2(files[fi]);
+   				 MethodLibrary.createVCFIndex2(files[fi]);
    			 }   			
   	    	}
   	    	if(fileindex > -1) {
@@ -1752,7 +1776,11 @@ private void readVCF(File[] files) {
   		Main.drawCanvas.ready("Loading samples...");
   		 return;
   	 }
- 
+  	 if(bamdirs.size() > 0) {
+  		 
+		 SearchBamFiles search = new SearchBamFiles(files, bamdirs, sampletemp);
+		 search.execute();
+	 }
   	Main.drawCanvas.drawVariables.visiblesamples = (short)(Main.drawCanvas.sampleList.size());
   	Main.drawCanvas.checkSampleZoom();
   	Main.drawCanvas.resizeCanvas(Main.drawScroll.getViewport().getWidth(),Main.drawScroll.getViewport().getHeight());
@@ -1809,9 +1837,9 @@ private void readVCF(File[] files) {
 		  else {
 			//  iterator = tabixreader.query(Main.drawCanvas.sampleList.get(i).vcfchr +Main.chromosomeDropdown.getSelectedItem().toString());
 			  Main.drawCanvas.variantsStart = 0;
-			  Main.drawCanvas.variantsEnd = Main.drawCanvas.splits.get(0).chromEnd;
+			  Main.drawCanvas.variantsEnd = Main.drawCanvas.splits.get(0).chromEnd;			 
 			  getVariants(Main.chromosomeDropdown.getSelectedItem().toString(), Main.drawCanvas.variantsStart,Main.drawCanvas.variantsEnd, Main.drawCanvas.sampleList.get(i));
-				 
+			 
 		  }		 
 	  }
 	  catch(Exception e) {
@@ -1903,10 +1931,7 @@ private void readVCF(File[] files) {
 	Main.opensamples.setText("Add samples");
 	checkSamples();
   	annotate();
-  	 if(fileindex > -1) {
-		 SearchBamFiles search = new SearchBamFiles(files, fileindex, sampletemp);
-		 search.execute();
-	 }
+	
     readFiles = false;
  //   Main.drawCanvas.clusterCalc = true;
     if(Control.controlData.controlsOn) {		    	
@@ -2942,9 +2967,7 @@ static void annotate() {
 				Main.drawCanvas.ready("all");
 			}			
 		}		
-		else if(current.getPosition() == pos) {
-			
-			
+		else if(current.getPosition() == pos) {			
 			current.addSample(altbase, refcalls+altcalls, altcalls, genotype, quality, gq,advancedQualities,  sample);
 			
 			if(noref ) {
@@ -2964,8 +2987,7 @@ static void annotate() {
 			if(current.isRscode() == null && !split[2].equals(".")) {							
 				current.setRscode(split[2]);
 			}
-			if(multi) {
-				
+			if(multi) {				
 				String[] altsplit = split[4].split(",");
 				for(int i = 1; i<altsplit.length; i++) {
 					altbase = getVariant(split[3],altsplit[i]);
@@ -2978,10 +3000,13 @@ static void annotate() {
 						if(checkAdvQuals(split[7], altbase.length() > 1)) {
 							continue;
 						}				
+					}			
+					try {
+					current.getNext().addSample(altbase, refcalls+altcalls, refcalls, genotype, quality, gq, advancedQualities, sample);					
 					}
-					
-					current.getNext().addSample(altbase, refcalls+altcalls, refcalls, genotype, quality, gq, advancedQualities, sample);		
-					
+					catch(Exception e) {
+						System.out.println(current.getChrom() +":" +current.getPosition());
+					}
 				}
 			}
 		}
@@ -4417,7 +4442,7 @@ void readBED(File[] files) {
 	    	  addTrack.small = true;		    	
 	    	  Main.bedCanvas.getBEDfeatures(addTrack, 1, Main.drawCanvas.splits.get(0).chromEnd);		    	 
 	      }	
-	      else if(bedfile.getName().toLowerCase().endsWith(".bedgraph") || bedfile.getName().toLowerCase().endsWith(".bedgraph.gz")) {	    	  
+	      if(bedfile.getName().toLowerCase().endsWith(".bedgraph") || bedfile.getName().toLowerCase().endsWith(".bedgraph.gz")) {	    	  
 	      
 	    	  Main.bedCanvas.pressGraph(addTrack);
 	    	  addTrack.getSelectorButton().setVisible(true);
@@ -4531,7 +4556,7 @@ static void setBedTrack(BedTrack addTrack) {
 				  }
 				 
 			  }
-			  if(Main.SELEXhash.containsKey(split[3])) {								
+			  if(split.length > 3 && Main.SELEXhash.containsKey(split[3])) {								
 				  addTrack.selex = true;
 				  addTrack.getAffinityBox().setVisible(true);
 				  addTrack.iszerobased = 1;
@@ -5460,14 +5485,14 @@ static void removeBedLinks() {
 void varCalc() {
 	try {
 		
-	array = new int[Main.drawCanvas.sampleList.size()][101];
+	/*array = new int[Main.drawCanvas.sampleList.size()][101];
 	
 	for(int i = 0; i<array.length; i++) {
 		for(int j = 0; j<array[i].length; j++) {
 			array[i][j] = 0;
 		}
 	}
-	
+	*/
 	
 	contexts = null;
 	Draw.calculateVars = false;
@@ -5521,9 +5546,9 @@ void varCalc() {
 	VariantHandler.freeze.setSelected(true);	
 	Object[] addobject;
 	
-	for(int i=0; i<Main.samples; i++) {
+	for(int i=0; i<Main.drawCanvas.sampleList.size(); i++) {
 		
-		if(Main.drawCanvas.sampleList.get(i).getTabixFile() == null && (FileRead.caller && Main.drawCanvas.sampleList.get(i).samFile == null) && !Main.drawCanvas.sampleList.get(i).calledvariants && !Main.drawCanvas.sampleList.get(i).multipart) {
+		if(Main.drawCanvas.sampleList.get(i).multiVCF || (Main.drawCanvas.sampleList.get(i).getTabixFile() == null && !Main.drawCanvas.sampleList.get(i).multipart) && (FileRead.caller && Main.drawCanvas.sampleList.get(i).samFile == null) && !Main.drawCanvas.sampleList.get(i).calledvariants) {
 			continue;
 		}
 		addobject = new  Object[VariantHandler.stattable.headerlengths.length];
@@ -5555,7 +5580,8 @@ void varCalc() {
 		Main.drawCanvas.sampleList.get(i).inframe = 0;
 		
 	}
-	VariantHandler.stattable.setPreferredSize(new Dimension(VariantHandler.statsScroll.getViewport().getWidth(), (VariantHandler.stattable.sampleArray.size()+1)*15+2));
+	
+	VariantHandler.stattable.setPreferredSize(new Dimension(VariantHandler.statsScroll.getViewport().getWidth(), (VariantHandler.stattable.sampleArray.size()+1)*(Main.defaultFontSize+5)+2));
 	VariantHandler.stattable.revalidate();
 	VariantHandler.stattable.repaint();
 	
@@ -5790,7 +5816,7 @@ void varCalc() {
 	try {
 			
 		if(output != null) {
-			if(VariantHandler.onlyStats.isSelected()) {
+			if(VariantHandler.onlyStats.isSelected() && VariantHandler.outputContexts.isSelected()) {
 				for(int i = 0 ; i<VariantHandler.stattable.sampleArray.size(); i++) {
 		  		 sample = (Sample)VariantHandler.stattable.sampleArray.get(i)[0];
 		  		 output.write(sample.getName());
@@ -5870,7 +5896,7 @@ void varCalc() {
 		e.printStackTrace();
 	}
 
-	if(contexts != null) {
+	/*if(contexts != null) {
 		
 		Iterator<Entry<String, Integer[]>> iter = contexts.entrySet().iterator();
 		System.out.print("#mutType");
@@ -5898,7 +5924,7 @@ void varCalc() {
 			}
 			System.out.println();			
 		}	
-	}
+	}*/
 	//boolean found = false;
 	/*
 	StringBuffer copy = new StringBuffer("");
@@ -6044,8 +6070,8 @@ void varCalcBig() {
 	
 	Object[] addobject;
 	
-	for(int i=0; i<Main.samples; i++) {
-		if(Main.drawCanvas.sampleList.get(i).getTabixFile() == null && !Main.drawCanvas.sampleList.get(i).multipart) {
+	for(int i=0; i<Main.drawCanvas.sampleList.size(); i++) {
+		if(Main.drawCanvas.sampleList.get(i).multiVCF || (Main.drawCanvas.sampleList.get(i).getTabixFile() == null && !Main.drawCanvas.sampleList.get(i).multipart)) {
 			continue;
 		}
 		addobject = new  Object[VariantHandler.stattable.headerlengths.length];
@@ -6079,7 +6105,7 @@ void varCalcBig() {
 		Main.drawCanvas.sampleList.get(i).inframe = 0;
 		
 	}
-	VariantHandler.stattable.setPreferredSize(new Dimension(VariantHandler.statsScroll.getViewport().getWidth(), (VariantHandler.stattable.sampleArray.size()+1)*15+2));
+	VariantHandler.stattable.setPreferredSize(new Dimension(VariantHandler.statsScroll.getViewport().getWidth(), (VariantHandler.stattable.sampleArray.size()+1)*(Main.defaultFontSize+5)+2));
 	VariantHandler.stattable.revalidate();
 	VariantHandler.stattable.repaint();
 	clearVariantsFromGenes();
@@ -6493,7 +6519,7 @@ void writeToFile(VarNode vardraw, BufferedWriter output, BlockCompressedOutputSt
 				}				
 			}
 		}
-		else if(VariantHandler.vcf.isSelected()){
+		else if(VariantHandler.vcf.isSelected() || VariantHandler.oncodrive.isSelected()){
 			
 			/* ArrayList<VarNode> nodes = new ArrayList<VarNode>();			
 			 String lastChrom;
@@ -6583,8 +6609,7 @@ void flushVars(VarNode vardraw) {
 					if(lastWriteVar.isInGene()) {
 						if(lastWriteVar.getExons() != null) {
 							for(int i = 0 ; i<lastWriteVar.getExons().size(); i++) {
-								if(lastWriteVar.getExons().get(i).getTranscript().getGene().samples.size() >= VariantHandler.geneSlider.getValue()) {
-									
+								if(lastWriteVar.getExons().get(i).getTranscript().getGene().samples.size() >= VariantHandler.geneSlider.getValue()) {									
 									found = true;
 								}
 								else {
@@ -6799,23 +6824,24 @@ VarNode annotateVariant(VarNode vardraw) {
 						}
 					}*/
 					if(VariantHandler.onlyStats.isSelected()) {
-					/*	String context = Main.chromDraw.getSeq(Main.drawCanvas.splits.get(0).chrom,vardraw.getPosition()-1, vardraw.getPosition()+2, Main.referenceFile).toString();
-						boolean set = false;
-						if(contexts == null) {
-							contexts = new HashMap<String, Integer[]>();
-						}
-						
-						if(base.equals("T")) {
-							if(context.endsWith("CG")) {	
-								set = true;
+						if(VariantHandler.outputContexts.isSelected()) {
+							String context = Main.chromDraw.getSeq(Main.drawCanvas.splits.get(0).chrom,vardraw.getPosition()-1, vardraw.getPosition()+2, Main.referenceFile).toString();
+							//boolean set = false;
+							if(contexts == null) {
+								contexts = new HashMap<String, Integer[]>();
 							}
-						}	
-						if(base.equals("A")) {
-							if(context.startsWith("CG")) {	
-								set = true;
-							}
-						}
-						if(set) {
+							/*
+							if(base.equals("T")) {
+								if(context.endsWith("CG")) {	
+									set = true;
+								}
+							}	
+							if(base.equals("A")) {
+								if(context.startsWith("CG")) {	
+									set = true;
+								}
+							}*/
+						//	if(set) {
 							
 								basecontext = base+context;						
 								
@@ -6841,7 +6867,8 @@ VarNode annotateVariant(VarNode vardraw) {
 										contexts.get(base+context)[sample.getIndex()] = 1; 
 									}
 								}		
-						} */
+						}
+					//		} 
 					}
 					
 					sample.snvs++;
@@ -6849,12 +6876,11 @@ VarNode annotateVariant(VarNode vardraw) {
 					try {
 						if(!Main.getBase.get(vardraw.getRefBase()).equals("N")) {
 							sample.mutationTypes[Main.mutTypes.get(Main.getBase.get(vardraw.getRefBase()) +entry.getKey())]++;
-						}
-						
+						}						
 					}
 					catch(Exception e) {
 						
-						System.out.println(vardraw.getPosition() +" " +(char)vardraw.getRefBase() +entry.getKey());
+						System.out.println(sample +" " +vardraw.getPosition() +" " +(char)vardraw.getRefBase() +" " +Main.getBase.get(vardraw.getRefBase()) +" " +entry.getKey());
 						e.printStackTrace();
 					}
 					if(((char)vardraw.getRefBase() == 'A' && entry.getKey().equals("G")) || ((char)vardraw.getRefBase() == 'G' && entry.getKey().equals("A")) || ((char)vardraw.getRefBase() == 'C' && entry.getKey().equals("T")) || ((char)vardraw.getRefBase() == 'T' && entry.getKey().equals("C"))) {
