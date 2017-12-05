@@ -1,6 +1,6 @@
-DefaultDir=X:\cg8\Riku\Ohutsuoli\Originals
-DefaultTrackDir=X:\cg8\Riku\Ohutsuoli\bafseg_control\segmented\beds
-DefaultControlDir=X:\cg8\Riku\Ohutsuoli
+DefaultDir=X:\cg7\projects\Ohutsuoli\Ohutsuoli38_1_16-0564TP_T_160901_K00110_0098_BHCM72BBXX\wgspipeline
+DefaultTrackDir=\\ATKK\home\r\rkataine\Desktop
+DefaultControlDir=X:\cg8\Controls\wxs
 DefaultProjectDir=\\ATKK\home\r\rkataine\Documents
 DefaultGenome=Homo_sapiens.GRCh37
 DefaultGenes=Homo_sapiens.GRCh37.87.bed.gz

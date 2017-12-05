@@ -26,26 +26,28 @@ public class Plotter extends JPanel {
 	double[] chromNormalize = {
 			1.02702702702703,
 			1.08108108108108,
+			1.08108108108108,
 			1.10810810810811,
-			1.13513513513514,
+			1.08108108108108,
 			1.10810810810811,
-			1.24324324324324,
 			0.972972972972973,
 			0.972972972972973,
-			0.891891891891892,
-			0.945945945945946,
-			0.945945945945946,
+			0.918918918918919,
+			0.972972972972973,
+			0.972972972972973,
 			1,
 			1.02702702702703,
 			1.02702702702703,
 			0.972972972972973,
-			0.783783783783784,
-			0.837837837837838,
-			1.08108108108108,
 			0.810810810810811,
+			0.864864864864865,
+			1.08108108108108,
 			0.837837837837838,
+			0.864864864864865,
 			0.891891891891892,
-			0.783783783783784
+			0.810810810810811,
+			1.08108108108108
+
 	};	
 	
 	public Plotter(int[][] array, int width) {
@@ -80,28 +82,40 @@ public class Plotter extends JPanel {
 			
 			String path = "/mnt/cg8/Riku/Ohutsuoli/bafseg" +control +"/";
 			if(!merit) {
+				//path = "C:/HY-Data/RKATAINE/temp/";
 				path = "X:/cg8/Riku/Ohutsuoli/bafseg" +control +"/";
 			}
-			//BufferedReader coverages = new BufferedReader(new FileReader(path +"/cg8/Riku/Ohutsuoli/MSS_coverages.txt"));
+			//BufferedReader coverages = new BufferedReader(new FileReader("C:/HY-Data/RKATAINE/temp/coverages.txt"));
 			BufferedReader coverages = new BufferedReader(new FileReader(path +"coverages.txt"));
+			BufferedReader females = new BufferedReader(new FileReader(path +"females.txt"));
 			String line;
 			String[] split;
 			HashMap<String, Integer> covs = new HashMap<String, Integer>();
-						
+			HashMap<String, Integer> fems = new HashMap<String, Integer>();
+			
 			while((line = coverages.readLine()) != null) {
 				split = line.split("\\s+");
 				covs.put(split[0], Integer.parseInt(split[3]));
 			}
 			coverages.close();
+			while((line = females.readLine()) != null) {
+				fems.put(line.trim(), 1);
+			}
+			females.close();
+			
 			this.width = width;			
 			chromsize = Main.drawCanvas.splits.get(0).chromEnd;
 			simplearray = new int[chromsize/windowsize];
 			barwidth =width/simplearray.length;			
 			Map.Entry<String, ArrayList<SampleNode>> entry;
 			HashMap<String, BufferedWriter> samplewriter = new HashMap<String, BufferedWriter>();
-			
+			BufferedWriter namewriter = null;
+			if(VariantHandler.synonymous.isSelected()) {
+				namewriter = new BufferedWriter(new FileWriter(path +"extracted/sample_names.txt"));
+				namewriter.write("Assay\tFilename\tIGV_index\n");
+			}
 			//BufferedWriter namewriter = new BufferedWriter(new FileWriter(path +"extracted/sample_names.txt"));
-			//namewriter.write("Assay\tFilename\tIGV_index\n");
+			//
 			for(int i = 0 ; i<Main.drawCanvas.sampleList.size(); i++) {
 				if(Main.drawCanvas.sampleList.get(i).multiVCF || Main.drawCanvas.sampleList.get(i).getTabixFile() == null) {
 					continue;
@@ -109,15 +123,26 @@ public class Plotter extends JPanel {
 				BufferedWriter writer = new BufferedWriter(new FileWriter(path +"extracted/"+Main.drawCanvas.sampleList.get(i).getName() +".tsv"));
 				writer.write("Name\tChr\tPosition\tGenotype\tB Allele Frequency\tLog R Ratio\tamplified\tdepleted\n");
 				samplewriter.put(Main.drawCanvas.sampleList.get(i).getName(), writer);
-			//	namewriter.write(Main.drawCanvas.sampleList.get(i).getName() +"\t" +Main.drawCanvas.sampleList.get(i).getName() +".tsv\t" +i +"\n");
+				if(namewriter!=null) {
+					namewriter.write(Main.drawCanvas.sampleList.get(i).getName() +"\t" +Main.drawCanvas.sampleList.get(i).getName() +".tsv\t" +i +"\n");
+				}		
 			}
-		//	namewriter.close();
+			if(namewriter!=null) {
+				namewriter.close();
+			}
 			for(int i = 0; i<simplearray.length; i++) {
 				simplearray[i] = 0;
 			}
 			double logr = 0;
+			boolean X = false;
 			for(int i = 1 ; i<24; i++) {
-				System.out.println(i);
+				try {
+				if(X) {
+					System.out.println("X");
+				}
+				else {
+					System.out.println(i);
+				}
 				VarNode node = FileRead.head.getNextVisible(FileRead.head);
 				while(node != null) {
 					if(node.isRscode() == null || node.indel) {
@@ -140,8 +165,17 @@ public class Plotter extends JPanel {
 							if(entry.getKey().length() > 1) {
 								continue;
 							}
-							logr = Math.log(entry.getValue().get(m).getCoverage()/(double)(covs.get(entry.getValue().get(m).getSample().getName())*chromNormalize[i-1]))/(double)Math.log(2);
-							
+							if(X) {
+								if(!fems.containsKey(entry.getValue().get(m).getSample().getName())) {
+									continue;
+								}
+								logr = Math.log(entry.getValue().get(m).getCoverage()/(double)(covs.get(entry.getValue().get(m).getSample().getName())*chromNormalize[22]))/(double)Math.log(2);
+								
+							}
+							else {
+								logr = Math.log(entry.getValue().get(m).getCoverage()/(double)(covs.get(entry.getValue().get(m).getSample().getName())*chromNormalize[i-1]))/(double)Math.log(2);
+							}
+							//logr = 0.0;
 							if(entry.getValue().get(m).isHomozygous()) {
 							//	System.out.println(entry.getValue().get(m).getSample().getName() +"\t" +node.getChrom() +"\t" +(node.getPosition()+1) +"\t" +entry.getKey() +entry.getKey() +"\t" +entry.getValue().get(m).getAlleleFraction() +"\t0\t0\t0");
 								samplewriter.get(entry.getValue().get(m).getSample().getName()).write(node.isRscode()+"\t" +node.getChrom() +"\t" +(node.getPosition()+1) +"\t" +entry.getKey() +entry.getKey() +"\t" +entry.getValue().get(m).getAlleleFraction() +"\t" +logr +"\t" +Main.getBase.get(node.getRefBase()) +"\t" +entry.getKey() +"\n");
@@ -155,18 +189,32 @@ public class Plotter extends JPanel {
 					}
 					
 					node = node.getNextVisible(node);
+				}					
+				if(X) {
+					break;
 				}
 				Main.nothread = true;
-				Main.chromosomeDropdown.setSelectedIndex(i);
+				if(i < 22) {
+					Main.chromosomeDropdown.setSelectedIndex(i);
+				}
+				else {
+					X = true;
+					Main.chromosomeDropdown.setSelectedItem("X");
+				}
+				}
+				catch(Exception e) {
+					e.printStackTrace();
+				}
 			}
+		
 			for(int i = 0 ; i<Main.drawCanvas.sampleList.size(); i++) {
 				if(Main.drawCanvas.sampleList.get(i).multiVCF || Main.drawCanvas.sampleList.get(i).getTabixFile() == null) {
 					continue;
 				}
 				samplewriter.get(Main.drawCanvas.sampleList.get(i).getName()).close();
 			}
+			Main.drawCanvas.ready("all");
 		
-			
 		}
 		catch(Exception e) {
 			e.printStackTrace();

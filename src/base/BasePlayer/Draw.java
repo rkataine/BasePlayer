@@ -1174,7 +1174,7 @@ public void drawVars(int offset) {
 						VariantHandler.totalVars.setText("Variant count on screen: " +varCalc);
 						VariantHandler.totalVarsIndel.setText("Indel count on screen: " +indelCalc);
 					}
-					if(varCalc == 0 && variantsEnd != 1) {
+					if(varCalc == 0 && variantsEnd != 1 && !VariantHandler.allChroms.isSelected()) {
 						VariantHandler.varcalc.setEnabled(false);
 						VariantHandler.varcalc.setToolTipText("No variants on screen.");
 						/*if(VariantHandler.table.genearray.isEmpty()) {

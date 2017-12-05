@@ -545,6 +545,9 @@ void drawCyto(SplitClass split) {
 	chromImageBuffer.drawRect(startPixel+1, 1, areaWidth, cytoHeight-2);		
 
 	chromImageBuffer.setColor(Color.black);	
+	if(split.getChromBands() == null) {
+		return;
+	}
 	for(int i =split.getChromBands().size()-1 ; i>=0; i--) {
 		try {
 					

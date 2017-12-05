@@ -1506,6 +1506,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		}
 		else if(event.getSource() == allChroms) {
 			if(allChroms.isSelected()) {
+				varcalc.setEnabled(true);
 				aminomenu.add(allChromsfrom,6);		
 				aminomenu.add(onlyAutosomes,7);
 				aminomenu.getPopupMenu().pack();

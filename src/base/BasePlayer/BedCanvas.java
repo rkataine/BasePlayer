@@ -1333,8 +1333,13 @@ public class BedReader extends SwingWorker<String, Object> {
 			if(tabixReader != null) {
 				tabixReader.close();
 			}			
-			if(track.file != null) {			
-				if(track.file.getName().toLowerCase().endsWith(".bb") || track.file.getName().toLowerCase().endsWith(".bigwig") || track.file.getName().toLowerCase().endsWith(".bigbed")|| track.file.getName().toLowerCase().endsWith(".bw")) {
+			if(track.file != null) {	
+				if(track.file.getName().endsWith(".txt")) {					
+					getGeneTxt(track);
+					return;
+				}
+				
+				else if(track.file.getName().toLowerCase().endsWith(".bb") || track.file.getName().toLowerCase().endsWith(".bigwig") || track.file.getName().toLowerCase().endsWith(".bigbed")|| track.file.getName().toLowerCase().endsWith(".bw")) {
 					if(track.getBBfileReader() == null) {
 						track.setBBfileReader(new BBFileReader(track.file.getCanonicalPath(), track));
 					}
@@ -1649,13 +1654,9 @@ public class BedReader extends SwingWorker<String, Object> {
 		//Main.drawCanvas.ready("Reading BED-file");
 		 
 	}
-	protected String doInBackground() {
+	protected String doInBackground() {		
 		
-		
-		if(track.file != null && track.file.getName().endsWith(".txt")) {
-			
-			
-			
+		if(track.file != null && track.file.getName().endsWith(".txt")) {			
 			return "";
 		}
 		
@@ -1679,7 +1680,7 @@ void getGeneTxt(BedTrack track) {
 	 BufferedReader reader = new BufferedReader(new FileReader(track.file.getCanonicalFile()));
 	 String gene;
 	 String[] result = {};
-	// System.out.println("#chrom\tstart\tend\tname");
+	 //System.out.println("#chrom\tstart\tend\tname");
 	 while((line = reader.readLine()) != null) {
 		 
 		 gene = line.replace(" ", "");	
@@ -1696,7 +1697,7 @@ void getGeneTxt(BedTrack track) {
 		
 		 if(result != null && result.length == 3) {
 			
-		
+			 //System.out.println(result[0] +"\t" +result[1] +"\t" +result[2] +"\t" +gene);
 			 if(result[0].equals(Main.chromosomeDropdown.getSelectedItem().toString())){
 				 position = Integer.parseInt(result[1]);
 				 addNode = track.getHead();
@@ -3037,7 +3038,7 @@ boolean annotate(BedNode head) {
 			}*/
 			
 			currentBed = currentBed.getNext();
-			if(head.getTrack().small) {
+			/*if(head.getTrack().small) {
 				if(currentBed == null) {
 					while(current != null) {
 						current.setBedhit(false);
@@ -3045,7 +3046,7 @@ boolean annotate(BedNode head) {
 					}
 					break;
 				}
-			}
+			}*/
 		}
 		
 	}
@@ -3055,11 +3056,14 @@ boolean annotate(BedNode head) {
 		e.printStackTrace();
 		
 	}
+	
 	if(!annotator && !FileRead.bigcalc) {
 		head.getTrack().used = true;
 	}
-	if(current != null) {
+	
+	while(current != null) {		
 		current.bedhit = checkIntersect(current, t1, t2);	
+		current = current.getNext();
 	}
 	current = null;
 	currentBed = null;
