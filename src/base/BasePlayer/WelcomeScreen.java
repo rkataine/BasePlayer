@@ -10,14 +10,22 @@
  *  
  */
 package base.BasePlayer;
-import java.awt.BorderLayout;
+
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Image;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FilenameFilter;
 import java.net.URL;
 import java.util.HashMap;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
@@ -37,26 +45,49 @@ public class WelcomeScreen  extends JPanel implements ActionListener {
 	static HashMap<String, URL[]> genomeHash = new HashMap<String, URL[]>();
 	static HashMap<String, Integer[]> sizeHash = new HashMap<String, Integer[]>();
 	static JCheckBox dontShow = new JCheckBox("Don't show this message again.");
+	static JButton OK = new JButton("Ok");
 	public WelcomeScreen() {
-		super(new BorderLayout());		
+		super(new GridBagLayout());		
 		try {
-		makeGenomes();
+		//makeGenomes();
+		
+			
 		this.setBackground(Color.black);
+		
 				
-		StringBuffer html = new StringBuffer("<html><body style='color:black;background:rgb(228,228,218);'><h1>Welcome to BasePlayer</h1>");
-				if(editorial) {
-					html.append("<p>This is editors/reviewers version of BasePlayer for testing purposes.<br>"
-							+ "Check http://baseplayer.fi for instructions<br>"
+		StringBuffer html = new StringBuffer("<html><body style='color:black;background:rgb(255,255,255);padding: 10px;'><div style='padding: 5px;background:rgb(245,245,245)'><h1>Welcome to BasePlayer</h1></div>");
+				
+		
+				if(Launcher.exampledata) {
+					html.append("<div style='padding: 5px; border: 2px solid rgb(245,245,245);'><p>This version contains example data for testing purposes.<br>"
+							
 							+ "This package includes following items:"
-							+ "<ul><li> human reference sequence and Ensembl gene annotation for chromosome 20.</li>"
-							+ "<li>6 whole-genome samples from 1000 Genomes Project, including variants (vcf.gz) and read sequences (cram). File->Open samples</li>"
-							+ "<li>Variant data from ExAC for allele frequency filtering. File->Add controls</li>"
-							+ "<li>Additional tracks for ENCODE regulatory regions, transcription factor binding sites from Ensembl Biomart and replication timing. File->Add tracks</li>"
+							+ "<ul><li> human reference sequence and Ensembl gene annotation for chromosome 20 (GRCh37).</li>"
+							+ "<li>6 whole-genome samples from 1000 Genomes Project, including variants (vcf.gz) and read sequences (cram).<br> </li>"
+							+ "<li>Variant data from gnomAD for allele frequency filtering.<br> </li>"
+							+ "<li>Additional tracks for ENCODE regulatory regions, transcription factor binding sites from Ensembl Biomart and replication timing.<br> </li>"
 							+ "</ul>"
-							+ "You can download whole reference genome and full annotation from links below.");					
+							+ "Open samples: \"File > Add Samples\"<br>"
+							+ "Add Tracks: \"File > Add Tracks\"<br>"
+							+ "Add Controls: \"File > Add Controls\"<br><br>"
+							+ "Check <a href=\"https://baseplayer.fi\">https://baseplayer.fi </a> for more instructions<br></div>");					
+				}
+				else {
+					html.append("<div style='padding: 5px; border: 2px solid rgb(245,245,245);'>");
+					
+					if(Main.genomeDir.listFiles().length < 2) {
+						html.append("<p>Before you start, please download a preferred genome from the menu behind this window.<br><br>");
+						
+					}
+							
+							
+							html.append("Open VCF and BAM/CRAM files: \"File > Add Samples\"<br>"
+							+ "Add BED, BedGraph, BigWig etc. Tracks: \"File > Add Tracks\"<br>"
+							+ "Add Controls (multisample-VCF): \"File > Add Controls\"<br><br>"
+							+ "Check <a href=\"https://baseplayer.fi\">https://baseplayer.fi </a> for more instructions<br></div>");			
 				}
 		
-		
+		/*
 				if(Main.genomehash == null || Main.genomehash.size() == 0) {
 					html.append("<p>Before we start, download your favorite genome using following links or add new genome by hand in File->Change/add genome->Add new genome</p><br>");					
 				}
@@ -73,42 +104,62 @@ public class WelcomeScreen  extends JPanel implements ActionListener {
 					html.append("<a href=http:Ciona_intestinalis:Ensembl_genes> Ciona intestinalis with Ensembl gene annotation</a><br>");
 				
 					html.append("</body> </html>");
-					
+			*/		
 			htmlPage = new JEditorPane();
 			
 			//htmlPage.setBackground(Draw.sidecolor);
+			if(Main.menuFont != null) {
+				htmlPage.setFont(Main.menuFont);
+			}
+			htmlPage.setBorder(BorderFactory.createMatteBorder(4, 4, 4, 4, Color.gray));
 			
-		//	htmlPage.setOpaque(false);	
+		
 			htmlPage.setEditable(false);
 			htmlPage.setEditorKit(JEditorPane.createEditorKitForContentType("text/html"));
 			htmlPage.setText(html.toString());
 			
-			htmlPage.setPreferredSize(new Dimension(400, 500));
+			htmlPage.setPreferredSize(new Dimension(500, 500));
 			htmlPage.addHyperlinkListener(new HyperlinkListener() {
+			
 			public void hyperlinkUpdate(HyperlinkEvent hyperlinkEvent) {
-			//    HyperlinkEvent.EventType type = hyperlinkEvent.getEventType();
-			 //   final URL url = hyperlinkEvent.getURL();
-			   /* if (type == HyperlinkEvent.EventType.ACTIVATED) {
-			    	if(!downloading) {
-			    		downloading = true;
-			    		Main.downloadGenome(url.toString().substring(5));
-			    		downloading = false;
-			    	}
-			    }*/
+			    HyperlinkEvent.EventType type = hyperlinkEvent.getEventType();
+			    final URL url = hyperlinkEvent.getURL();
+			   
+			    if (type == HyperlinkEvent.EventType.ACTIVATED) {
+			    	 Main.gotoURL(url.toString());
+			    	
+			    }
 			  }
 		});
 		htmlPage.setCaretPosition(0);
 		JScrollPane scrollpane = new JScrollPane(htmlPage);
-		
-		scrollpane.setPreferredSize(new Dimension(400, 600));
-		
-		add(scrollpane);
+		frame.pack();
+		scrollpane.setPreferredSize(new Dimension(500, 500));
+		scrollpane.setMinimumSize(new Dimension(500, 500));
+		GridBagConstraints c = new GridBagConstraints();
+		c.anchor = GridBagConstraints.NORTHWEST;	
+		c.weightx = 1;
+		c.weighty = 1;
+		c.fill = GridBagConstraints.BOTH;
+		c.gridx = 0;
+		c.gridy = 0;
+		c.insets = new Insets(2,4,2,4);		
+		c.gridwidth = 2;
+		add(scrollpane,c);
+		c.gridy++;
+		dontShow.addActionListener(this);
+		add(dontShow,c);
+		c.gridy++;
+		c.fill = GridBagConstraints.NONE;
+		OK.setPreferredSize(Main.buttonDimension);
+		OK.addActionListener(this);
+		add(OK, c);
 		}
 		catch(Exception e) {
 			e.printStackTrace();
 		}
 	}
-	void makeGenomes() {
+/*	void makeGenomes() {
 		try {
 			URL[] urls = {new URL("ftp://ftp.ensembl.org/pub/grch37/release-83/fasta/homo_sapiens/dna/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz"),
 						  new URL("ftp://ftp.ensembl.org/pub/grch37/update/gff3/homo_sapiens/Homo_sapiens.GRCh37.87.gff3.gz"),
@@ -193,8 +244,8 @@ public class WelcomeScreen  extends JPanel implements ActionListener {
 		catch(Exception ex) {
 			ex.printStackTrace();
 		}
-	}
-	private static void createAndShowGUI() {	
+	}*/
+	public static void createAndShowGUI() {	
 	
 			if(Main.frame != null) {
 				frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); 
@@ -225,10 +276,19 @@ public class WelcomeScreen  extends JPanel implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource() == dontShow) {
-
-			if(Launcher.firstStart) {
+			if(dontShow.isSelected()) {
+				
 				Main.writeToConfig("FirstStart=false");
+				
 			}
+			else {
+				
+				Main.writeToConfig("FirstStart=true");
+				
+			}
+		}
+		if(e.getSource() == OK) {
+			frame.dispose();
 		}
 		
 	}

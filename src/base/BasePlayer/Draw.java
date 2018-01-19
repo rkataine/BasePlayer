@@ -641,7 +641,7 @@ void drawCoverage(SplitClass split) {
 	
 	if(!updateReads && !FileRead.cancelreadread) {
 	
-	/*	if(splitIndex != splits.indexOf(split)) {
+		/*if(splitIndex != splits.indexOf(split)) {
 			splitIndex = splits.indexOf(split);
 		}
 		*/
@@ -685,7 +685,7 @@ void drawCoverage(SplitClass split) {
 					readsample.resetreadHash();
 				}
 				readHash = readsample.getreadHash().get(split);
-				if(readHash.getCoverages() != null) {
+				if(readHash.getCoverages() != null) {					
 					
 					split.getReadBuffer().setColor(Color.black);
 					if(split.viewLength > Settings.readDrawDistance) {
@@ -1167,27 +1167,26 @@ public void drawVars(int offset) {
 				if(calculateVars) {	
 					if(VariantHandler.indelFilters.isSelected()) {
 						VariantHandler.totalVars.setText("SNV count on screen: " +varCalc);
+						VariantHandler.totalVars2.setText("SNV count on screen: " +varCalc);
 						VariantHandler.totalVarsIndel.setText("Indel count on screen: " +indelCalc);
 						
 					}
 					else {
 						VariantHandler.totalVars.setText("Variant count on screen: " +varCalc);
+						VariantHandler.totalVars2.setText("Variant count on screen: " +varCalc);
 						VariantHandler.totalVarsIndel.setText("Indel count on screen: " +indelCalc);
 					}
-					if(varCalc == 0 && variantsEnd != 1 && !VariantHandler.allChroms.isSelected()) {
+					/*if(varCalc == 0 && variantsEnd != 1 && !VariantHandler.allChroms.isSelected()) {
 						VariantHandler.varcalc.setEnabled(false);
 						VariantHandler.varcalc.setToolTipText("No variants on screen.");
-						/*if(VariantHandler.table.genearray.isEmpty()) {
-							Main.manage.setToolTipText("No variants on screen.");
-							Main.manage.setEnabled(true);
-						}*/
+						
 					}
 					else {
 						VariantHandler.varcalc.setEnabled(true);
 						VariantHandler.varcalc.setToolTipText("Annotate variants.");
 						Main.manage.setToolTipText("Manage variants.");
 						Main.manage.setEnabled(true);
-					}
+					}*/
 				}
 				if(varOverLap != null) {
 					if(getCursor().getType() != Cursor.HAND_CURSOR) {					
@@ -2056,8 +2055,14 @@ public void drawScreen(Graphics g) {
 					rbuf.drawImage(selectedSplit.getReadImage(),selectedSplit.offset,0,selectedSplit.offset+Main.drawScroll.getViewport().getWidth(), this.height, -(moveX-pressX), 0,Main.drawScroll.getViewport().getWidth()-(moveX-pressX), this.getHeight(),this);
 				}	
 			}			
-			else {				
-				if((!sampleZoomer) && (!zoomDrag || lineZoomer)) {					
+			else {		
+				if(scrolldrag) {
+					//selectedRead = null;					
+					rbuf.setComposite( composite);				
+					rbuf.fillRect(0,0, selectedSplit.getReadImage().getWidth(),Main.drawScroll.getViewport().getHeight());	
+					rbuf.setComposite(backupr);		
+				}
+				else if((!sampleZoomer) && (!zoomDrag || lineZoomer)) {					
 					
 					rbuf.setComposite( composite);				
 					rbuf.fillRect(0,0, selectedSplit.getReadImage().getWidth(),Main.drawScroll.getViewport().getHeight());	
@@ -2079,6 +2084,7 @@ public void drawScreen(Graphics g) {
 						rbuf.setComposite(backupr);			
 					}					
 				}
+				
 			}
 		}
 		else {
@@ -3471,9 +3477,8 @@ void drawReads(SplitClass split) {
 							reader.firstSample = true;			
 							
 						}
-						while(ReferenceSeq.wait) {
-							
-						}
+						/*while(ReferenceSeq.wait) {
+						}*/
 						reader.readClass = readsample.getreadHash().get(split);					
 						readsample.getreadHash().get(split).loading = true;
 						reader.chrom = split.chrom;

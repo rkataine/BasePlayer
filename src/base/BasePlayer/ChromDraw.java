@@ -483,15 +483,15 @@ void drawSideBar() {
 	chromImageBuffer.drawString("Genes: " +Main.annotationfile, 10,Main.defaultFontSize*3+25);
 	*/
 	if(memoryUsage > (int)(((instance.totalMemory()-instance.freeMemory())/toMegabytes))) {
-		if(instance.maxMemory()/toMegabytes  < 1000) {
+		if(instance.maxMemory()/toMegabytes  < 1300) {
 			
-			if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 100) {		
+			if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 200) {		
 				System.gc();
-				if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 100) {
+				if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 200) {
 					Main.drawCanvas.clearReads();
-					System.gc();
+					//System.gc();
 					
-					if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 100) {
+					if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 200) {
 						Loader.memory = true;
 					}
 				}
@@ -501,7 +501,7 @@ void drawSideBar() {
 			System.gc();
 			if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 300) {		
 				Main.drawCanvas.clearReads();
-				System.gc();
+				//System.gc();
 				if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 300) {
 					Loader.memory = true;
 				}
@@ -523,7 +523,7 @@ void drawSideBar() {
 void drawCyto(SplitClass split) {
 	
 	if(split.getCytoImage() == null) {
-	
+		
 		split.setCytoImage(createBands(split));			
 	}
 	//chromImageBuffer.setFont(Draw.defaultFont);
@@ -974,9 +974,7 @@ void drawExons(SplitClass split) {
 			split.getExonImageBuffer().fillRect(0,0,Main.drawCanvas.getDrawWidth()+1,this.getHeight());  //(int)split.getExonImage().getHeight());	
 						
 			level = 1;
-	if(split.equals(Main.drawCanvas.splits.get(0))) {
-		drawMutations((exonDrawY*level)+2);
-	}
+			split.getExonImageBuffer().setFont(Draw.defaultFont);
 	if(split.viewLength <= Settings.readDrawDistance && split.viewLength > 10){
 		try {
 			
@@ -1327,6 +1325,9 @@ void drawExons(SplitClass split) {
 			}	
 			
 		}
+	}
+	if(split.equals(Main.drawCanvas.splits.get(0))) {
+		drawMutations((exonDrawY*level)+2);
 	}
 	//exon for end
 	
@@ -1881,14 +1882,14 @@ void drawMutations(int ylevel) {
 						for(int i = 0; i< vardraw.getExons().size(); i++) {
 							if(vardraw.getExons().get(i).getTranscript().getGene().showIsoforms()) {
 								
-									Main.drawCanvas.splits.get(0).getExonImageBuffer().drawString(mutcount +" " +getChange(vardraw,base,vardraw.getExons().get(i)), mutScreenPos, vardraw.getExons().get(i).getTranscript().ypos+(Main.defaultFontSize*2+8)*baselevel);
+									Main.drawCanvas.splits.get(0).getExonImageBuffer().drawString(mutcount +" " +getChange(vardraw,base,vardraw.getExons().get(i)), mutScreenPos, vardraw.getExons().get(i).getTranscript().ypos+(exonDrawY)*baselevel);
 									
 								
 							}
 							else {
-								if(vardraw.getExons().get(i).getTranscript().equals(vardraw.getExons().get(i).getTranscript().getGene().getLongest())) {
+								if(vardraw.getExons().get(i).getTranscript().equals(vardraw.getExons().get(i).getTranscript().getGene().getLongest())) {										
 									
-										Main.drawCanvas.splits.get(0).getExonImageBuffer().drawString(mutcount +" " +getChange(vardraw,base,vardraw.getExons().get(i)), mutScreenPos, vardraw.getExons().get(i).getTranscript().ypos+(Main.defaultFontSize*2+8)*baselevel);
+									Main.drawCanvas.splits.get(0).getExonImageBuffer().drawString(mutcount +" " +getChange(vardraw,base,vardraw.getExons().get(i)), mutScreenPos, vardraw.getExons().get(i).getTranscript().ypos+(exonDrawY)*baselevel);
 									
 								}
 							}
@@ -3007,6 +3008,7 @@ public BufferedImage createBands(SplitClass split) {
 		
 		cytoImageBuffer = (Graphics2D)tempImage.getGraphics();
 		cytoImageBuffer.setRenderingHints(Draw.rh);
+		
 		if(bandVector.size() == 0) {
 			cytoImageBuffer.setColor(backTransparent);
 			cytoImageBuffer.fillRect(0, 0, Main.drawCanvas.getDrawWidth(), height);

@@ -29,15 +29,9 @@ import htsjdk.tribble.index.tabix.TabixIndex;
 import htsjdk.tribble.index.tabix.TabixIndexCreator;
 import htsjdk.samtools.cram.ref.ReferenceSource;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
-
 import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -933,7 +927,7 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 				Main.drawCanvas.calcClusters(FileRead.head);
 			}
 			else {
-				Main.drawCanvas.calcClusters(FileRead.head,1);
+				Main.drawCanvas.calcClusters(FileRead.head);
 				
 			}
 			Main.bedCanvas.bedOn = true;
@@ -979,7 +973,7 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 				Main.drawCanvas.calcClusters(FileRead.head);
 			}
 			else {
-				Main.drawCanvas.calcClusters(FileRead.head,1);
+				Main.drawCanvas.calcClusters(FileRead.head);
 				
 			}
 		}
@@ -3443,11 +3437,11 @@ static void annotate() {
 						searchwindow = 0;
 					}
 					
-					if(firstSample) {	
+					/*if(firstSample) {	
 						
 						splitIndex.setReference(new ReferenceSeq(splitIndex.chrom,startpos-searchwindow-1,  endpos+searchwindow +200, Main.referenceFile));
 						
-					}
+					}*/
 					try {
 						
 						bamIterator = getBamIterator(readClass,readClass.sample.chr + chrom,startpos-searchwindow,  endpos+searchwindow  );
@@ -3527,6 +3521,7 @@ static void annotate() {
 					else {
 						splitIndex.getReference().append( endpos+200);
 					}
+				
 				}
 				bamIterator = getBamIterator(readClass,readClass.sample.chr + chrom,startpos,  endpos );
 				
@@ -3807,12 +3802,11 @@ static void annotate() {
 						if(right && samRecord.getUnclippedStart() > endpos) {
 							right = false;							
 						}
-						try {
-							
+						try {							
 							mismatches = getMismatches(samRecord, readClass, coverageArray);
 						}
 						catch(Exception e) {	
-							e.printStackTrace();
+							e.printStackTrace();					
 						}
 						if(left) {
 							
@@ -3931,6 +3925,7 @@ static void annotate() {
 	
 	
 java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord samRecord, Reads readClass, double[][] coverageArray) {	
+	
 	
 	if(readClass == null) {
 		sample.resetreadHash();
@@ -4172,8 +4167,8 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 		}
 	}
 	else {			
-		timecounter = 0;
-		while(splitIndex.getReference() == null) {
+		//timecounter = 0;
+		/*while(splitIndex.getReference() == null) {
 			Thread.sleep(100);
 			timecounter++;
 			if(timecounter > 20) {
@@ -4181,6 +4176,11 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 			}
 		}
 		Thread.sleep(0);
+		*/
+		if(splitIndex.getReference() == null) {
+			
+			return null;
+		}
 		if(samRecord.getCigarLength() > 1) {			
 			readstart = samRecord.getUnclippedStart();			
 			readpos= 0;
@@ -4304,12 +4304,7 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 					if(((readstart+r)-splitIndex.getReference().getStartPos()-1) < 0) {
 						splitIndex.getReference().appendToStart(samRecord.getUnclippedStart()-1000);
 					}
-				/*	if(((readstart+r)-readClass.reference.getStartPos()-1) > readClass.reference.getSeq().length-1) {
-						readClass.reference.append(samRecord.getUnclippedEnd()+1000);
-					}
-					if(((readstart+r)-readClass.reference.getStartPos()-1) < 0) {
-						continue;
-					}*/
+					
 					if(samRecord.getReadBases()[r] != splitIndex.getReference().getSeq()[((readstart+r)-splitIndex.getReference().getStartPos()-1)]) {									
 						
 						if((readstart+r)-readClass.getCoverageStart() < readClass.getCoverages().length-1) {
@@ -4327,6 +4322,7 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 					catch(Exception e) {
 					//	System.out.println(readClass.getCoverageStart());
 						e.printStackTrace();
+						break;
 					}
 					if(coverageArray[(samRecord.getUnclippedStart()-readClass.getCoverageStart())+r][0] > readClass.getMaxcoverage()) {
 						readClass.setMaxcoverage(coverageArray[(samRecord.getUnclippedStart()-readClass.getCoverageStart())+r][0]);
@@ -4521,6 +4517,8 @@ static void setBedTrack(BedTrack addTrack) {
 	  BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));
 	  int count = 0;
 	  if(addTrack.file.getName().endsWith(".gff.gz")) {
+		  addTrack.iszerobased = 1;
+		  addTrack.getZerobased().setSelected(false);
 		  while(count < 10) {
 			  if(reader.readLine().startsWith("#")) {
 				  continue;
@@ -4534,11 +4532,10 @@ static void setBedTrack(BedTrack addTrack) {
 				  }
 				 
 			  }
-			  if(Main.SELEXhash.containsKey(split[2])) {								
+			  if(Main.SELEXhash.containsKey(split[2].replace(".pfm", ""))) {								
 				  addTrack.selex = true;
 				  addTrack.getAffinityBox().setVisible(true);
-				  addTrack.iszerobased = 1;
-				  addTrack.getZerobased().setSelected(false);
+				  
 			  }
 			  count++;
 		  }
@@ -4559,17 +4556,13 @@ static void setBedTrack(BedTrack addTrack) {
 			  if(split.length > 3 && Main.SELEXhash.containsKey(split[3])) {								
 				  addTrack.selex = true;
 				  addTrack.getAffinityBox().setVisible(true);
-				  addTrack.iszerobased = 1;
-				  addTrack.getZerobased().setSelected(false);
 			  }
 			  count++;
 		  }
 		  
 	  }
 	  else if(addTrack.file.getName().endsWith(".tsv.gz")) {
-		  if(addTrack.valuecolumn != null) {
-			 
-		  
+		  if(addTrack.valuecolumn != null) {		  
 			  while(count < 10) {
 				  if(reader.readLine().startsWith("#")) {
 					  continue;
@@ -4580,13 +4573,11 @@ static void setBedTrack(BedTrack addTrack) {
 					 
 					  addTrack.hasvalues = true;
 					  break;
-				  }
-				  	  
-				 
+				  }				 
 				  count++;
-			  	}
 			  }
-		 }
+		  }
+	  }
 	  if(!addTrack.hasvalues) {
 		  
 		  addTrack.getLimitField().setVisible(false);
@@ -5497,11 +5488,7 @@ void varCalc() {
 	contexts = null;
 	Draw.calculateVars = false;
 	Draw.variantcalculator = true;
-	for(int i = 0 ; i < Main.bedCanvas.bedTrack.size(); i++) {
-		if(Main.bedCanvas.bedTrack.get(i).getVarcalc().isSelected()) {
-			Main.bedCanvas.bedTrack.get(i).intersect = true;
-		}
-	}
+	
 	boolean isfreeze = VariantHandler.freeze.isSelected();
 	if(VariantHandler.writetofile.isSelected()) {
 		lastWriteVar = FileRead.head;
@@ -5512,13 +5499,13 @@ void varCalc() {
 	VariantHandler.outputStrings.clear();
 	if(Main.drawCanvas.clusterNodes == null) {
 		Main.drawCanvas.clusterNodes = new ArrayList<ClusterNode>();
-		Main.drawCanvas.clusterId = 1;
+		
 	}
 	else {
 		Main.drawCanvas.clusterNodes.clear();
-		Main.drawCanvas.clusterId = 1;
+		
 	}
-
+	Main.drawCanvas.clusterId = 1;
 	VariantHandler.table.variants = 0;
 	VariantHandler.stattable.variants = 0;
 	VariantHandler.clusterTable.variants = 0;
@@ -5598,7 +5585,13 @@ void varCalc() {
 		split.getGenes().get(g).transcriptString = new StringBuffer();		
 	}
 	
-	if(VariantHandler.allChroms.isSelected()) {	
+	if(VariantHandler.allChroms.isSelected()) {
+		for(int i = 0 ; i < Main.bedCanvas.bedTrack.size(); i++) {
+			if(Main.bedCanvas.bedTrack.get(i).getVarcalc().isSelected()) {
+				Main.bedCanvas.bedTrack.get(i).intersect = true;
+				
+			}
+		}
 		if(VariantHandler.allChromsfrom.isSelected()) {
 			chromcounter = Main.chromosomeDropdown.getSelectedIndex();
 			Main.nothread = true;
@@ -5622,6 +5615,25 @@ void varCalc() {
 			Main.drawCanvas.calcClusters(FileRead.head.getNext());			
 		}
 	}	
+	else {
+		for(int i = 0 ; i < Main.bedCanvas.bedTrack.size(); i++) {
+			if(Main.bedCanvas.bedTrack.get(i).getVarcalc().isSelected()) {
+				Main.bedCanvas.bedTrack.get(i).intersect = true;				
+					if(Main.bedCanvas.bedTrack.get(i).small) {						
+							Main.bedCanvas.annotate(Main.bedCanvas.bedTrack.get(i).getHead());	
+							Main.bedCanvas.intersected = true;			
+						
+					}
+					else {							
+						BedCanvas.Annotator annotator = Main.bedCanvas.new Annotator(Main.bedCanvas.bedTrack.get(i));
+						annotator.annotateVars();						
+						Main.bedCanvas.intersected = true;
+						
+					}
+				}	
+			
+		}
+	}
 	if(caller && varc == null) {
 		varc = new VariantCaller(true);
 		varcal = varc.new VarCaller();
@@ -5792,13 +5804,15 @@ void varCalc() {
 	Main.drawCanvas.repaint();
 	for(int i = 0; i<VariantHandler.tables.size(); i++) {
 		
-		VariantHandler.tables.get(i).setPreferredSize(new Dimension(VariantHandler.tableScroll.getViewport().getWidth(), (VariantHandler.tables.get(i).getTableSize()+1)*15));
+		VariantHandler.tables.get(i).setPreferredSize(new Dimension(VariantHandler.tableScroll.getViewport().getWidth(), (VariantHandler.tables.get(i).getTableSize()+1)*(Main.defaultFontSize+3)));
 		VariantHandler.tables.get(i).revalidate();
 		VariantHandler.tables.get(i).repaint();
 	}
-
-	VariantHandler.stattable.repaint();
-	VariantHandler.table.setPreferredSize(new Dimension(VariantHandler.tableScroll.getViewport().getWidth(), (VariantHandler.table.getTableSize()+1)*15));
+	VariantHandler.clusterTable.setPreferredSize(new Dimension(VariantHandler.tableScroll.getViewport().getWidth(), (VariantHandler.clusterTable.getTableSize()+1)*(Main.defaultFontSize+3)));
+	VariantHandler.clusterTable.revalidate();
+	VariantHandler.clusterTable.repaint();
+	VariantHandler.clusterTable.repaint();
+	VariantHandler.table.setPreferredSize(new Dimension(VariantHandler.tableScroll.getViewport().getWidth(), (VariantHandler.table.getTableSize()+1)*(Main.defaultFontSize+3)));
 	
 	if(VariantHandler.tabs.getSelectedIndex() == 0) {
 		VariantHandler.aminoCount.setText(VariantHandler.table.variants +" variants");
@@ -6030,17 +6044,18 @@ void varCalcBig() {
 	clearVariantsFromBeds();
 	if(Main.drawCanvas.clusterNodes == null) {
 		Main.drawCanvas.clusterNodes = new ArrayList<ClusterNode>();
-		Main.drawCanvas.clusterId = 1;
+		
 	}
 	else {
 		Main.drawCanvas.clusterNodes.clear();
-		Main.drawCanvas.clusterId = 1;
+		
 	}
 	for(int i = 0 ; i < Main.bedCanvas.bedTrack.size(); i++) {
 		if(Main.bedCanvas.bedTrack.get(i).getVarcalc().isSelected()) {
 			Main.bedCanvas.bedTrack.get(i).intersect = true;
 		}
 	}
+	Main.drawCanvas.clusterId = 1;
 	VariantHandler.table.variants = 0;
 	VariantHandler.stattable.variants = 0;
 	VariantHandler.clusterTable.variants = 0;
@@ -6157,6 +6172,23 @@ void varCalcBig() {
 		
 		getVariantWindow(Main.drawCanvas.splits.get(0).chrom,searchStart,searchEnd);
 		vardraw = FileRead.head.getNext();
+		for(int i = 0 ; i < Main.bedCanvas.bedTrack.size(); i++) {
+			if(Main.bedCanvas.bedTrack.get(i).getVarcalc().isSelected()) {
+				Main.bedCanvas.bedTrack.get(i).intersect = true;				
+					if(Main.bedCanvas.bedTrack.get(i).small) {						
+							Main.bedCanvas.annotate(Main.bedCanvas.bedTrack.get(i).getHead());	
+							Main.bedCanvas.intersected = true;			
+						
+					}
+					else {							
+						BedCanvas.Annotator annotator = Main.bedCanvas.new Annotator(Main.bedCanvas.bedTrack.get(i));
+						annotator.annotateVars();						
+						Main.bedCanvas.intersected = true;
+						
+					}
+				}	
+			
+		}
 		
 	}
 	presearchpos = searchEnd;
@@ -6599,6 +6631,8 @@ void writeToFile(VarNode vardraw, BufferedWriter output, BlockCompressedOutputSt
 		
 	}	
 }
+
+
 
 void flushVars(VarNode vardraw) {		
 		if(VariantHandler.vcf.isSelected() || VariantHandler.oncodrive.isSelected()) {

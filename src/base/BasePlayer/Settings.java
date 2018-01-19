@@ -474,6 +474,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 				try {
 					Main.defaultFontSize = Integer.parseInt(fontlist.getSelectedItem().toString().trim());
 					Main.setFonts();
+					Main.writeToConfig("fontSize=" +Main.defaultFontSize);
 				}
 				catch(Exception e) {
 					
@@ -484,6 +485,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 				if(Main.drawCanvas != null) {
 					Main.setFonts();
 				}
+				Main.writeToConfig("fontSize=" +Main.defaultFontSize);
 			}
 		}
 		if(event.getSource() == varDrawList) {
@@ -532,7 +534,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 				VariantHandler.adder2.setForeground(Draw.sidecolor);
 				VariantHandler.adder3.setForeground(Draw.sidecolor);
 				VariantHandler.adder4.setForeground(Draw.sidecolor);
-				VariantHandler.adder5.setForeground(Draw.sidecolor);
+				//VariantHandler.adder5.setForeground(Draw.sidecolor);
 			}
 			/*if(colorSlider.getValue() <= 120) {
 				Draw.sidecolor = new Color(200, 80+colorSlider.getValue(), 120);				

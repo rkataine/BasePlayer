@@ -12,32 +12,79 @@
 package base.BasePlayer;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
 
 public class Launcher  {	
 	static String maindir;
 	static boolean fromMain = false, firstStart = false;
+	static File configfile;
 //	private static long timer;	
-	static String memlimit = "4G", defaultDir = "demo", line, ctrldir = "demo", defaultAnnotation ="", defaultGenome = "", defaultSaveDir = "";
+	static String memlimit = "1200m", defaultDir = "demo", line, ctrldir = "demo", defaultAnnotation ="", defaultGenome = "", defaultSaveDir = "", genomeDir = "", fontSize = "";
 	static String gerpfile;	
 	static ArrayList<String> config = new ArrayList<String>();
 	public static String trackDir = "";
 	public static String projectDir= "", downloadDir = "";
-	
+	static String lineSeparator;
+	static Boolean exampledata = false;
 	public static void main(String[] args) {
 		try {
+				lineSeparator =  System.getProperty("line.separator");
+		//	Logo.main(argsit);
+		//	 Logo.frame.dispatchEvent(new WindowEvent(Logo.frame, WindowEvent.WINDOW_CLOSING));
+		//	timer = System.currentTimeMillis();
 		
-	//	Logo.main(argsit);
-	//	 Logo.frame.dispatchEvent(new WindowEvent(Logo.frame, WindowEvent.WINDOW_CLOSING));
-	//	timer = System.currentTimeMillis();
-		maindir = new File(Launcher.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().replace("%20", " ");	
-		
-		  if(new File(maindir +"/config.txt").exists()) {
+				maindir = new File(Launcher.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().replace("%20", " ");	
+				if(new File(maindir +"/demo").exists()) {
+					exampledata = true;
+				}
+				
+				BufferedReader fileReader = null;
+				//  if(new File(maindir +"/config.txt").exists()) {
+				String userHome = System.getProperty("user.home");
+				try {
+					if(!new File(userHome +"/config_baseplayer.txt").exists()) {
+						File conf = new File(userHome +"/config_baseplayer.txt");
+						createConf(conf);
+						configfile = conf;
+					}
+					else {
+						configfile = new File(userHome +"/config_baseplayer.txt");
+					}
+				}
+				catch(Exception e) {
+					try {
+						if(!new File(maindir +"/config_baseplayer.txt").exists()) {
+							File conf = new File(maindir +"/config_baseplayer.txt");
+							createConf(conf);
+							configfile = conf;
+						}
+						else {
+							configfile = new File(maindir +"/config_baseplayer.txt");
+						}
+					}
+					catch(Exception ex) {
+						if(!fromMain) {
+							  ProcessBuilder pb;
+								 try {
+									 pb = new ProcessBuilder("java","-Xmx1200m", "-Dprism.verbose=true", "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
+								     pb.start();						
+								 }
+								 catch(Exception exc) {
+									 e.printStackTrace();									
+								 }						     
+						  }
+						else {
+							Main.showError("Could not read/create config-file.\nPlease, add writing permissions to your BasePlayer folder.", "Error");
+							return;
+						}
+					}
+				}
 			
-			  BufferedReader fileReader = new BufferedReader(new FileReader(maindir +"/config.txt"));				 
-			 
+			  fileReader = new BufferedReader(new FileReader(configfile));			 
 			  
 			  while((line = fileReader.readLine()) != null) {
 				  config.add(line);
@@ -79,6 +126,13 @@ public class Launcher  {
 				  }
 				  else if(line.startsWith("DefaultSave")) {
 					  defaultSaveDir = line.substring(line.indexOf("=")+1).replace(" ", "");
+				  }
+				  else if(line.startsWith("genomeDir")) {
+					  genomeDir = line.substring(line.indexOf("=")+1).replace(" ", "");
+				  }
+				  else if(line.startsWith("fontSize")) {
+					  
+					  fontSize = line.substring(line.indexOf("=")+1).replace(" ", "");
 				  }
 			  }
 			  if(!new File(defaultDir).exists()) {
@@ -128,12 +182,12 @@ public class Launcher  {
 			//	  Main.path = defaultDir;
 			//	  Control.path = ctrldir;
 			  }
-		  }
-		  else {
+		//  }
+		/*  else {
 			  if(!fromMain) {
 				  ProcessBuilder pb;
 					 try {
-						 pb = new ProcessBuilder("java","-Xmx4G", "-Dprism.verbose=true", "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
+						 pb = new ProcessBuilder("java","-Xmx1200m", "-Dprism.verbose=true", "-Dsun.java2d.d3d=false","-jar", maindir +"/BasePlayer.jar");				
 					     pb.start();						
 					 }
 					 catch(Exception e) {
@@ -142,7 +196,7 @@ public class Launcher  {
 					 }			      
 			     
 			  }
-		  }		  
+		  }		*/  
 			
 		}
 		catch(Exception e) {
@@ -164,7 +218,37 @@ public class Launcher  {
 		
 	
 	}	
-	
+	public static void createConf(File conf) {
+		try {		
+			String[] args = {}; 
+			firstStart = true;
+			BufferedWriter writer = new BufferedWriter(new FileWriter(conf));
+			writer.write("#Config file for BasePlayer" +lineSeparator);
+			writer.write("MemoryLimit=1200m"+lineSeparator);
+			
+			if(exampledata) {
+				
+				writer.write("DefaultDir=demo/samples"+lineSeparator);
+				writer.write("DefaultControlDir=demo/controls"+lineSeparator);
+				writer.write("DefaultTrackDir=demo/tracks"+lineSeparator);
+			}
+			else {
+				writer.write("DefaultDir="+lineSeparator);
+				writer.write("DefaultControlDir="+lineSeparator);
+				writer.write("DefaultTrackDir="+lineSeparator);
+			}			
+			
+			writer.write("DefaultGenome="+lineSeparator);
+			writer.write("DefaultGenes="+lineSeparator);			
+			writer.write("DefaultProjectDir="+lineSeparator);
+			writer.write("DownloadDir="+lineSeparator);
+			writer.write("FirstStart=true"+lineSeparator);
+			writer.close();
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
 	/*public static class ProcMon implements Runnable {
 
 		  private final Process _proc;

@@ -142,7 +142,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JCheckBox indelFilters;
 	static JLabel SNVFilters;
 	static JFrame frame;    
-	static JLabel totalVars;
+	static JLabel totalVars, totalVars2;
 	static JLabel totalVarsIndel;
 	static JLabel empty;	
 	static JButton varcalc;
@@ -418,6 +418,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		indelFilters.setName("header");
 		comparison.setName("header");
 		totalVars = new JLabel("Variant count on screen: 0");
+		totalVars2 = new JLabel("Variant count on screen: 0");
 		totalVarsIndel = new JLabel("Variant count on screen: 0");
 		empty = new JLabel("");	
 		varcalc = new JButton("Annotate");
@@ -746,13 +747,16 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		c.weightx = 0;
 		c.weighty = 0;
 		comparepanel.add(comparison,c);
+		c.gridx = 1;
+		comparepanel.add(totalVars2,c);
 		c.gridy++;
+		c.gridx = 0;
 	//	comparepanel.add(new JLabel(""));
 		
 		comparepanel.add(geneLabel,c);
-		adder5 = new JLabel("__________________________________________");
-		adder5.setForeground(Draw.sidecolor);
-		comparepanel.add(adder5,c);
+		//adder5 = new JLabel("__________________________________________");
+		//adder5.setForeground(Draw.sidecolor);
+		
 		c.gridx = 1;
 		comparepanel.add(geneSlider,c);
 		c.gridx = 0;

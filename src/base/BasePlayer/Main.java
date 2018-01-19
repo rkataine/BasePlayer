@@ -74,7 +74,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 
-import javax.net.ssl.HttpsURLConnection;
+
+
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.ImageIcon;
@@ -111,10 +112,22 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 	public class Main extends JPanel implements ActionListener, ChangeListener, ComponentListener, MouseListener, KeyListener, MouseMotionListener {
 	private static final long serialVersionUID = 1L;		
     static JFrame frame;  
 	//UI
+    
     static ImageIcon save, open, settingsIcon;
     static String version = "1.0.0";
     static int sidebarWidth = 200;
@@ -184,6 +197,7 @@ import org.apache.commons.net.ftp.FTPFile;
   //  static double[][] snow = new double[200][4];
     static String[] snowtable = {"A", "C", "G", "T" };
     static String userDir;
+    static File genomeDir;
     static boolean clicked = false, clickedAnno = false;
     VarNode prevTemp;
     static boolean rightclick = false;
@@ -224,6 +238,7 @@ import org.apache.commons.net.ftp.FTPFile;
 	static SteppedComboBox chromosomeDropdown = new SteppedComboBox(chromModel);		
 	static SteppedComboBox refDropdown;	
 	static SteppedComboBox geneDropdown;	
+	static File[] genomes;
 	//UI	
     static MouseListener thisMainListener;    
     static DefaultComboBoxModel<String> refModel;
@@ -355,6 +370,7 @@ import org.apache.commons.net.ftp.FTPFile;
     			  drawCanvas.splits.get(0).start = 0;
     		  }
     		  else {
+    			 
     			  drawCanvas.chrom = chromosomeDropdown.getSelectedItem().toString();
     			  drawCanvas.splits.get(0).chromEnd = chromIndex.get(Main.refchrom + Main.chromosomeDropdown.getSelectedItem().toString())[1].intValue();
     			  chromLabel.setText("Chromosome " +drawCanvas.chrom);
@@ -468,27 +484,27 @@ import org.apache.commons.net.ftp.FTPFile;
 		        	  gradient = new GradientPaint(drawScroll.getWidth()/2-loadTextWidth/2-drawScroll.getWidth()/6,0,Color.red,drawScroll.getWidth()/2+loadTextWidth,0,Color.green,true);			        	 
 		        	  Main.canceltextwidth = (int)(g.getFontMetrics().getStringBounds("Cancel", g).getWidth());		        	  
 		          }
-		          
+		         
 		          g.setColor(Draw.intronColor);	
-		          g.fillRoundRect(drawScroll.getWidth()/2-loadTextWidth/2-9, Main.drawScroll.getViewport().getHeight()*2/3-Draw.loadingFont.getSize()-4, loadTextWidth+18, Draw.loadingFont.getSize()*3+12,20,20);	
+		          g.fillRoundRect(drawScroll.getWidth()/2-loadTextWidth/2-9, frame.getHeight()*1/3-Draw.loadingFont.getSize()-4, loadTextWidth+18, Draw.loadingFont.getSize()*3+12,20,20);	
 		          g.setColor(Draw.sidecolor);	
 		            
-		          g.fillRoundRect(drawScroll.getWidth()/2-loadTextWidth/2-5, Main.drawScroll.getViewport().getHeight()*2/3-Draw.loadingFont.getSize(), loadTextWidth+10, Draw.loadingFont.getSize()*3+4,20,20);					 					  				  
-		          g.drawRoundRect(drawScroll.getWidth()/2-loadTextWidth/2-8, Main.drawScroll.getViewport().getHeight()*2/3-Draw.loadingFont.getSize()-3, loadTextWidth+15, Draw.loadingFont.getSize()*3+9,20,20);	
+		          g.fillRoundRect(drawScroll.getWidth()/2-loadTextWidth/2-5, frame.getHeight()*1/3-Draw.loadingFont.getSize(), loadTextWidth+10, Draw.loadingFont.getSize()*3+4,20,20);					 					  				  
+		          g.drawRoundRect(drawScroll.getWidth()/2-loadTextWidth/2-8, frame.getHeight()*1/3-Draw.loadingFont.getSize()-3, loadTextWidth+15, Draw.loadingFont.getSize()*3+9,20,20);	
 				     
 		          g.setPaint(gradient);					  
-				  g.fillRoundRect(drawScroll.getWidth()/2-loadTextWidth/2, Main.drawScroll.getViewport().getHeight()*2/3+Main.defaultFontSize/2, (int)(loadTextWidth*(drawCanvas.loadBarSample/100.0)), Main.defaultFontSize, Main.defaultFontSize/2,Main.defaultFontSize/2);
-				  g.fillRoundRect(drawScroll.getWidth()/2-loadTextWidth/2, Main.drawScroll.getViewport().getHeight()*2/3+Main.defaultFontSize*2, (int)(loadTextWidth*(drawCanvas.loadbarAll/100.0)), Main.defaultFontSize, Main.defaultFontSize/2,Main.defaultFontSize/2);
+				  g.fillRoundRect(drawScroll.getWidth()/2-loadTextWidth/2, frame.getHeight()*1/3+Main.defaultFontSize/2, (int)(loadTextWidth*(drawCanvas.loadBarSample/100.0)), Main.defaultFontSize, Main.defaultFontSize/2,Main.defaultFontSize/2);
+				  g.fillRoundRect(drawScroll.getWidth()/2-loadTextWidth/2, frame.getHeight()*1/3+Main.defaultFontSize*2, (int)(loadTextWidth*(drawCanvas.loadbarAll/100.0)), Main.defaultFontSize, Main.defaultFontSize/2,Main.defaultFontSize/2);
 				  g.setColor(Color.black);
-				  g.drawRoundRect(drawScroll.getWidth()/2-loadTextWidth/2, Main.drawScroll.getViewport().getHeight()*2/3+Main.defaultFontSize/2, (int)(loadTextWidth*(drawCanvas.loadBarSample/100.0)), Main.defaultFontSize, 4,4);						 
-				  g.drawRoundRect(drawScroll.getWidth()/2-loadTextWidth/2, Main.drawScroll.getViewport().getHeight()*2/3+Main.defaultFontSize*2, (int)(loadTextWidth*(drawCanvas.loadbarAll/100.0)), Main.defaultFontSize, 4,4);
+				  g.drawRoundRect(drawScroll.getWidth()/2-loadTextWidth/2, frame.getHeight()*1/3+Main.defaultFontSize/2, (int)(loadTextWidth*(drawCanvas.loadBarSample/100.0)), Main.defaultFontSize, 4,4);						 
+				  g.drawRoundRect(drawScroll.getWidth()/2-loadTextWidth/2, frame.getHeight()*1/3+Main.defaultFontSize*2, (int)(loadTextWidth*(drawCanvas.loadbarAll/100.0)), Main.defaultFontSize, 4,4);
 				  					 
-				  g.drawString(drawCanvas.loadingtext, drawScroll.getWidth()/2-loadTextWidth/2, Main.drawScroll.getViewport().getHeight()*2/3);
-				  g.drawRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					 
+				  g.drawString(drawCanvas.loadingtext, drawScroll.getWidth()/2-loadTextWidth/2, frame.getHeight()*1/3);
+				  g.drawRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, frame.getHeight()*1/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					 
 				  g.setColor(Color.lightGray);
-				  g.fillRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					
+				  g.fillRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, frame.getHeight()*1/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					
 				  g.setColor(Color.white);
-				  g.drawRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2+1, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4+1, Main.canceltextwidth+Main.defaultFontSize-2, Draw.loadingFont.getSize()+Main.defaultFontSize/2-2);					 
+				  g.drawRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2+1, frame.getHeight()*1/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4+1, Main.canceltextwidth+Main.defaultFontSize-2, Draw.loadingFont.getSize()+Main.defaultFontSize/2-2);					 
 					 
 				  if(cancelhover) {
 
@@ -497,10 +513,10 @@ import org.apache.commons.net.ftp.FTPFile;
 					}
 					 
 					 g.setColor(Color.gray);
-					  g.fillRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					
+					  g.fillRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, frame.getHeight()*1/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					
 					 
 					  g.setColor(Color.white);
-					  g.drawRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					 
+					  g.drawRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, frame.getHeight()*1/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					 
 						
 				  }
 				  else {
@@ -509,7 +525,7 @@ import org.apache.commons.net.ftp.FTPFile;
 						}
 					  g.setColor(Color.black);
 				  }
-				  g.drawString("Cancel", drawScroll.getWidth()/2-Main.canceltextwidth/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3+Draw.loadingFont.getSize()-4);
+				  g.drawString("Cancel", drawScroll.getWidth()/2-Main.canceltextwidth/2, frame.getHeight()*1/3+Draw.loadingFont.getSize()*3+Draw.loadingFont.getSize()-4);
 				/*  g.setColor(ChromDraw.backTransparent);
 					 for(int i=0;i<snow.length; i++) {
 							
@@ -576,13 +592,13 @@ import org.apache.commons.net.ftp.FTPFile;
 				 g.setFont(Draw.loadingFont);
 				 g.setColor(ChromDraw.backTransparent);
 				/* if(chromosomeDropdown.getItemCount() == 1 || Launcher.firstStart) {
-					 g.drawString("Welcome", drawScroll.getWidth()/2-20, Main.drawScroll.getViewport().getHeight()*2/3+70);
+					 g.drawString("Welcome", drawScroll.getWidth()/2-20, frame.getHeight()*2/3+70);
 				 }
 				 else {*/
-				//	 g.drawString("Loading done.", drawScroll.getWidth()/2-g.getFontMetrics().stringWidth("Loading done.")/2, Main.drawScroll.getViewport().getHeight()*2/3+70);
+				//	 g.drawString("Loading done.", drawScroll.getWidth()/2-g.getFontMetrics().stringWidth("Loading done.")/2, frame.getHeight()*2/3+70);
 					 if(Main.update.isEnabled()) {
 						 
-						 g.drawString(updateAvail , drawScroll.getWidth()/2-g.getFontMetrics().stringWidth(updateAvail)/2, Main.drawScroll.getViewport().getHeight()*2/3+70+g.getFontMetrics(Draw.loadingFont).getHeight()*2);
+						 g.drawString(updateAvail , drawScroll.getWidth()/2-g.getFontMetrics().stringWidth(updateAvail)/2, frame.getHeight()*2/3+70+g.getFontMetrics(Draw.loadingFont).getHeight()*2);
 					 }
 					
 				 //}
@@ -620,7 +636,8 @@ try {
 //	URL fonturl = this.getClass().getResource("OpenSans-Regular.ttf");
 //	menuFont = Font.createFont(Font.TRUETYPE_FONT, new File(fonturl.getFile()));
 //	C:\HY-Data\RKATAINE\WinPython-64bit-3.5.3.1Qt5\python-3.5.3.amd64\Lib\site-packages\reportlab\fonts
-	
+	Launcher.fromMain = true;
+	Launcher.main(args);
 	VariantHandler.main(argsit);
 	glass = Toolkit.getDefaultToolkit().getImage(getClass().getResource("icons/glass.jpg"));
 	ToolTipManager.sharedInstance().setInitialDelay(100);
@@ -636,30 +653,41 @@ try {
 	gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
 	width = gd.getDisplayMode().getWidth();
 	height = gd.getDisplayMode().getHeight();
-	if(width < 1500) {	    	
-		defaultFontSize = 11;
-		
-		buttonHeight = Main.defaultFontSize*2;
-		buttonWidth = Main.defaultFontSize*6;
-		
-	}
-	else if(width < 2000) {
-		defaultFontSize = 12;
-					
-		buttonHeight = Main.defaultFontSize*2+4;
-		buttonWidth = Main.defaultFontSize*6+4;
-		
-	}
-	else if(width < 3000) {
-		defaultFontSize = 18;
-		buttonHeight = Main.defaultFontSize*2+4;
-		buttonWidth = Main.defaultFontSize*6+4;
+	if(Launcher.fontSize.equals("")) {
+		if(width < 1500) {	    	
+			defaultFontSize = 11;
+			
+			buttonHeight = Main.defaultFontSize*2;
+			buttonWidth = Main.defaultFontSize*6;
+			
+		}
+		else if(width < 2000) {
+			defaultFontSize = 12;
+						
+			buttonHeight = Main.defaultFontSize*2+4;
+			buttonWidth = Main.defaultFontSize*6+4;
+			
+		}
+		else if(width < 3000) {
+			defaultFontSize = 15;
+			buttonHeight = Main.defaultFontSize*2+4;
+			buttonWidth = Main.defaultFontSize*6+4;
+		}
+		else {
+			defaultFontSize = 19;
+			buttonHeight = Main.defaultFontSize*2+4;
+			buttonWidth = Main.defaultFontSize*6+4;
+		}
 	}
 	else {
-		defaultFontSize = 24;
-		buttonHeight = Main.defaultFontSize*2+4;
-		buttonWidth = Main.defaultFontSize*6+4;
+		try {
+			defaultFontSize = Integer.parseInt(Launcher.fontSize);
+		}
+		catch(Exception e) {
+			defaultFontSize = 12;
+		}
 	}
+	
 	menuFont = new Font("SansSerif", Font.PLAIN, Main.defaultFontSize);
 	menuFontBold = new Font("SansSerif", Font.BOLD, Main.defaultFontSize);
 //	menuFont = new Font("SansSerif", Font.BOLD, Main.defaultFontSize);
@@ -699,7 +727,7 @@ try {
 	    	if(configChanged) {
 	    		
 	    		try {
-	    		 BufferedWriter fileWriter = new BufferedWriter(new FileWriter(Main.userDir +"/config.txt"));	
+	    		 BufferedWriter fileWriter = new BufferedWriter(new FileWriter(Launcher.configfile));	
 	    		 for(int i = 0 ; i<Launcher.config.size(); i++) {
 	    			 fileWriter.write(Launcher.config.get(i) +lineseparator);
 	    		 }
@@ -755,16 +783,32 @@ try {
    
    
  //   Average.frame.setVisible(false);
-	Launcher.fromMain = true;
-	Launcher.main(args);
 	
 	
+	userDir = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().replace("%20", " ");
 	savedir  = Launcher.defaultSaveDir;
 	path = Launcher.defaultDir;		
 	gerp = Launcher.gerpfile;
 	defaultGenome = Launcher.defaultGenome;
 	defaultAnnotation = Launcher.defaultAnnotation;
 	
+	if(Launcher.genomeDir.equals("")) {
+		
+		genomeDir = new File(userDir +"/genomes/");
+	}
+	else {
+		if(new File(Launcher.genomeDir).exists()) {
+			genomeDir = new File(Launcher.genomeDir);
+		}		
+		else {
+			genomeDir = new File(userDir +"/genomes/");
+		}
+	}
+	File[] genomes = genomeDir.listFiles(new FilenameFilter() {
+		 public boolean accept(File dir, String name) {
+		        return !name.contains(".txt");
+		     }
+ 		 });
 	annotationfile = defaultAnnotation;
 	controlDir = Launcher.ctrldir;
 	trackDir = Launcher.trackDir;
@@ -915,7 +959,7 @@ try {
 	this.setBackground(Color.black);
 	UIManager.put("FileChooser.readOnly", Boolean.TRUE);				
 	
-	userDir = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().replace("%20", " ");		
+			
 	panel.setBackground(Draw.sidecolor);
 	panel.setBorder(BorderFactory.createLineBorder(Color.white));
 	searchField.addKeyListener(this);
@@ -937,7 +981,7 @@ try {
 		public void mouseMoved(MouseEvent event) {			
 			// g.drawRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					 
 				
-			if(drawCanvas.loading && event.getX() > drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2 && event.getX()  < drawScroll.getWidth()/2+Main.canceltextwidth/2+Main.defaultFontSize/2 && event.getY() > Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4 && event.getY() < Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*4+Main.defaultFontSize/2) {
+			if(drawCanvas.loading && event.getX() > drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2 && event.getX()  < drawScroll.getWidth()/2+Main.canceltextwidth/2+Main.defaultFontSize/2 && event.getY() > frame.getHeight()*1/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4 && event.getY() < frame.getHeight()*1/3+Draw.loadingFont.getSize()*4+Main.defaultFontSize/2) {
 				if(!Main.cancelhover) {
 					Main.cancelhover = true;						
 			    	Main.glassPane.requestFocus();				    	
@@ -988,12 +1032,8 @@ try {
 //	    drawCanvas.loading("note");
 	try {
 		
-		File genomedir = new File(userDir +"/genomes/"), annodir;
-		File[] genomes = genomedir.listFiles(new FilenameFilter() {
-						 public boolean accept(File dir, String name) {
-						        return !name.contains(".txt");
-						     }
-				  		 });
+		File annodir;
+		
 		File[] annotations;			
 		addGenome.addMouseListener(this);			
 		genome = new JMenu("Genomes");
@@ -1080,13 +1120,11 @@ try {
 		
 		
 	}
-//		refModel.addElement("Add new reference...");
 	
-	//    Draw.image=Toolkit.getDefaultToolkit().getImage(getClass().getResource("background.jpg"));
-	if(genomes.length == 0 || Launcher.firstStart) {
-		if(Launcher.firstStart) {
+	if(genomes.length == 0) {
+		/*if(Launcher.firstStart) {
 			Main.writeToConfig("FirstStart=false");
-		}
+		}*/
 		AddGenome.createAndShowGUI();
 		AddGenome.frame.setTitle("Add new genome");
 		
@@ -1095,13 +1133,14 @@ try {
 		
 		AddGenome.frame.setLocation((int)(screenSize.getWidth()/2 - AddGenome.frame.getWidth()/2), (int)(screenSize.getHeight()/6));
 		 
-	   AddGenome.frame.setState(JFrame.NORMAL);
-	   AddGenome.frame.setVisible(true);
-	   AddGenome.frame.setAlwaysOnTop(true);
-		//WelcomeScreen.main(args);
-		//WelcomeScreen.frame.setVisible(true);
-		//WelcomeScreen.frame.setLocation(frame.getLocationOnScreen().x+frame.getWidth()/2 - WelcomeScreen.frame.getWidth()/2, frame.getLocationOnScreen().y+frame.getHeight()/6);
-	   
+	    AddGenome.frame.setState(JFrame.NORMAL);
+	    AddGenome.frame.setVisible(true);
+	    AddGenome.frame.setAlwaysOnTop(true);
+	   /*
+		WelcomeScreen.main(args);
+		WelcomeScreen.frame.setVisible(true);
+		WelcomeScreen.frame.setLocation(frame.getLocationOnScreen().x+frame.getWidth()/2 - WelcomeScreen.frame.getWidth()/2, frame.getLocationOnScreen().y+frame.getHeight()/6);
+	   */
 		if(genomes.length != 0) {
 			if(!genomehash.containsKey(defaultGenome)) {
 				
@@ -1135,6 +1174,14 @@ try {
 		getBands();			
 	    getExons();	
 	}
+	
+	if(Launcher.firstStart) {
+			
+		
+		WelcomeScreen.createAndShowGUI();
+		WelcomeScreen.frame.setLocation((int)(screenSize.getWidth()/2 - WelcomeScreen.frame.getWidth()/2), (int)(screenSize.getHeight()/6));
+		WelcomeScreen.frame.setVisible(true);
+	}
 	    setMenuBar();
 	    setButtons();
 	    Settings.main(args);
@@ -1148,7 +1195,7 @@ try {
 		CheckUpdates check = new CheckUpdates();
 		check.execute();
 	//	Main.drawCanvas.loading("test");
-		
+		Main.drawCanvas.splits.get(0).setCytoImage(Main.chromDraw.createBands(Main.drawCanvas.splits.get(0)));		
 	}
 	catch(Exception e) {
 		e.printStackTrace();
@@ -1256,6 +1303,7 @@ void setMenuBar() {
 	opensamples = new JMenuItem("Add samples", open);
 	average = new JMenuItem("Coverage calculator");
 	update = new JMenuItem("Update");
+	update.setVisible(false);
 	errorlog = new JMenuItem("View log");
 	helpLabel = new JLabel("This is pre-release version of BasePlayer\nContact: help@baseplayer.fi\n\nUniversity of Helsinki");
 	
@@ -1333,15 +1381,15 @@ void setMenuBar() {
 	
 
 //	area.setEditorKit(javax.swing.JEditorPane.createEditorKitForContentType("text/<b>html</b>"));
-	String infotext = "<html><h2>BasePlayer</h2>This is pre-release version of BasePlayer (<a href=http://baseplayer.fi>http://baseplayer.fi</a>)<br/> Author: Riku Katainen <br/> University of Helsinki<br/>"
+	String infotext = "<html><h2>BasePlayer</h2>This is a pre-release version of BasePlayer (<a href=https://baseplayer.fi>https://baseplayer.fi</a>)<br/> Author: Riku Katainen <br/> University of Helsinki<br/>"
 					+"Tumor Genomics Group (<a href=http://research.med.helsinki.fi/gsb/aaltonen/>http://research.med.helsinki.fi/gsb/aaltonen/</a>) <br/> " 
 					+"Contact: help@baseplayer.fi <br/>"
-					+"See the BasePlayer manuscript at <a href=https://doi.org/10.1101/126482>bioRxiv</a> <br/><br/>"
+					+"See the BasePlayer manuscript draft at <a href=https://doi.org/10.1101/126482>bioRxiv</a> <br/><br/>"
 					+"Supported filetype for variants is VCF and VCF.gz (index file will be created if missing)<br/> "
 					+"Supported filetypes for reads are BAM and CRAM. Index files required (.bai or .crai). <br/> "
 					+"Supported filetypes for additional tracks are BED(.gz), GFF.gz, BedGraph, BigWig, BigBed.<br/> (tabix index required for bgzipped files). <br/><br/> "
 											
-					+"For optimal usage, you should have vcf and bam -files for each sample. <br/> "
+					+"For optimal usage, you should have vcf.gz and bam -files for each sample. <br/> "
 					+"e.g. in case you have a sample named as sample1, name all files similarly and <br/>"
 					+"place in the same folder:<br/>"
 					+"sample1.vcf.gz<br/>"
@@ -1357,7 +1405,7 @@ void setMenuBar() {
 	area.setEditorKit(JEditorPane.createEditorKitForContentType("text/html"));
 	
 	area.setText(infotext);
-	
+	area.setFont(Main.menuFont);
 	area.addHyperlinkListener(new HyperlinkListener() {
 		public void hyperlinkUpdate(HyperlinkEvent hyperlinkEvent) {
 		    HyperlinkEvent.EventType type = hyperlinkEvent.getEventType();
@@ -1997,10 +2045,10 @@ void setButtons() {
     frame.addComponentListener(this);
     frame.addMouseListener(this);	    	   
     frame.setGlassPane(glassPane);
-    if(chromosomeDropdown.getItemCount() > 0) {
+    /*if(chromosomeDropdown.getItemCount() > 0) {
     	chromosomeDropdown.setSelectedIndex(0);
     	drawCanvas.chrom = chromosomeDropdown.getItemAt(0);
-    }
+    }*/
     glassPane.setOpaque(false);
     glassPane.setVisible(false);
    
@@ -2374,6 +2422,7 @@ public void actionPerformed(ActionEvent e) {
 			 if(VariantHandler.frame != null) {
 			  VariantHandler.frame.setState(Frame.ICONIFIED);
 			 }
+			 
 			  JFileChooser chooser = new JFileChooser(path);	 
 			  getText(chooser.getComponents());
 	    	  chooser.setMultiSelectionEnabled(true);
@@ -3248,6 +3297,7 @@ public void componentResized(ComponentEvent e) {
 }
 static void cancel(int nro) {
 	  cancel = true;
+	  Main.drawCanvas.ready("all");
 	   Draw.updateReads = false;
 	   for(int i = 0; i<drawCanvas.splits.size(); i++) {
 		   drawCanvas.splits.get(i).updateReads = false;
@@ -3268,7 +3318,7 @@ static void cancel(int nro) {
 				  
 		   }
 	   }
-	   Main.drawCanvas.ready("all");
+	   
 		   for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
 			   Main.bedCanvas.removeBeds(Main.bedCanvas.bedTrack.get(i));
 		   }
@@ -3477,40 +3527,66 @@ public static void putMessage(String message) {
 	}
 }
 public class CheckUpdates extends SwingWorker<String, Object> {
-	
+	private class DefaultTrustManager implements X509TrustManager {
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return null;
+        }
+	}
 
 	protected String doInBackground() {
-		try {
+		try {/*
 			if(!new File(userDir+"/genomes/ensembl.txt").exists()) {
 				
 				Main.downloadFile(new URL("https://www.cs.helsinki.fi/u/rkataine/BasePlayer/update/ensembl.txt"), userDir+"/genomes/", 0);
-			/*	if(new File(userDir+"/genomes/ensembl.txt").exists()) {
-					AddGenome.makeGenomes();
-					AddGenome.checkGenomes();
-				}
-				*/
-		    }
-		    URL file = new URL("https://www.cs.helsinki.fi/u/rkataine/BasePlayer/update/BasePlayer.jar");
+			
+		    }*/
+			SSLContext ctx = SSLContext.getInstance("TLS");
+	        ctx.init(new KeyManager[0], new TrustManager[] {new DefaultTrustManager()}, new SecureRandom());
+	        SSLContext.setDefault(ctx);
+		    URL file = new URL("https://baseplayer.fi/update/BasePlayer.jar");
 			
 		    HttpsURLConnection httpCon = (HttpsURLConnection) file.openConnection();	 
-		    
+		    //HttpURLConnection httpCon = (HttpURLConnection) file.openConnection();	 
+		    httpCon.setHostnameVerifier(new HostnameVerifier() {
+	            @Override
+	            public boolean verify(String arg0, SSLSession arg1) {
+	                return true;
+	            }
+	        });
 		    File homefile = new File(userDir +"/BasePlayer.jar");
 		   
 		    httpCon.connect();
+		   
 		    if(httpCon.getLastModified() != homefile.lastModified()) {
 		    	//putMessage("Updates available. Please click File->Update to get the most recent version.");
-		    	
+		    	update.setVisible(true);
 		    	update.setEnabled(true);
-				
+		    	update.setForeground(Color.green);
+		    	
 		    }
 		    else {
 		    	//putMessage("BasePlayer is up-to-date.");			    	
 		    	update.setEnabled(false);
+		    	update.setVisible(false);
 		    }
 		    httpCon.disconnect();
-		    file = new URL("https://www.cs.helsinki.fi/u/rkataine/BasePlayer/update/Launcher.jar");
+		    file = new URL("https://baseplayer.fi/update/Launcher.jar");
 		    homefile = new File(userDir +"/Launcher.jar");
 		    httpCon = (HttpsURLConnection) file.openConnection();
+		    httpCon.setHostnameVerifier(new HostnameVerifier() {
+	            @Override
+	            public boolean verify(String arg0, SSLSession arg1) {
+	                return true;
+	            }
+	        });
 		    httpCon.connect();
 		    if(!homefile.exists() || httpCon.getLastModified() != homefile.lastModified()) {
 		    	updatelauncher = true;					
@@ -3536,7 +3612,7 @@ public class CheckUpdates extends SwingWorker<String, Object> {
 			int[][] selexmatrix;
 			while((line = selexReader.readLine()) != null) {
 				split = line.split("\\t");
-				factor = split[0];				
+				factor = split[0].replace(".pfm", "");				
 				matrix = split[1].split(";");				
 				values = matrix[0].split(",");
 				selexmatrix = new int[4][values.length];
@@ -3551,66 +3627,59 @@ public class CheckUpdates extends SwingWorker<String, Object> {
 				Main.SELEXhash.put(factor, selexmatrix);
 			}				
 			selexReader.close();
-			selexReader = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream("SELEX/oldSELEX.txt")));
+			
 			String id;
 			boolean first = true;
-			int linepointer = 0;
-			while((line = selexReader.readLine()) != null) {
-				split = line.split("\\t");
-				factor = split[0];
+			int linepointer = 0;			
+			if(new File(userDir +"/additions/motifs/").exists()) {
+				File[] files = new File(userDir +"/additions/motifs/").listFiles();
+				for (File file : files) { 
+					selexReader = new BufferedReader(new FileReader(file));			
 				
-				matrix = split[1].split(";");	
-				
-				values = matrix[0].split(",");
-				selexmatrix = new int[4][values.length];
-				for(int i = 0; i<4; i++ ) {				
-					values = matrix[i].split(",");
-					for(int j = 0; j< values.length; j++) {						
-						selexmatrix[i][j] =  Integer.parseInt(values[j]);
-										
-					}
-				}	
-				factorNames.put(factor, factor);
-				Main.SELEXhash.put(factor, selexmatrix);
-			}				
-			selexReader.close();
-			selexReader = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream("SELEX/jaspar_pfm_all.txt")));			
-			
-			while((line = selexReader.readLine()) != null) {
-				if(line.startsWith(" ")) {
-					continue;
+					while((line = selexReader.readLine()) != null) {
+						try {
+						if(line.startsWith(" ")) {
+							continue;
+						}
+						if(line.startsWith(">")) {
+							first = true;
+							split = line.split("\\s+");
+							id = split[0].substring(1);					
+							factor = split[1];
+							
+							factorNames.put(id, factor);
+						
+							linepointer = 0;
+							line = selexReader.readLine();
+							selexmatrix = null;
+						
+							while(line.length() > 1 && !line.startsWith(" ")) {
+								
+								split = line.substring(line.indexOf("[") +1, line.indexOf("]")).trim().split("\\s+");
+								
+								if (first) {
+									first = false;
+									selexmatrix = new int[4][split.length];							
+								}
+								
+								for(int j = 0; j< split.length; j++) {						
+									selexmatrix[linepointer][j] =  Integer.parseInt(split[j]);												
+								}
+								linepointer++;
+								line = selexReader.readLine();
+							}
+							Main.SELEXhash.put(id, selexmatrix);
+						}				
+						}
+						catch(Exception e) {
+							
+							e.printStackTrace();
+						}
+					}				
+					selexReader.close();			
 				}
-				if(line.startsWith(">")) {
-					first = true;
-					split = line.split("\\s+");
-					id = split[0].substring(1);					
-					factor = split[1];
-					
-					factorNames.put(id, factor);
-				
-					linepointer = 0;
-					line = selexReader.readLine();
-					selexmatrix = null;
-				
-					while(line.length() > 1 && !line.startsWith(" ")) {
-						
-						split = line.substring(line.indexOf("[") +1, line.indexOf("]")).trim().split("\\s+");
-						
-						if (first) {
-							first = false;
-							selexmatrix = new int[4][split.length];							
-						}
-						
-						for(int j = 0; j< split.length; j++) {						
-							selexmatrix[linepointer][j] =  Integer.parseInt(split[j]);												
-						}
-						linepointer++;
-						line = selexReader.readLine();
-					}
-					Main.SELEXhash.put(id, selexmatrix);
-				}				
-			}				
-			selexReader.close();
+			}
+			
 		}
 		catch(Exception e) {
 			e.printStackTrace();
@@ -3851,14 +3920,39 @@ static String getNewFile(String server, String folder, String oldfile) {
 	return minfile;
 }
 public class Updater extends SwingWorker<String, Object> {
-	
+	private class DefaultTrustManager implements X509TrustManager {
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {}
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return null;
+        }
+	}
 	
 	public void downloadFile(String fileURL, String saveDir) throws IOException {
+		
 		System.out.println("Updating file from: " +fileURL +"\nSaving to: " +saveDir);
 		System.out.println("Opening connection...");
 		try {
 		URL url = new URL(fileURL);
+	
+		//HttpsURLConnection httpConn = (HttpsURLConnection) url.openConnection();
+		//httpConn.connect();
+		SSLContext ctx = SSLContext.getInstance("TLS");
+        ctx.init(new KeyManager[0], new TrustManager[] {new DefaultTrustManager()}, new SecureRandom());
+        SSLContext.setDefault(ctx);
 		HttpsURLConnection httpConn = (HttpsURLConnection) url.openConnection();
+		httpConn.setHostnameVerifier(new HostnameVerifier() {
+            @Override
+            public boolean verify(String arg0, SSLSession arg1) {
+                return true;
+            }
+        });
 		httpConn.connect();
 		int responseCode = httpConn.getResponseCode();
 		int BUFFER_SIZE = 4096;
@@ -3886,8 +3980,15 @@ public class Updater extends SwingWorker<String, Object> {
 			// opens input stream from the HTTP connection
 			InputStream inputStream = httpConn.getInputStream();
 			String saveFilePath = saveDir + File.separator + fileName +"_temp";
-			
+			File testFile = new File(saveDir + File.separator +"_test");
 			// opens an output stream to save into file
+			if(!testFile.mkdir()) {
+				Main.showError("Could not update BasePlayer. No writing permissions in BasePlayer folder.\nStart BasePlayer as adminstrator and press update again.\n"
+						+ "Alternatively, give writing permissions to your BasePlayer folder.", "Error");
+				testFile.delete();
+				return;
+			}
+			testFile.delete();
 			FileOutputStream outputStream = new FileOutputStream(saveFilePath);
 
 			int bytesRead = -1;
@@ -3945,16 +4046,16 @@ public class Updater extends SwingWorker<String, Object> {
 	protected String doInBackground() {
 		
 		try {
-			Main.drawCanvas.loading("Updating BasePlayer... (downloading BasePlayer.jar from http://baseplayer.fi/update/");			    
+			Main.drawCanvas.loading("Updating BasePlayer... (downloading BasePlayer.jar from https://baseplayer.fi/update/");			    
 		  
-		    downloadFile("https://www.cs.helsinki.fi/u/rkataine/BasePlayer/update/BasePlayer.jar", userDir);
+		    downloadFile("https://baseplayer.fi/update/BasePlayer.jar", userDir);
 			if(updatelauncher) {
-				downloadFile("https://www.cs.helsinki.fi/u/rkataine/BasePlayer/update/Launcher.jar", userDir);
+				downloadFile("https://baseplayer.fi/update/Launcher.jar", userDir);
 			}
-			if(!new File(userDir+"/genomes/ensembl.txt").exists()) {
+			/*if(!new File(userDir+"/genomes/ensembl.txt").exists()) {
 				downloadFile("https://www.cs.helsinki.fi/u/rkataine/BasePlayer/update/ensembl.txt", userDir+"/genomes/");
-		    }
-			Main.drawCanvas.ready("Updating BasePlayer... (downloading BasePlayer.jar from http://baseplayer.fi/update/");	
+		    }*/
+			Main.drawCanvas.ready("Updating BasePlayer... (downloading BasePlayer.jar from https://baseplayer.fi/update/");	
 			/*if(homefile.length() > 0) {
 				File replacefile = new File(userDir +"/BasePlayer.jar");
 				FileUtils.copyFile(homefile, replacefile);				
@@ -3978,7 +4079,7 @@ public class Updater extends SwingWorker<String, Object> {
 		    
 		}
 		catch(Exception e) {
-			 Main.drawCanvas.ready("Updating BasePlayer... (downloading BasePlayer.jar from http://baseplayer.fi/update/");	
+			 Main.drawCanvas.ready("Updating BasePlayer... (downloading BasePlayer.jar from https://baseplayer.fi/update/");	
 			e.printStackTrace();
 			ErrorLog.addError(e.getStackTrace());
 			Main.showError(e.getMessage(), "Error");
@@ -4495,7 +4596,8 @@ static void setFonts() {
 		if(bedCanvas.bedTrack.get(i).getSelector() != null) {
 			bedCanvas.bedTrack.get(i).getSelector().setFonts(menuFont);
 		}
-		
+		bedCanvas.bedTrack.get(i).getLimitField().setPreferredSize(new Dimension(bedCanvas.buf.getFontMetrics().stringWidth("__Value limit__"), Main.defaultFontSize+6));
+		bedCanvas.bedTrack.get(i).getLimitField().setMinimumSize(new Dimension(bedCanvas.buf.getFontMetrics().stringWidth("__Value limit__"), Main.defaultFontSize+6));
 		
 	}
 	for(int i = 0 ; i<Control.controlData.fileArray.size(); i++) {
@@ -4657,7 +4759,7 @@ static void setAnnotationDrop(String ref) {
 static void setChromDrop(String dir) {
 	try {
 		
-		if(!new File(userDir +"/genomes/" +dir).exists() || dir.length() == 0) {
+		if(!new File(genomeDir.getCanonicalPath()+"/" +dir).exists() || dir.length() == 0) {
 			
 			/*String[] empty = {""};			
 			chromModel = new DefaultComboBoxModel<String>(empty);
@@ -4687,7 +4789,7 @@ static void setChromDrop(String dir) {
 			
 			File chromindex = null;
 			selectedGenome = dir;
-			File defdir = new File(userDir +"/genomes/" +dir);
+			File defdir = new File(genomeDir.getCanonicalPath() +"/" +dir);
 			File[] files = defdir.listFiles();
 			String chromtemp = "";
 			chromnamevector = Collections.synchronizedList(new ArrayList<String>());
@@ -5123,7 +5225,7 @@ void openProject() {
 
 static void getBands() {
 	try {
-		File bandfile = new File(userDir +"/genomes/" +selectedGenome +"/bands.txt");
+		File bandfile = new File(genomeDir.getCanonicalPath() +"/" +selectedGenome +"/bands.txt");
 		
 		if(bandfile.exists()) {
 			ChromDraw.bandVector.clear();	

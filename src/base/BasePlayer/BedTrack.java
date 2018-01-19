@@ -231,8 +231,8 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			con.gridy++;
 			menu.add(columnSelector,con);
 			
-			limitField.setPreferredSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("Value limit"), Main.defaultFontSize+4));
-			limitField.setMinimumSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("Value limit"), Main.defaultFontSize+4));
+			limitField.setPreferredSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("__Value limit__"), Main.defaultFontSize+6));
+			limitField.setMinimumSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("__Value limit__"), Main.defaultFontSize+6));
 			limitField.setToolTipText("Value limit");
 			if(limitValue != (double)Integer.MIN_VALUE) {				
 				limitField.setText(""+limitValue);
@@ -382,11 +382,11 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 				try {
 					limitValue = Double.parseDouble(limitField.getText());
 					
-					if(!small) {
+					if(!small || (file !=null && file.getName().endsWith("bw")) || (url != null && url.getFile().endsWith("bw"))) {
 						
 						if(Main.drawCanvas.splits.get(0).viewLength <  Settings.windowSize) {
-							int start =  (int)Main.drawCanvas.splits.get(0).start+(int)((Main.drawCanvas.splits.get(0).end-Main.drawCanvas.splits.get(0).start)/2)- Settings.windowSize/2;
-							Main.bedCanvas.getBEDfeatures(this,start, start+ Settings.windowSize);
+							int start =  (int)Main.drawCanvas.splits.get(0).start- Settings.windowSize;
+							Main.bedCanvas.getBEDfeatures(this,start, start+ Settings.windowSize*2);
 						}
 						else {
 							if(this.intersect) {

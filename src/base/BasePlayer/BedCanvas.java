@@ -1117,7 +1117,7 @@ public class Annotator extends SwingWorker<String, Object> {
 				
 				track.used = false;
 				track.intersect = false;
-			//	removeBedhits(track);
+				removeBedhits(track);
 				cancelled = true;
 				repaint();
 				break;
@@ -1764,7 +1764,14 @@ void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 		}
 		
 	   while((line = reader.readLine()) != null) {			
-		   
+		   if(!Main.drawCanvas.loading) {
+			   track.used = false;
+				track.intersect = false;
+				removeBedhits(track);
+				
+				repaint();
+	    		break;
+	    	}
 	    	try {
 	    		if(line.startsWith("#") || line.length() < 10) {
 	    			continue;
@@ -1813,15 +1820,15 @@ void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 				if(features.getName() != null) {					
 					
 					if(first) {						
-						if(Main.SELEXhash.containsKey(features.getName())) {						
+						if(Main.SELEXhash.containsKey(features.getName().replace(".pfm", ""))) {						
 							track.selex = true;
 							track.getAffinityBox().setVisible(true);
-							track.iszerobased = 1;
-							track.getZerobased().setSelected(false);
+							//track.iszerobased = 1;
+							//track.getZerobased().setSelected(false);
 						}						
 					}
 					if(track.selex) {
-						addNode.id = features.getName();
+						addNode.id = features.getName().replace(".pfm", "");
 						addNode.name = Main.factorNames.get(addNode.id);
 						
 					}
@@ -1893,6 +1900,7 @@ void iterateBED(TabixReaderMod.Iterator iterator, BedTrack track) {
 		return;
 	}
 	try {
+		
 	String line;
 	 BedNode addNode = track.getHead();
 	 track.maxvalue = 0;
@@ -1906,13 +1914,22 @@ void iterateBED(TabixReaderMod.Iterator iterator, BedTrack track) {
 			 bedgraph = true;
 			
 		 }
+		 
 		 BEDFeature features;
 		 BEDCodecMod bedcodec = new BEDCodecMod();
 		if(track.limitValue == null) {
 			track.limitValue = (double)Integer.MIN_VALUE;
 		}
 	   while((line = iterator.next()) != null) {
-	    	try {
+	    	if(!Main.drawCanvas.loading) {
+	    		track.used = false;
+				track.intersect = false;
+				removeBedhits(track);
+				
+				repaint();
+	    		break;
+	    	}
+		   try {
 	    		features = bedcodec.decode(line);
 	    		if(track.selex && (features.getName() == null || !Main.SELEXhash.containsKey(features.getName()))) {
 	    			
@@ -1947,22 +1964,21 @@ void iterateBED(TabixReaderMod.Iterator iterator, BedTrack track) {
 				if(features.getName() != null) {					
 					
 					if(first) {						
-						if(Main.SELEXhash.containsKey(features.getName())) {						
+						if(Main.SELEXhash.containsKey(features.getName().replace(".pfm", ""))) {						
 							track.selex = true;
 							track.getAffinityBox().setVisible(true);
-							track.iszerobased = 1;
-							track.getZerobased().setSelected(false);
+							//track.iszerobased = 1;
+							//track.getZerobased().setSelected(false);
 						}						
 					}
 					if(track.selex) {
-						addNode.id = features.getName();
+						addNode.id = features.getName().replace(".pfm", "");
 						addNode.name = Main.factorNames.get(addNode.id);
 						
 					}
 					else {
 						addNode.name = features.getName();
-					}
-					
+					}					
 				}
 				
 				if(bedgraph) {
@@ -1981,7 +1997,9 @@ void iterateBED(TabixReaderMod.Iterator iterator, BedTrack track) {
 					if(track.minvalue > addNode.value) {
 						track.minvalue = addNode.value;
 					}
+					
 				}
+				
 				if(features.getStrand() != null) {
 					
 					addNode.forward = features.getStrand().equals(Strand.NEGATIVE) ? false : true;
@@ -2017,6 +2035,12 @@ void iterateBED(TabixReaderMod.Iterator iterator, BedTrack track) {
 	   else {
 		   track.scale = track.maxvalue;
 	   }
+	   if(track.minvalue == 0 && track.maxvalue == 0) {
+		   track.hasvalues = false;
+	   }
+	   else {
+		   track.hasvalues = true;
+	   }
 	   iterator = null;
 	     addNode = null;
 	     track.cleared = false;
@@ -2038,6 +2062,14 @@ void iterateBigBed(BigBedIterator iterator, BedTrack track) {
 		String[] allfields = null;
 	
 	   while(iterator.hasNext()) {
+		   if(!Main.drawCanvas.loading) {
+			   track.used = false;
+				track.intersect = false;
+				removeBedhits(track);
+				
+				repaint();
+	    		break;
+	    	}
 	    	try {
 				//split = line.split("\t");
 	    			    		
@@ -2158,7 +2190,14 @@ void iterateGFF(TabixReaderMod.Iterator iterator, BedTrack track) {
 		track.minvalue = Double.MAX_VALUE;	
 		
 	   while((line = iterator.next()) != null) {
-		  
+		   if(!Main.drawCanvas.loading) {
+			   track.used = false;
+				track.intersect = false;
+				removeBedhits(track);
+				
+				repaint();
+	    		break;
+	    	}
 	    	try {
 				split = line.split("\t");	    			    		
 	 			
@@ -2186,12 +2225,12 @@ void iterateGFF(TabixReaderMod.Iterator iterator, BedTrack track) {
 					
 					if(first) {				
 					
-						if(Main.SELEXhash.containsKey(split[2])) {						
+						if(Main.SELEXhash.containsKey(split[2].replace(".pfm", ""))) {						
 							track.selex = true;
 						}						
 					}
 					if(track.selex) {
-						addNode.id = split[2];
+						addNode.id = split[2].replace(".pfm", "");
 						addNode.name = Main.factorNames.get(addNode.id);
 						
 					}
@@ -2267,7 +2306,14 @@ void iterateTSV(TabixReaderMod.Iterator iterator, BedTrack track) {
 		track.minvalue = Double.MAX_VALUE;	
 		
 	   while((line = iterator.next()) != null) {
-		  
+		   if(!Main.drawCanvas.loading) {
+			   track.used = false;
+				track.intersect = false;
+				removeBedhits(track);
+				
+				repaint();
+	    		break;
+	    	}
 	    	try {
 				split = line.split("\t"); 			
 				
@@ -2292,14 +2338,14 @@ void iterateTSV(TabixReaderMod.Iterator iterator, BedTrack track) {
 					addNode = addNode.getNext();
 					
 					if(first) {				
-					
-						if(Main.SELEXhash.containsKey(split[2])) {						
+						
+						if(Main.SELEXhash.containsKey(split[2].replace(".pfm", ""))) {						
 							track.selex = true;
 						}						
 					}
 				
 						if(track.namecolumn != null) {
-							addNode.name = split[track.namecolumn ];
+							addNode.name = split[track.namecolumn];
 						}
 						if(track.strandcolumn != null) {
 							addNode.forward = split[track.strandcolumn].contains("-") ? false : true;
@@ -2371,6 +2417,11 @@ void iterateWig(BigWigIterator iterator, BedTrack track) {
 		
 	   while(iterator.hasNext()) {
 		   if(!Main.drawCanvas.loading) {
+			   track.used = false;
+				track.intersect = false;
+				removeBedhits(track);
+				
+				repaint();
 			   break;
 		   }
 	    	try {
@@ -2436,6 +2487,14 @@ void iterateZoom(ZoomLevelIterator iterator, BedTrack track) {
 		ZoomDataRecord features;
 		
 	   while(iterator.hasNext()) {
+		   if(!Main.drawCanvas.loading) {
+			   track.used = false;
+				track.intersect = false;
+				removeBedhits(track);
+				
+				repaint();
+			   break;
+		   }
 	    	try {
 	    		
 	    		features = iterator.next();

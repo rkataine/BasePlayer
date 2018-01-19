@@ -106,7 +106,10 @@ public class ReferenceSeq {
 				seqresult = new byte[(int)((seqchrom.length())-(seqchrom.getFilePointer()))];
 			}
 			seqchrom.readFully(seqresult);
-			
+			if(seqresult.length == 0) {
+				byte[] result = {0};
+				return result;
+			}
 			if(seqresult[0] == 10) {
 				
 				seqchrom.seek((Main.chromIndex.get(Main.refchrom +chrom)[0]+(start+1)+((start)/Main.chromIndex.get(Main.refchrom +chrom)[2].intValue())));

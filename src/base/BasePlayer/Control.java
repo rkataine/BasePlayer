@@ -476,8 +476,12 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 	    							 alleles = Integer.parseInt(split[7].substring(index, acendindex).split(",")[t]);
 	    							
 	    						//	 System.out.println(position +" " +alleles); 
+	    							try {
 	 					    		 allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
-	 					    		 
+	    							}
+	    							catch(Exception e) {
+	    								System.out.println(line);
+	    							}
 	    					//		 allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
 	    							
 	 					    		

@@ -124,14 +124,7 @@ void drawScreen(Graphics g) {
 	}
 
 	drawSidebar();
-	buf.setStroke(Draw.doubleStroke);
-	buf.setColor(Color.gray);
-	buf.drawLine(Main.sidebarWidth-1, 0, Main.sidebarWidth-1, Main.drawScroll.getViewport().getHeight());
-	buf.drawLine(1, 0, 1, Main.drawScroll.getViewport().getHeight());
-	buf.setColor(Color.lightGray);
-	buf.drawLine(3, 0,3, Main.drawScroll.getViewport().getHeight());
-	buf.drawLine(Main.sidebarWidth-3, 0, Main.sidebarWidth-3, Main.drawScroll.getViewport().getHeight());
-	buf.setStroke(Draw.basicStroke);
+	
 	if(resizer && !mouseDrag) {
 		resizer = false;
 	}
@@ -303,7 +296,14 @@ void drawSidebar() {
 	
 	}
 	
-	
+	buf.setStroke(Draw.doubleStroke);
+	buf.setColor(Color.gray);
+	buf.drawLine(Main.sidebarWidth-1, 0, Main.sidebarWidth-1, this.getHeight());
+	buf.drawLine(1, 0, 1, this.getHeight());
+	buf.setColor(Color.lightGray);
+	buf.drawLine(3, 0,3, this.getHeight());
+	buf.drawLine(Main.sidebarWidth-3, 0, Main.sidebarWidth-3, this.getHeight());
+	buf.setStroke(Draw.basicStroke);
 }
 
 void drawNodes() {
@@ -448,7 +448,7 @@ public void mouseClicked(MouseEvent event) {
 			}
 			
 		}
-		if(removeControl > -1) {			
+		if(sidebar && removeControl > -1) {			
 			removeControl(removeControl);
 		}
 		repaint();	
@@ -464,6 +464,7 @@ public void mouseClicked(MouseEvent event) {
 }	
 
 public void removeControl(int removeControl) {
+	
 	MethodLibrary.removeHeaderColumns(Control.controlData.fileArray.get(removeControl));
 	Control.controlData.fileArray.remove(removeControl);
 	hoverIndex = -1;

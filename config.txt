@@ -1,8 +1,9 @@
-DefaultDir=X:\cg7\projects\Ohutsuoli\Ohutsuoli38_1_16-0564TP_T_160901_K00110_0098_BHCM72BBXX\wgspipeline
-DefaultTrackDir=\\ATKK\home\r\rkataine\Desktop
+DefaultDir=X:\cg8\projects\CRC\analysis\SomaticCharacterization\callsets\SNVs_indels\20160107\MSS
+DefaultTrackDir=X:\cg8\Riku\MOODS\MOODS-python-1.9.2\scripts\results
 DefaultControlDir=X:\cg8\Controls\wxs
 DefaultProjectDir=\\ATKK\home\r\rkataine\Documents
-DefaultGenome=Homo_sapiens.GRCh37
-DefaultGenes=Homo_sapiens.GRCh37.87.bed.gz
+DefaultGenome=Saccharomyces_cerevisiae.R64-1-1
+DefaultGenes=Saccharomyces_cerevisiae.R64-1-1.89.bed.gz
 DefaultSaveDir=\\ATKK\home\r\rkataine\Desktop
 DownloadDir=X:\cg8\reference-genomes\hs37d5_viral_bwa0.7.12
+
