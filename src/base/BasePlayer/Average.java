@@ -62,7 +62,7 @@ public class Average extends JPanel implements TableCellRenderer, MouseListener 
 	//Buttons etc.
     static JButton openbutton = new JButton("Open BED-file");
 	static JButton output = new JButton("Write output");
-
+	static int startpos=0,endpos=0,startchrom=0, endchrom=0; 
 	static JButton execute = new JButton("Execute");
 	JButton cancel = new JButton("Cancel");
 	static JTextArea info = new JTextArea();
@@ -73,7 +73,7 @@ public class Average extends JPanel implements TableCellRenderer, MouseListener 
 	static Object[] headers = {"Sample", "Average coverage", "Average mapping quality", "Soft clip rate", "Zero quality rate", "Covered (%) (Coverage : Percentage)", "Status"}; 
     static Object[][] data = {}; 
     static DefaultTableModel model = new DefaultTableModel(data, headers); 
-
+    static JCheckBox smallregion = new JCheckBox("Small region?");
 	static JTable table = new JTable(model);
 	JScrollPane infoScroll = new JScrollPane(table,  
     JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,  
@@ -133,14 +133,15 @@ super(new GridBagLayout());
 	c.gridwidth = 1;  
 	panel.add(openbutton, c);
  //   c.gridy = 1;
-    c.gridwidth = 1;  
+   
     c.gridx = 1;
     panel.add(execute, c);
     c.gridx = 2;
     panel.add(cancel,c);
     c.gridx = 3;
     panel.add(output,c);   
-    
+    c.gridx = 4;
+    panel.add(smallregion,c);
  //   c.gridx = 0;
     
    // c.gridy = 1;
@@ -148,13 +149,13 @@ super(new GridBagLayout());
   //  panel.add(fileLabel, c);
     c.gridy = 1;
     c.gridx = 0;
-    c.gridwidth =4;
+    c.gridwidth =5;
     panel.add(fileLabel, c);
    
     
     c = new GridBagConstraints(
     		0,2, // position
-    	    4,1, // size
+    	    5,1, // size
     	    1.0,1.0, // fill ratio
     	    GridBagConstraints.CENTER, GridBagConstraints.BOTH, // position inside the cell
     	    new Insets(2,2,2,2),0,0);    
@@ -222,8 +223,12 @@ public static class runner extends SwingWorker<String, Object> {
 	
 	
 	protected String doInBackground() {		
-		
-		calcAverage();
+		if(smallregion.isSelected()) {
+			calcAverageRegions();
+		}
+		else {
+			calcAverage();
+		}
 		Average.execute.setEnabled(true);
 		Average.output.setEnabled(true);
 		Average.openbutton.setEnabled(true);
@@ -231,7 +236,173 @@ public static class runner extends SwingWorker<String, Object> {
 	}
 	
 }
+static void calcAverageRegions() {
+	
+	try {		
+		 java.util.List<int[]> mergeVector = Average.mergeVector;
+	 
+	  int zeros = 0;
+	 
+	  int start = 0, end = 0;
+	 		
+	 
+	  int stat = 0;
+	  
+	  String status = "";
+	  String percent = "";
+	  int[] coverageWidth = new int[10];
+	 
+	  
+	  int[] coverageArray = {};
+	  for(int s=0;s<Main.drawCanvas.sampleList.size();s++) {
+		 
+		  if (Main.cancel) {
+				break;
+			}
+		  if(Main.drawCanvas.sampleList.get(s).samFile == null) {
+			 continue; 
+		  }
+		  //SamReader inputSam = SamReaderFactory.make().open(Main.drawCanvas.sampleList.get(s).samFile);
+		  long result = 0, qualities = 0, cliplengths = 0, readlengths = 0, reads =0;
+			
+		  int currentLength = 0;
+		 
+		  coverageWidth = new int[10];
+		  for(int i = 0; i<10; i++) {
+			  coverageWidth[i] = 0;
+		  }
+		  boolean first = true;
+		  for(int c = 0; c<mergeVector.size(); c++) {
+			
+			  SAMFileReader inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
+			  Iterator<SAMRecord> iterator = inputSam.queryOverlapping(Main.chromosomeDropdown.getItemAt(mergeVector.get(c)[0]), mergeVector.get(c)[1], mergeVector.get(c)[2]);
+			
+			  SAMRecord samRecord = null;
+			  coverageArray = new int[mergeVector.get(c)[2]-mergeVector.get(c)[1]];
+				for(int i = 0 ; i<coverageArray.length; i++) {
+					coverageArray[i] = 0;
+				}
+				currentLength +=mergeVector.get(c)[2]-mergeVector.get(c)[1];
+				if (Main.cancel) {
+					break;
+				}
+			  while(iterator.hasNext()) {
+				 
+				  try {
+					  samRecord = iterator.next();
+					 
+				  }
+				  catch(Exception ex) {
+					  continue;
+				  }
+				  if (Main.cancel) {
+						break;
+					}
+				  	if(samRecord == null) {
+				  		continue;
+				  	}
+				  	 
+				  	end = samRecord.getAlignmentEnd();
+				  	
+					if(end == 0) {
+						continue;
+					}	
+					
+					start = samRecord.getAlignmentStart();
+				//	if(start > mergeVector.get(c)[2]) {
+						 
+				//		if(!first) {
+							
+							
+				//		}
+						
+						
+				//	}
+					
+						
+						
+					
+					reads++;
+					qualities += samRecord.getMappingQuality();
+					cliplengths += (samRecord.getUnclippedEnd()-samRecord.getUnclippedStart())-(end-start);
+					readlengths += (samRecord.getUnclippedEnd()-samRecord.getUnclippedStart());				
+					if(samRecord.getMappingQuality() == 0) {
+						zeros++;  
+						continue;
+					}
+					try {
+					for(int i = start; i<end; i++ ) {
+						if(i<mergeVector.get(c)[1]) {
+							continue;
+						}
+						if(i > mergeVector.get(c)[2]-1) {
+							
+							break;
+						}
+						
+						coverageArray[i-mergeVector.get(c)[1]]++;
+					}
+					}
+					catch(Exception e) {
+						ErrorLog.addError(e.getStackTrace());
+						e.printStackTrace();
+						continue;
+					}
+						
+				   }
+		  		
+		  		inputSam.close();			
+		  		for(int i = 0; i<coverageArray.length; i++) {
+					result+=coverageArray[i];
+					if(coverageArray[i] > 0) {
+						if(coverageArray[i] >= 10) {
+							for(int j = 0 ; j<10; j++) {
+								coverageWidth[j]++;
+							}									
+						}
+						else {
+							for(int j = coverageArray[i]-1; j>=0; j--) {
+								coverageWidth[j]++;
+							}
+						}
+					}
+				}
+			
+				if(stat != (int)(c/(double)mergeVector.size()*100)) {		
+					if(currentLength != 0) {
+			  			Average.model.setValueAt(""+MethodLibrary.round((result/(double)currentLength),2), s, 1);	
+			  		}				  		
+			  		percent = "1 : "+(int)((coverageWidth[0]/(double)currentLength)*100)
+			  				+" | 2 : "+(int)((coverageWidth[1]/(double)currentLength)*100)
+			  				+" | 3 : "+(int)((coverageWidth[2]/(double)currentLength)*100)
+			  				+" | 4 : "+(int)((coverageWidth[3]/(double)currentLength)*100)
+			  				+" | 5 : "+(int)((coverageWidth[4]/(double)currentLength)*100)
+			  				+" | 6 : "+(int)((coverageWidth[5]/(double)currentLength)*100)
+			  				+" | 7 : "+(int)((coverageWidth[6]/(double)currentLength)*100)
+			  				+" | 8 : "+(int)((coverageWidth[7]/(double)currentLength)*100)
+			  				+" | 9 : "+(int)((coverageWidth[8]/(double)currentLength)*100)
+			  				+" | 10+ : "+(int)((coverageWidth[9]/(double)currentLength)*100);
+			  		
+			  		Average.model.setValueAt(MethodLibrary.round(qualities/(double)reads, 2), s, 2);
+			  		Average.model.setValueAt(MethodLibrary.round(cliplengths/(double)readlengths,4), s, 3);
+			  		Average.model.setValueAt(MethodLibrary.round(zeros/(double)reads,4), s, 4);
+			  		
+			  		Average.model.setValueAt(percent +"%", s, 5);
+			  		stat = (int)(c/(double)mergeVector.size()*100);
+			  		status = ""+c/(double)mergeVector.size()*100;						  	
+			  		Average.model.setValueAt("Running " +status.substring(0,status.indexOf("."))+"%", s, 6);
+				}
+		  }
+		  Average.model.setValueAt("100%", s, 6);		
+		  
+	  }
+		}
+		catch(Exception ex) {
+			ErrorLog.addError(ex.getStackTrace());			
+			ex.printStackTrace();
+		}
 
+}
 static void calcAverage() {
 	
 	try {		
@@ -272,7 +443,16 @@ static void calcAverage() {
 		  cliplengths = 0;
 		  readlengths = 0;
 		  coverageWidth = new int[10];
-		  Iterator<SAMRecord> iterator = inputSam.iterator();
+		  Iterator<SAMRecord> iterator = null;
+		  System.out.println(Main.chromosomeDropdown.getItemAt(startchrom) +" " +Average.startpos +" " +Average.endpos);
+		  if(startchrom == endchrom) {
+			  iterator = inputSam.queryOverlapping(Main.chromosomeDropdown.getItemAt(startchrom), Average.startpos,  Average.endpos);
+			 
+		  }
+		  else {
+			  iterator = inputSam.iterator();
+		  }
+		 
 		  SAMRecord samRecord = null;
 		  for(int i = 0; i<10; i++) {
 			  coverageWidth[i] = 0;
@@ -414,8 +594,6 @@ static void calcAverage() {
 			ErrorLog.addError(ex.getStackTrace());			
 			ex.printStackTrace();
 		}
-	  
-	
 
 }
 static void createAndShowGUI() {
@@ -545,13 +723,19 @@ public void mouseClicked(MouseEvent e) {
 	      		Average.mergeVector = Collections.synchronizedList(new ArrayList<int[]>());
 	      		int[] adderi = { 0, 0, 0 };   
 	      		Average.mergeVector.add(adderi);		
-	      		int index,start, end, chrom, size = 0; 
-	      		
+	      		int index,start=0, end=0, chrom=0, size = 0; 
+	      		boolean first  = true;
 	      		
 	      		for(int i = 0; i<tempVector.size(); i++) {
 	      			
 	      			chrom = Integer.parseInt(tempVector.get(i)[0]);
+	      			
 	      			start = Integer.parseInt(tempVector.get(i)[1]);
+	      			if(first) {
+	      				startchrom = chrom;
+	      				startpos = start;
+	      				first = false;
+	      			}
 	     			end = Integer.parseInt(tempVector.get(i)[2]);
 	     			index = Average.mergeVector.size()-1;         		
 	     			
@@ -599,7 +783,10 @@ public void mouseClicked(MouseEvent e) {
 	     				}
 	      			
 	      		}
-	      		
+	      	
+  				endchrom = chrom;
+  				endpos = end;
+      			
 	      		Average.mergeVector.remove(0);
 	      		output.setEnabled(true);
 	        	execute.setEnabled(true);

@@ -3234,6 +3234,18 @@ static void annotate() {
 //			}			
 		}
 		catch(Exception e) {
+			if(readClass.sample.CRAM) {			
+				if(CRAMReader != null && !CRAMReader.hasIndex()) {			
+					Main.showError("Index file is missing (.crai) for " +readClass.sample.samFile.getName(), "Note");
+					return null;
+				}
+			}
+			else {
+				if(samFileReader != null && !samFileReader.hasIndex()) {	
+					Main.showError("Index file is missing (.bai) for " +readClass.sample.samFile.getName(), "Note");
+					return null;
+				}
+			}
 			e.printStackTrace();
 		}		
 		
@@ -3283,7 +3295,7 @@ static void annotate() {
 				return value;
 			}
 		}
-		catch(Exception e) {		
+		catch(Exception e) {
 		
 			try {
 				if(readClass.sample.CRAM) {
@@ -6109,8 +6121,7 @@ void varCalcBig() {
 		Main.drawCanvas.sampleList.get(i).versioRate = 0;
 		Main.drawCanvas.sampleList.get(i).ins = 0;
 		Main.drawCanvas.sampleList.get(i).callrates = 0.0;
-		Main.drawCanvas.sampleList.get(i).coding = 0;
-		
+		Main.drawCanvas.sampleList.get(i).coding = 0;		
 		Main.drawCanvas.sampleList.get(i).syn = 0;
 		Main.drawCanvas.sampleList.get(i).nonsyn = 0;
 		Main.drawCanvas.sampleList.get(i).missense = 0;

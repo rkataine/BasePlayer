@@ -4442,6 +4442,7 @@ public void mouseReleased(MouseEvent event) {
 	
 		if(Main.drawScroll.getVerticalScrollBar().getValue() > (drawCanvas.drawVariables.visiblestart*drawCanvas.drawVariables.sampleHeight+drawCanvas.drawVariables.sampleHeight/2.0)) {
 			drawCanvas.drawVariables.visiblestart++;
+			
 			Draw.setScrollbar((int)(drawCanvas.drawVariables.visiblestart*drawCanvas.drawVariables.sampleHeight));
 		}
 		else {
@@ -4581,7 +4582,8 @@ static void setFonts() {
 	Draw.loadingFont = menuFont.deriveFont((float)(Main.defaultFontSize*1.5));//		
 	buttonHeight = (int)(Main.defaultFontSize*1.5);
 	buttonWidth = Main.defaultFontSize*6;
-	searchField.setMargin(new Insets(0,Main.defaultFontSize+8, 0, 0));
+	//searchField.setMargin(new Insets(0,Main.defaultFontSize+8, 0, 0));
+	searchField.setBorder(BorderFactory.createCompoundBorder(searchField.getBorder(), BorderFactory.createEmptyBorder(0,Main.defaultFontSize+8, 0, 0)));
 	buttonDimension = new Dimension(buttonWidth, buttonHeight);		
 	
 	ChromDraw.seqFont= ChromDraw.seqFont.deriveFont((float)(Main.defaultFontSize+2));
@@ -4693,7 +4695,7 @@ static void setFonts() {
 	chromosomeDropdown.setPreferredSize(new Dimension(Main.defaultFontSize*5,buttonHeight));
     geneDropdown.setPopupWidth(annolength*letterlength);
     refDropdown.setPopupWidth(reflength*letterlength);
-    searchField.setMargin(new Insets(0,buttonHeight+4, 0, 0));
+    //searchField.setMargin(new Insets(0,buttonHeight+4, 0, 0));
     searchField.setPreferredSize(fieldDimension);
     searchField.setMinimumSize(fieldDimension);
 	widthLabel.setPreferredSize(new Dimension(widthLabel.getFontMetrics(widthLabel.getFont()).stringWidth("000,000,000bp (Right click to cancel zoom)  NNNNNNNNNNNNNNNNNNNNNNNN")+10,buttonHeight));
@@ -5674,8 +5676,7 @@ public class Seqfetcher extends SwingWorker<String, Object> {
 						Object[] adder = {read.getPosition(), readsam.getReadString()};
 						readlist.add(adder);
 					}
-				}
-			
+				}			
 			}
 			while ((read = read.getNext()) != null);				
 		}
@@ -5722,6 +5723,8 @@ public class Seqfetcher extends SwingWorker<String, Object> {
 			}
 		}
 		buffer.append(fasta.toString());
+		
+		System.out.println(buffer.toString());
 	}
 	
 
@@ -5918,6 +5921,7 @@ public void keyPressed(KeyEvent e) {
 		File file = new File(searchField.getText().replaceAll(" ", ""));
 		if(!file.exists()) {
 			if(Main.drawCanvas.splits.get(0).viewLength < 1000) {
+				
 				Main.getConsSeq();
 			}
 		}

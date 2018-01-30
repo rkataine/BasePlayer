@@ -2014,8 +2014,11 @@ public void drawScreen(Graphics g) {
 		buf.fillRect(Main.sidebarWidth, 0,this.getWidth()-Main.sidebarWidth, Main.drawScroll.getViewport().getHeight());	
 	
 		if(Main.drawScroll.getVerticalScrollBar().getUnitIncrement() != (int)drawVariables.sampleHeight) {
-			Main.drawScroll.getVerticalScrollBar().setUnitIncrement((int)drawVariables.sampleHeight);			
+			Main.drawScroll.getVerticalScrollBar().setUnitIncrement((int)drawVariables.sampleHeight);		
+			
 		}
+		
+		//System.out.println(Main.drawScroll.getVerticalScrollBar().getValue() +" " +(int)(drawVariables.visiblestart*drawVariables.sampleHeight));
 		if(Main.chromDraw.timer > 0) {			
 			if(System.currentTimeMillis()-Main.chromDraw.timer > 2000) {
 				Main.chromDraw.timer = 0;

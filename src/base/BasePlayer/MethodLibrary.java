@@ -349,7 +349,9 @@ public class MethodLibrary {
 	}
 	
 	public static int getRegion(int position, SplitClass split, int pointer) {
-		
+		if(split.getGenes().size() == 0) {
+			return -1;
+		}
 		Gene gene = split.getGenes().get(pointer);		
 		Boolean inGene = false;
 		

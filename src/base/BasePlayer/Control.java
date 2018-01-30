@@ -853,18 +853,13 @@ static void addFiles(File[] filestemp) {
 		 Main.controlDraw.trackDivider.set(i, ((i+1)*(Main.varpane.getDividerLocation()/(double)Main.controlDraw.trackDivider.size())));
 	 }	
 	 if(!Main.trackPane.isVisible()) {
-		  Main.trackPane.setVisible(true);
-		  //Main.trackPane.setDividerLocation(controlData.fileArray.size()*64);
-		 
-		  Main.varpane.setDividerSize(2);	  
-		//  Main.varpane.setResizeWeight(0.1);
-		  
-		  Main.varpane.setDividerLocation(controlData.fileArray.size()*64);
-		  
+		  Main.trackPane.setVisible(true);	
+		  Main.varpane.setDividerSize(2);		  
+		  Main.varpane.setDividerLocation(controlData.fileArray.size()*80);		  
 	 }
 	 else {
 		  
-		  Main.varpane.setDividerLocation(Main.varpane.getDividerLocation()+70);
+		  Main.varpane.setDividerLocation(Main.varpane.getDividerLocation()+80);
 		  
 		  if(Main.bedScroll.isVisible()) {
 			  Main.trackPane.setDividerSize(2);
