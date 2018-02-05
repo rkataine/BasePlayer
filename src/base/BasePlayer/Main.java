@@ -184,6 +184,7 @@ import javax.net.ssl.X509TrustManager;
     static HashMap<Byte, Double> background = new HashMap<Byte, Double>();
 	//Buttons etc.
     static JMenuItem variantCaller;
+    static JMenuItem peakCaller;
     static String defaultGenome = "";
     static String downloadDir = "";
     static JSplitPane splitPane, trackPane, varpane, drawpane;
@@ -1019,7 +1020,7 @@ try {
 
 	chromDraw = new ChromDraw(drawWidth,chromHeight);	
 	VariantCaller.main(argsit);
-	
+	PeakCaller.main(argsit);
     
    // frame.setExtendedState(JFrame.MAXIMIZED_BOTH); 
    
@@ -1320,6 +1321,7 @@ void setMenuBar() {
 //	welcome = new JMenuItem("Welcome screen");
 	filemenu.add(opensamples);
 	variantCaller = new JMenuItem("Variant Caller");
+	peakCaller = new JMenuItem("Peak Caller");
 	addtracks = new JMenuItem("Add tracks", open);
 	filemenu.add(addtracks);
 	addcontrols = new JMenuItem("Add Controls", open);
@@ -1354,9 +1356,12 @@ void setMenuBar() {
 	average.setToolTipText("No bam/cram files opened");
 	toolmenu.add(average);
 	toolmenu.add(variantCaller);
+	//toolmenu.add(peakCaller);
 	variantCaller.setToolTipText("No bam/cram files opened");
 	variantCaller.addActionListener(this);
 	variantCaller.setEnabled(false);
+	peakCaller.setEnabled(true);
+	peakCaller.addActionListener(this);	
 	settings.addActionListener(this);
 	clearMemory.addActionListener(this);
 	errorlog.addActionListener(this);
@@ -1366,21 +1371,8 @@ void setMenuBar() {
 	toolmenu.add(settings);
 	menubar.add(toolmenu);
 	menubar.add(manage);
-//	help.addActionListener(this);
-	
-	
-	
-//	welcome.addActionListener(this);
-//	JMenuItem infotable = new JMenuItem(" <html> Line1 <br/> Line2 <br/> Line3 </html> ");
-	
-//	JLabel aboutText = new JLabel();
-	//aboutText.setText (" <html> Line1 <br/> Line2 <br/> Line3 </html> ");
-	//infotable.add(aboutText);
-	//about.add(helpLabel);
 	area = new JEditorPane();
-	
 
-//	area.setEditorKit(javax.swing.JEditorPane.createEditorKitForContentType("text/<b>html</b>"));
 	String infotext = "<html><h2>BasePlayer</h2>This is a pre-release version of BasePlayer (<a href=https://baseplayer.fi>https://baseplayer.fi</a>)<br/> Author: Riku Katainen <br/> University of Helsinki<br/>"
 					+"Tumor Genomics Group (<a href=http://research.med.helsinki.fi/gsb/aaltonen/>http://research.med.helsinki.fi/gsb/aaltonen/</a>) <br/> " 
 					+"Contact: help@baseplayer.fi <br/>"
@@ -1399,11 +1391,9 @@ void setMenuBar() {
 					+"When you open sample1.vcf.gz, sample1.bam is recognized and opened<br/>" 
 					+"on the same track.<br/><br/>"
 					+"Instructional videos can be viewed at our <a href=https://www.youtube.com/channel/UCywq-T7W0YPzACyB4LT7Q3g> Youtube channel</a>"; 
-	area = new JEditorPane();
-	
+	area = new JEditorPane();	
 	area.setEditable(false);
-	area.setEditorKit(JEditorPane.createEditorKitForContentType("text/html"));
-	
+	area.setEditorKit(JEditorPane.createEditorKitForContentType("text/html"));	
 	area.setText(infotext);
 	area.setFont(Main.menuFont);
 	area.addHyperlinkListener(new HyperlinkListener() {
@@ -1415,26 +1405,16 @@ void setMenuBar() {
 		    }
 		  }
 	});
-	
-	
+		
 	about.add(area);
 	about.addMouseListener(this);
 	help.add(about);
-//	help.add(welcome);
-	
 	menubar.add(help);
 	JLabel emptylab = new JLabel("  ");
 	emptylab.setEnabled(false);		
-	emptylab.setOpaque(false);
-	//	emptylab.setBackground(new Color(250,250,250));
-	menubar.add(emptylab);
-	
-	/*JMenuItem empty = new JMenuItem();
-	empty.setEnabled(false);		
-	empty.setBackground(new Color(250,250,250));
-	menubar.add(empty);*/
-//	empty.setMaximumSize(empty.getPreferredSize());
-	
+	emptylab.setOpaque(false);	
+	menubar.add(emptylab);	
+		
 	chromosomeDropdown.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 1, Color.lightGray));
 	chromosomeDropdown.setBorder(BorderFactory.createCompoundBorder(
 			chromosomeDropdown.getBorder(), 
@@ -2317,6 +2297,16 @@ public void actionPerformed(ActionEvent e) {
 		Draw.updatevars = true;
 		drawCanvas.repaint();
 		
+	}
+	else if(e.getSource() == peakCaller) {
+		if(PeakCaller.frame == null) { 
+			
+			PeakCaller.main(argsit);
+			
+		}
+		PeakCaller.frame.setLocation(frame.getLocationOnScreen().x+frame.getWidth()/2 - VariantCaller.frame.getWidth()/2, frame.getLocationOnScreen().y+frame.getHeight()/6);			
+		PeakCaller.frame.setState(JFrame.NORMAL);
+		PeakCaller.frame.setVisible(true);
 	}
 	else if(e.getSource() == variantCaller) {
 		
@@ -4654,7 +4644,7 @@ static void setFonts() {
 	}
 	
 	VariantCaller.setFonts(menuFont);
-	
+	PeakCaller.setFonts(menuFont);
 	for(int i = 0 ; i<Main.drawCanvas.splits.size(); i++) {
 		Main.drawCanvas.splits.get(i).getExonImageBuffer().setFont(Draw.defaultFont);
 		Main.drawCanvas.splits.get(i).getReadBuffer().setFont(Draw.defaultFont);

@@ -3382,6 +3382,8 @@ void drawReads(SplitClass split) {
 			previsibleend = (short)(drawVariables.visiblestart +drawVariables.visiblesamples);
 		}
 		
+		
+		
 		for(int i =drawVariables.visiblestart; i<drawVariables.visiblestart+drawVariables.visiblesamples;i++ ) {
 			
 			try {	
@@ -3476,10 +3478,10 @@ void drawReads(SplitClass split) {
 							split.nullRef();
 						}
 						FileRead reader = new FileRead();		
-						if(i == drawVariables.visiblestart) {
+						/*if(i == drawVariables.visiblestart) {
 							reader.firstSample = true;			
 							
-						}
+						}*/
 						/*while(ReferenceSeq.wait) {
 						}*/
 						reader.readClass = readsample.getreadHash().get(split);					

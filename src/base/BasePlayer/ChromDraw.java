@@ -2800,12 +2800,12 @@ public void mouseExited(MouseEvent arg0) {
 public void mousePressed(MouseEvent event) {
 	//Logo.frame.setVisible(false);
 	
-	Main.drawCanvas.pressX = event.getX();
+	
 	this.pressY = event.getY();
 	switch(event.getModifiers()) {	
 	
 		case InputEvent.BUTTON1_MASK: {	
-	
+			Main.drawCanvas.pressX = event.getX();
 			if(selectedExon != null) {		
 				clickedSplit = Main.drawCanvas.selectedSplit;
 				clickedExon = selectedExon;
@@ -2822,7 +2822,12 @@ public void mousePressed(MouseEvent event) {
 			break;
 		}
 		case InputEvent.BUTTON3_MASK: {
+			//int start = getMousePos(Main.drawCanvas.pressX);
 			
+			
+			Main.drawCanvas.pressX = event.getX();
+			//int end = getMousePos(Main.drawCanvas.pressX);
+			//System.out.println(MethodLibrary.getOverlappingGenes(start, end, Main.drawCanvas.selectedSplit));
 			clickedExon = null;			
 			this.zoomDrag = false;
 			updateExons = true;

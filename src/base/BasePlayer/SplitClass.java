@@ -73,6 +73,7 @@ public class SplitClass implements Serializable {
 	void nullRef() {
 		this.drawReference = null;
 	}
+	
 	int getMinReadStart() {
 		return this.minReadStart;
 	}

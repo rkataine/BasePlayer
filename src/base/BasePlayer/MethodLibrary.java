@@ -348,6 +348,88 @@ public class MethodLibrary {
 		return false;
 	}
 	
+	public static String getOverlappingGenes(int start, int end, SplitClass split) {
+		
+		
+		if(split.getGenes().size() == 0) {
+			return null;
+		}
+		
+		int pointer = 0;
+		Gene gene = split.getGenes().get(pointer);		
+		Boolean inGene = false;
+		ArrayList<String> genes = new ArrayList<String>();
+		while(gene.getEnd() < start) {
+			if(pointer > split.getGenes().size()-2) {
+				pointer--;
+				break;
+			}
+			pointer++;
+			
+			gene = split.getGenes().get(pointer);	
+		}
+		//pointer--;
+		//gene = split.getGenes().get(pointer);	
+		
+		while(end > gene.getStart()) {
+			//System.out.println(end +" " +gene.getStart() +" " +gene.getName());
+			try {
+				
+			if((start >= gene.getStart() && start <= gene.getEnd()) || (end >= gene.getStart() && end <= gene.getEnd())) {		
+				inGene = true;
+			}
+			if(!genes.contains(gene.getName())) {				
+				genes.add(gene.getName());		
+			}						
+			if(pointer > split.getGenes().size()-2) {
+				break;
+			}
+			pointer++;
+			gene = split.getGenes().get(pointer);			
+			
+		}
+		catch(Exception e) {
+			System.out.println(start);
+			e.printStackTrace();
+			break;
+		}
+		}	
+		if(!inGene) {	
+			if(pointer > 0) {
+				pointer--;
+				gene = split.getGenes().get(pointer);	
+				genes.add(gene.getName());
+				pointer++;
+			}			
+			if(pointer < split.getGenes().size()) {
+				gene = split.getGenes().get(pointer);	
+				genes.add(gene.getName());
+			}
+			
+		}		
+		StringBuffer gens = new StringBuffer("");
+		if(inGene) {
+			for(int i = 0 ;i<genes.size(); i++) {			
+				if(i > 0) {
+					gens.append(",");
+				}
+				gens.append(genes.get(i));			
+			}
+		}
+		else {
+			if(genes.size() == 2) {
+				gens.append(genes.get(0) +"..." +genes.get(1));
+			}
+			else if (pointer == 0) {
+				gens.append("..." +genes.get(0));
+			}
+			else {
+				gens.append(genes.get(0) +"...");
+			}
+		}
+		return gens.toString();
+	}
+	
 	public static int getRegion(int position, SplitClass split, int pointer) {
 		if(split.getGenes().size() == 0) {
 			return -1;

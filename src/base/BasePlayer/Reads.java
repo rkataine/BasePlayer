@@ -25,7 +25,7 @@ public class Reads implements Serializable, Cloneable {
 	private transient double[][] coverages; // = new int[(int)Main.screenSize.getWidth()];
 	private transient ArrayList<ReadNode> reads = new ArrayList<ReadNode>();
 	private transient ArrayList<ReadNode[]> headAndTail = new ArrayList<ReadNode[]>();
-
+	private transient int runs = 1;
 	private transient ReadNode firstRead, lastRead;
 	private transient int maxReadSize = 0;
 	int startpos, endpos;
@@ -33,6 +33,7 @@ public class Reads implements Serializable, Cloneable {
 	private transient Rectangle scrollbar = new Rectangle(), scroller = new Rectangle();
 	private transient Integer readstart=0, readend=0, coveragestart = 0, coverageend = 0;
 	private transient boolean readScroll = false;
+	private transient ReferenceSeq reference = null;
 	public boolean loading = false, nodraw = false;
 	Font readfont =new Font("SansSerif", Font.PLAIN, Main.defaultFontSize);
 	int readHeight = Main.defaultFontSize;
@@ -40,6 +41,21 @@ public class Reads implements Serializable, Cloneable {
 	
 	protected Object clone() throws CloneNotSupportedException {
 		return super.clone();
+	}
+	void setReference(ReferenceSeq seq) {
+		this.reference = seq;		
+	}
+	void nullifyRef() {
+		this.reference = null;
+	}
+	ReferenceSeq getReference() {
+		return this.reference;
+	}
+	int getRuns() {
+		return this.runs;
+	}
+	void setRuns(int n) {
+		this.runs = n;
 	}
 	Rectangle getScrollBar() {
 		return this.scrollbar;

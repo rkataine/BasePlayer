@@ -129,7 +129,7 @@ public class FileRead extends SwingWorker< String, Object >  {
 	private int mispos;	
 	private CigarElement element;	
 	boolean firstCov;	
-	public boolean firstSample = false;
+	//public boolean firstSample = false;
 	private int gtindex;
 	private int timecounter = 0;
 	static boolean bigcalc=false;
@@ -224,6 +224,7 @@ public class FileRead extends SwingWorker< String, Object >  {
 			
 			getReads(chrom, start, end, this.readClass);	
 			readClass.loading = false;		
+			readClass.nullifyRef();
 			splitIndex.updateReads = true;
 	//		Main.drawCanvas.selectedSplit = readClass.sample.getReadClass().indexOf(readClass);
 	
@@ -2035,6 +2036,7 @@ static void checkSamples() {
 		*/
 		Main.average.setEnabled(true);		
 		Main.variantCaller.setEnabled(true);	
+		Main.peakCaller.setEnabled(true);
 		
 		if(caller) {
 			if(Main.readsamples > 1) {
@@ -3525,16 +3527,17 @@ static void annotate() {
 				endpos = endpos+searchwindow;
 				addlength = 1000;
 			//	readClass.reference.append( endpos+200);
-				if(firstSample) {	
-					if(splitIndex.getReference() == null) {
+				/*if(firstSample) {	
+					System.out.println("jhou");
+					//if(splitIndex.getReadReference() == null) {
 						splitIndex.setReference(new ReferenceSeq(splitIndex.chrom,startpos-searchwindow-1,  endpos+searchwindow +200, Main.referenceFile));
-						
-					}
-					else {
-						splitIndex.getReference().append( endpos+200);
-					}
+					
+				//	}
+					//else {
+				//		splitIndex.getReadReference().append( endpos+200);
+				//	}
 				
-				}
+				}*/	
 				bamIterator = getBamIterator(readClass,readClass.sample.chr + chrom,startpos,  endpos );
 				
 				if(readClass.getCoverageEnd() < endpos) {
@@ -3587,10 +3590,10 @@ static void annotate() {
 				
 				endpos = readClass.getReadStart();				
 				startpos = startpos-searchwindow;
-				
+			/*	
 				if(firstSample) {			
-					splitIndex.getReference().appendToStart( startpos-1);
-				}
+					splitIndex.getReadReference().appendToStart( startpos-1);
+				}*/
 				bamIterator = getBamIterator(readClass,readClass.sample.chr + chrom,startpos,  endpos+100 );
 				addlength = 0;
 				if(searchwindow < 1000) {
@@ -3701,7 +3704,7 @@ static void annotate() {
 					}
 				*/
 				if(samRecord.getUnclippedEnd() > readClass.getCoverageEnd()-1) {
-					
+				/*	
 					double[][] coverages = new double[(int)(readClass.getCoverages().length +(samRecord.getUnclippedEnd()-samRecord.getUnclippedStart() + (int)splitIndex.viewLength))][8];
 					
 					//pointer = coverages.length-1;
@@ -3721,7 +3724,7 @@ static void annotate() {
 					readClass.setCoverageEnd(readClass.getCoverageStart()+coverages.length);
 					readClass.setCoverages(coverages);
 					coverageArray = readClass.getCoverages();
-					
+					*/
 				}
 				else if(samRecord.getUnclippedStart() > 0 && samRecord.getUnclippedStart() < readClass.getCoverageStart() ) {
 					
@@ -3750,7 +3753,7 @@ static void annotate() {
 					}
 					
 					readClass.setCoverages(coverages);			
-					*/
+				*/
 				}
 			}
 			
@@ -3815,7 +3818,7 @@ static void annotate() {
 							right = false;							
 						}
 						try {							
-							mismatches = getMismatches(samRecord, readClass, coverageArray);
+							mismatches = getMismatches(samRecord, readClass, coverageArray, startpos, endpos);
 						}
 						catch(Exception e) {	
 							e.printStackTrace();					
@@ -3936,7 +3939,7 @@ static void annotate() {
 }
 	
 	
-java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord samRecord, Reads readClass, double[][] coverageArray) {	
+java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord samRecord, Reads readClass, double[][] coverageArray, int start, int end) {	
 	
 	
 	if(readClass == null) {
@@ -4179,8 +4182,13 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 		}
 	}
 	else {			
+		if(readClass.getReference() == null) {
+			
+			readClass.setReference(new ReferenceSeq(splitIndex.chrom,start-500, end+500, Main.referenceFile));
+			//System.out.println(readClass.sample.getName() +" " +readClass.getReference().getStartPos() +" " +readClass.getReference().getSeq()[0]);
+		}
 		//timecounter = 0;
-		/*while(splitIndex.getReference() == null) {
+		/*while(splitIndex.getReadReference() == null) {
 			Thread.sleep(100);
 			timecounter++;
 			if(timecounter > 20) {
@@ -4189,17 +4197,17 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 		}
 		Thread.sleep(0);
 		*/
-		if(splitIndex.getReference() == null) {
-			
-			return null;
-		}
+	//	if(splitIndex.getReadReference() == null) {
+			//splitIndex.setReference(new ReferenceSeq(splitIndex.chrom,startpos-searchwindow-1,  endpos+searchwindow +200, Main.referenceFile));
+		//	return null;
+		//}
 		if(samRecord.getCigarLength() > 1) {			
 			readstart = samRecord.getUnclippedStart();			
 			readpos= 0;
 			mispos= 0;
-			if(readClass.getCoverageStart()>readstart) {
+			/*if(readClass.getCoverageStart()>readstart) {
 				return null;
-			}
+			}*/
 			if(mismatches == null) {
 				mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,Byte>>();
 			}
@@ -4207,14 +4215,14 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 				element = samRecord.getCigar().getCigarElement(i);
 				if(element.getOperator().compareTo(CigarOperator.MATCH_OR_MISMATCH)== 0) {
 					for(int r = readpos; r<readpos+element.getLength(); r++) {																	
-						if(((readstart+r)-splitIndex.getReference().getStartPos()-1) > splitIndex.getReference().getSeq().length-1) {
-							splitIndex.getReference().append(samRecord.getUnclippedEnd()+1000);
+						if(((readstart+r)-readClass.getReference().getStartPos()-1) > readClass.getReference().getSeq().length-1) {
+							readClass.getReference().append(samRecord.getUnclippedEnd()+1000);
 						}
-						if(((readstart+r)-splitIndex.getReference().getStartPos()-1) < 0) {
-							splitIndex.getReference().appendToStart(samRecord.getUnclippedStart()-1000);
+						if(((readstart+r)-readClass.getReference().getStartPos()-1) < 0) {
+							readClass.getReference().appendToStart(samRecord.getUnclippedStart()-1000);
 						}
 						
-						if(samRecord.getReadBases()[mispos] !=  splitIndex.getReference().getSeq()[((readstart+r)-splitIndex.getReference().getStartPos()-1)]) {	
+						if(samRecord.getReadBases()[mispos] !=  readClass.getReference().getSeq()[((readstart+r)-readClass.getReference().getStartPos()-1)]) {	
 							readClass.getCoverages()[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])]++;
 							
 							if(samRecord.getBaseQualityString().length() != 1 && (int)samRecord.getBaseQualityString().charAt(mispos)-readClass.sample.phred < Settings.baseQ ) {
@@ -4255,16 +4263,16 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 				else if(element.getOperator().compareTo(CigarOperator.SOFT_CLIP)== 0 ) {
 						if(Settings.softClips == 1) {
 							for(int r = readpos; r<readpos+element.getLength(); r++) {
-								if(((readstart+r)-splitIndex.getReference().getStartPos()-1) > splitIndex.getReference().getSeq().length-1) {
-									splitIndex.getReference().append(samRecord.getUnclippedEnd()+1000);
+								if(((readstart+r)-readClass.getReference().getStartPos()-1) > readClass.getReference().getSeq().length-1) {
+									readClass.getReference().append(samRecord.getUnclippedEnd()+1000);
 								}
 								if(((readstart+r)-splitIndex.getReference().getStartPos()-1) < 0) {
-									splitIndex.getReference().appendToStart(samRecord.getUnclippedStart()-1000);
+									readClass.getReference().appendToStart(samRecord.getUnclippedStart()-1000);
 								}
 								/*	if(((readstart+r)-readClass.reference.getStartPos()-1) < 0) {
 									continue;
 								}*/
-								if(samRecord.getReadBases()[mispos] != splitIndex.getReference().getSeq()[((readstart+r)-splitIndex.getReference().getStartPos()-1)]) {													
+								if(samRecord.getReadBases()[mispos] != readClass.getReference().getSeq()[((readstart+r)-readClass.getReference().getStartPos()-1)]) {													
 									if(SA == null) {
 									
 										readClass.getCoverages()[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get(samRecord.getReadBases()[mispos])]++;
@@ -4305,19 +4313,21 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 		}
 		else {
 			readstart = samRecord.getUnclippedStart();
-			if(readClass.getCoverageStart()>readstart) {
+			/*if(readClass.getCoverageStart()>readstart) {
 				return null;
+			}*/
+			/*if((samRecord.getUnclippedEnd()-readClass.getReference().getStartPos()-1) > readClass.getReference().getSeq().length-1) {
+				readClass.getReference().append(samRecord.getUnclippedEnd()+1000);
 			}
+			if((samRecord.getUnclippedEnd()-readClass.getReference().getStartPos()-1) < 0) {
+				readClass.getReference().appendToStart(samRecord.getUnclippedStart()-1000);
+			}*/
+			
 			for(int r = 0; r<samRecord.getReadLength(); r++) {
-				try {									
-					if(((readstart+r)-splitIndex.getReference().getStartPos()-1) > splitIndex.getReference().getSeq().length-1) {
-						splitIndex.getReference().append(samRecord.getUnclippedEnd()+1000);
-					}
-					if(((readstart+r)-splitIndex.getReference().getStartPos()-1) < 0) {
-						splitIndex.getReference().appendToStart(samRecord.getUnclippedStart()-1000);
-					}
+				try {								
 					
-					if(samRecord.getReadBases()[r] != splitIndex.getReference().getSeq()[((readstart+r)-splitIndex.getReference().getStartPos()-1)]) {									
+					
+					if(samRecord.getReadBases()[r] != readClass.getReference().getSeq()[((readstart+r)-readClass.getReference().getStartPos()-1)]) {									
 						
 						if((readstart+r)-readClass.getCoverageStart() < readClass.getCoverages().length-1) {
 							readClass.getCoverages()[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get(samRecord.getReadBases()[r])]++;
@@ -4341,7 +4351,7 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 					}
 				}
 				catch(Exception e) {
-				//	System.out.println(splitIndex.readSeqStart +" " +splitIndex.readSequence.length());
+					
 					ErrorLog.addError(e.getStackTrace());
 					e.printStackTrace();
 					
@@ -6496,8 +6506,7 @@ void varCalcBig() {
 	Main.drawCanvas.loadbarAll = 0;
 	Main.drawCanvas.loadBarSample= 0;
 	if(VariantHandler.allChroms.isSelected()) {
-		Main.showError("Variant annotation ready!", "Note");
-		 	
+		Main.showError("Variant annotation ready!", "Note");		 	
 	}
 }
 
@@ -6919,13 +6928,13 @@ VarNode annotateVariant(VarNode vardraw) {
 					sample.snvs++;
 					
 					try {
-						if(!Main.getBase.get(vardraw.getRefBase()).equals("N")) {
+						if(!Main.getBase.get(vardraw.getRefBase()).equals("N") && entry.getKey() != "N") {
 							sample.mutationTypes[Main.mutTypes.get(Main.getBase.get(vardraw.getRefBase()) +entry.getKey())]++;
 						}						
 					}
 					catch(Exception e) {
 						
-						System.out.println(sample +" " +vardraw.getPosition() +" " +(char)vardraw.getRefBase() +" " +Main.getBase.get(vardraw.getRefBase()) +" " +entry.getKey());
+						System.out.println(sample.getName() +" " +vardraw.getPosition() +" " +(char)vardraw.getRefBase() +" " +Main.getBase.get(vardraw.getRefBase()) +" " +entry.getKey());
 						e.printStackTrace();
 					}
 					if(((char)vardraw.getRefBase() == 'A' && entry.getKey().equals("G")) || ((char)vardraw.getRefBase() == 'G' && entry.getKey().equals("A")) || ((char)vardraw.getRefBase() == 'C' && entry.getKey().equals("T")) || ((char)vardraw.getRefBase() == 'T' && entry.getKey().equals("C"))) {
@@ -7586,6 +7595,7 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 		String run;
 		int scanner = 0, scannerEnd = 0, scanWindow = 10;
 		Boolean strand, scanFail = false;
+		HashMap<String, String> runs =  new HashMap<String,String>();
 		try {
 			readClass.setCoverageStart(startpos);
 			readClass.startpos = startpos;
@@ -7644,7 +7654,10 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 					continue;
 				}
 			
-				//run = samRecord.getReadName().split(":")[1];
+				run = samRecord.getReadName().split(":")[1];
+				if(!runs.containsKey(run)) {
+					runs.put(run, "");
+				}
 				strand = samRecord.getReadNegativeStrandFlag();
 			
 				if(samRecord.getCigarLength() > 1) {			
@@ -7697,10 +7710,10 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 												
 								
 												coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].calls++;
-											/*	if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].runs.contains(run)) {
+												if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].runs.contains(run)) {
 													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].runs.add(run);
 													
-												}*/
+												}
 												if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].strands.contains(strand)) {
 													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].strands.add(strand);
 													
@@ -7805,9 +7818,9 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])] = new VariantCall();
 												}
 												coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].calls++;	
-											/*	if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].runs.contains(run)) {
+												if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].runs.contains(run)) {
 													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].runs.add(run);
-												}*/
+												}
 												
 												if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].strands.contains(strand)) {
 													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].strands.add(strand);
@@ -7858,7 +7871,7 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 		
 			return null;	
 		}		
-		
+		readClass.setRuns(runs.size());
 		return coverages;
 	}
 	public static void main(String args[]) {
