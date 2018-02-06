@@ -182,6 +182,7 @@ void drawScreen(Graphics g) {
 	if(!zoomDrag && !resize) {	
 		
 		try {
+			
 			drawNodes();
 		}
 		catch(Exception e) {
@@ -2468,6 +2469,7 @@ void iterateWig(BigWigIterator iterator, BedTrack track) {
 	  
 	     addNode = null;
 	     track.cleared = false;
+	    
 	}
 	catch(Exception e) {
 		

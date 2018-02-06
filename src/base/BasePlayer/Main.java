@@ -799,6 +799,7 @@ try {
 	}
 	else {
 		if(new File(Launcher.genomeDir).exists()) {
+			
 			genomeDir = new File(Launcher.genomeDir);
 		}		
 		else {
@@ -807,7 +808,7 @@ try {
 	}
 	File[] genomes = genomeDir.listFiles(new FilenameFilter() {
 		 public boolean accept(File dir, String name) {
-		        return !name.contains(".txt");
+		        return !name.contains(".txt") && !name.startsWith(".") ;
 		     }
  		 });
 	annotationfile = defaultAnnotation;
@@ -3681,11 +3682,11 @@ static void showError(String error, String dialogtype) {
 	VariantHandler.frame.setAlwaysOnTop(false);
 	if(dialogtype.equals("Error")) {
 	
-		JOptionPane.showMessageDialog(Main.drawCanvas, error, dialogtype, JOptionPane.ERROR_MESSAGE);
+		JOptionPane.showMessageDialog(Main.drawScroll, error, dialogtype, JOptionPane.ERROR_MESSAGE);
 	}
 	
 	else {
-		JOptionPane.showMessageDialog(Main.drawCanvas, error, dialogtype, JOptionPane.INFORMATION_MESSAGE);
+		JOptionPane.showMessageDialog(Main.drawScroll, error, dialogtype, JOptionPane.INFORMATION_MESSAGE);
 	}
 	VariantHandler.frame.setAlwaysOnTop(true);
 	
@@ -4782,7 +4783,12 @@ static void setChromDrop(String dir) {
 			File chromindex = null;
 			selectedGenome = dir;
 			File defdir = new File(genomeDir.getCanonicalPath() +"/" +dir);
+			
+			
 			File[] files = defdir.listFiles();
+			if(files == null) {
+				return;
+			}
 			String chromtemp = "";
 			chromnamevector = Collections.synchronizedList(new ArrayList<String>());
 	//		boolean faifound = false;

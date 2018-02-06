@@ -168,7 +168,8 @@ public class PeakCaller extends JPanel implements ActionListener, ComponentListe
 	}
 
 public class PeakRunner extends SwingWorker<String, Object> {
-		int readlevel,minwidth, minquality, minreadquality, mincoverage; 
+		int minwidth, minquality, minreadquality, mincoverage; 
+		double readlevel;
 		boolean onlysel;
 		String savepath = "";
 		public PeakRunner(int readlevel, int minquality, int minreadquality, int mincoverage, boolean onlysel) {
@@ -180,9 +181,10 @@ public class PeakRunner extends SwingWorker<String, Object> {
 		}
 		public PeakRunner(String savepath) {
 			this.savepath = savepath +"/";
-			int readlevel, minwidth; 
+			int minwidth; 
+			double readlevel;
 			try {
-				readlevel = Integer.parseInt(PeakCaller.minreads.getText());
+				readlevel = Double.parseDouble(PeakCaller.minreads.getText());
 				minwidth = Integer.parseInt(PeakCaller.minwidth.getText());
 			}
 			catch(Exception e) {
@@ -211,6 +213,7 @@ public class PeakRunner extends SwingWorker<String, Object> {
 			try {
 				for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
 					if(Main.bedCanvas.bedTrack.get(i).file != null) {
+						
 						samples.add(Main.bedCanvas.bedTrack.get(i));
 						samplename = Main.bedCanvas.bedTrack.get(i).file.getName().toLowerCase().replace(".bw", "").replace(".bigwig",  "") +"_peaks.bed";						
 						BufferedWriter writer = new BufferedWriter(new FileWriter(savepath +samplename));
@@ -275,7 +278,13 @@ public class PeakRunner extends SwingWorker<String, Object> {
 									Main.drawCanvas.loadBarSample = loadbarsamplevalue + ((int)(regionstart/(double)Main.drawCanvas.splits.get(0).chromEnd*100)/samples.size());
 									
 						    		if(regionend-regionstart >= minwidth) {
-						    			samplewriter.get(s).write(features.getChromosome().replace("chr", "") +"\t" +(regionstart+1) +"\t" +regionend +"\t" +genes +"\t" +maxvalue +"\t" +(regionend-regionstart) +"\n");
+						    			try {
+						    				
+						    				samplewriter.get(s).write(Main.chromosomeDropdown.getSelectedItem() +"\t" +(regionstart+1) +"\t" +regionend +"\t" +genes +"\t" +maxvalue +"\t" +(regionend-regionstart) +"\n");
+						    			}
+						    			catch(Exception e) {
+						    				e.printStackTrace();
+						    			}
 						    			//System.out.println(features.getChromosome().replace("chr", "") +"\t" +(regionstart+1) +"\t" +regionend +"\t" +genes +"\t" +maxvalue +"\t" +(regionend-regionstart));
 						    		}
 						    		
