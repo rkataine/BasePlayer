@@ -13,6 +13,8 @@ package base.BasePlayer;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 //import java.util.Hashtable;
 import java.util.List;
@@ -25,7 +27,7 @@ public class VarNode {
 	//private static final long serialVersionUID = 1L;
 
 	private final int position;
-	
+	static MethodLibrary.varSorter varsorter = new MethodLibrary.varSorter();
 	private VarNode prev, next;
 	private final byte refBase;
 	private ArrayList<Transcript.Exon> exons;
@@ -41,6 +43,7 @@ public class VarNode {
 	public short phase = -1;
 	public String codon;
 	boolean controlled;
+	boolean annotationOnly = false;
 	private Entry<String, ArrayList<SampleNode>> entry;
 	public boolean coding = false;
 	
@@ -50,11 +53,12 @@ public class VarNode {
 		this.refBase = ref; //Main.bases.get(ref);
 		if (variation.length() > 1 ) indel = true;
 		if(vars.size() == 0) {
-			Map.Entry<String, ArrayList<SampleNode>> entry = new AbstractMap.SimpleEntry<String, ArrayList<SampleNode>>(variation, new ArrayList<SampleNode>());
+			if(sample != null) {		
 			
-			entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, gq, advquals,sample));
-			
-			vars.add(entry);
+				Map.Entry<String, ArrayList<SampleNode>> entry = new AbstractMap.SimpleEntry<String, ArrayList<SampleNode>>(variation, new ArrayList<SampleNode>());				
+				entry.getValue().add(new SampleNode(coverage, calls, genotype, quality, gq, advquals,sample));				
+				vars.add(entry);
+			}
 		}
 		else {
 			found = false;
@@ -111,9 +115,12 @@ public class VarNode {
 	}
 	
 	public VarNode getNextVisible(VarNode node) {
+		
 		node = node.getNext();
+		
 		while(Main.drawCanvas.hideNodeTotal(node)) {
 			if(node != null) {
+				
 				node = node.next;
 			}
 			else {
@@ -234,6 +241,28 @@ public class VarNode {
 		this.putNext(null);
 		this.putPrev(null);
 	}
+	public void moveSample(Sample sample) {
+		try {
+			for(int v = vars.size()-1; v>=0;v--) {			
+				entry = vars.get(v);
+				for(int i = entry.getValue().size()-1 ;i>=0; i--) {
+					if(entry.getValue().get(i).getSample() == null) {
+						continue;
+					}
+					
+					if(entry.getValue().get(i).getSample().equals(sample)) {
+						
+						Collections.sort(entry.getValue(), varsorter);
+						break;					
+					}
+				}			
+			}			
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public void removeSample(Sample sample) {
 		try {
 			for(int v = vars.size()-1; v>=0;v--) {			
@@ -244,11 +273,24 @@ public class VarNode {
 					}
 					if(entry.getValue().get(i).getSample().equals(sample)) {
 						entry.getValue().remove(i);
+						if(i>0) {
+							if(entry.getValue().get(i-1).getSample().equals(sample)) {
+								int pointer = i-1;
+								while(entry.getValue().get(pointer).getSample().equals(sample)) {
+									entry.getValue().remove(pointer);
+									pointer--;
+									i=pointer;
+									if(pointer < 0) {
+										break;
+									}
+								}
+							}
+						}
 						
 						if(entry.getValue().size() == 0) {
 							vars.remove(entry);						
 						}
-						break;					
+									
 					}
 				}			
 			}

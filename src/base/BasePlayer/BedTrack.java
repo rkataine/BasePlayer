@@ -59,7 +59,7 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	Polygon playTriangle = new Polygon();
 	private transient BedTable table;
 	double maxvalue = 0, minvalue = Double.MAX_VALUE, scale = 0;
-	boolean negatives = false, first = true, used = false, loading = false, waiting = false, hasvalues = false, updated = false;
+	boolean negatives = false, first = true, used = false, loading = false, waiting = false, hasvalues = false, updated = false, bigWig = false;
 	String chr = "";
 	
 	ArrayList<JCheckBox> menuBoxes;
@@ -77,10 +77,16 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	private transient base.BBfile.BBFileHeader fileheader;
 	private transient base.BBfile.BBZoomLevels zoomlevels;
 	private transient BBFileReader bbfileReader;
-	private transient Integer zoomLevel = null;	
+	private transient Integer zoomLevel = null;
+	public boolean annotator = false;	
 	
 	public Integer getZoomlevel() {
-		return this.zoomLevel;
+		if(this.zoomLevel == null) {
+			return null;
+		}
+		else {
+			return this.zoomLevel;
+		}
 	}
 	public void setZoomlevel(Integer i) {
 		this.zoomLevel = i; 
@@ -154,6 +160,7 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 		this.url = url;
 		this.index = index;
 		this.trackIndex = indexnro;
+		selector = new ColumnSelector(this);
 		setmenu();
 	}
 	public void setCollapsebox() {
@@ -380,9 +387,11 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 		if(e.getSource() == limitField) {
 			if(e.getKeyCode() == KeyEvent.VK_ENTER) {
 				try {
+					this.used = false;
+					
 					limitValue = Double.parseDouble(limitField.getText());
 					
-					if(!small || (file !=null && file.getName().endsWith("bw")) || (url != null && url.getFile().endsWith("bw"))) {
+					if(!small || this.bigWig) {
 						
 						if(Main.drawCanvas.splits.get(0).viewLength <  Settings.windowSize) {
 							int start =  (int)Main.drawCanvas.splits.get(0).start- Settings.windowSize;

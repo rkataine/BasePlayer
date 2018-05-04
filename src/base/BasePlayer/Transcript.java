@@ -232,16 +232,22 @@ public class Transcript {
 		this.length = this.end -this.start;
 		this.gene = gene;
 		this.gene.addTranscript(this);
-		this.codingStart = this.end;
-		this.codingEnd = this.start;
+		this.codingStart = Integer.MAX_VALUE;
+		this.codingEnd = -1;
 	}
+	
 	
 	public void addExon(HashMap<String, String> gffHash, Transcript trans) {
 		//ADDAA exoneita arrayhyn... älä heti luo uuutta... kato jos overlappaa edellisten kanssa ja jos löytyy CDS
+		if(trans.start > Integer.parseInt(gffHash.get("start"))) {
+			trans.start = Integer.parseInt(gffHash.get("start"));
+		}
+		if(trans.end < Integer.parseInt(gffHash.get("end"))) {
+			trans.end = Integer.parseInt(gffHash.get("end"));
+		}
 		if(exonArray.size() == 0) {
 			Exon addExon = new Exon(Integer.parseInt(gffHash.get("start")),Integer.parseInt(gffHash.get("end")), (short)(exonArray.size()+1), trans );
 			
-
 			exonArray.add(addExon);
 			if(!gffHash.get("phase").equals(".")) {
 				if(trans.getStrand()) {
@@ -261,6 +267,7 @@ public class Transcript {
 						trans.codingEnd = Integer.parseInt(gffHash.get("end"));
 					}
 				}				
+				
 				addExon.startPhase = Short.parseShort(gffHash.get("phase"));
 			}
 		}
@@ -285,6 +292,7 @@ public class Transcript {
 						trans.codingEnd = Integer.parseInt(gffHash.get("end"));
 					}
 				}				
+				
 				addExon.startPhase = Short.parseShort(gffHash.get("phase"));
 			}
 		}
@@ -310,14 +318,16 @@ public class Transcript {
 							trans.codingEnd = Integer.parseInt(gffHash.get("end"));
 						}
 					}					
-				
+					
 				addExon.startPhase = Short.parseShort(gffHash.get("phase"));
 			}
 		}
 		else {
 			
 			int start = Integer.parseInt(gffHash.get("start"));
+			
 			for(int i = 0; i<exonArray.size(); i++) {
+				
 				if(start >= exonArray.get(i).getStart() && start <exonArray.get(i).getEnd()) {
 					
 					if(!gffHash.get("phase").equals(".")) {
@@ -331,6 +341,7 @@ public class Transcript {
 							}
 						}
 						else {
+							
 							if(trans.codingStart > Integer.parseInt(gffHash.get("start"))) {
 								trans.codingStart = Integer.parseInt(gffHash.get("start"));
 							}
@@ -338,10 +349,11 @@ public class Transcript {
 								trans.codingEnd = Integer.parseInt(gffHash.get("end"));
 							}
 						}					
-					
-						exonArray.get(i).startPhase = Short.parseShort(gffHash.get("phase"));
-						
+						if(!gffHash.get("type").contains("codon")) {
+							exonArray.get(i).startPhase = Short.parseShort(gffHash.get("phase"));
+						}
 					}
+					
 					
 					if(Integer.parseInt(gffHash.get("end")) > exonArray.get(i).getEnd()) {
 						

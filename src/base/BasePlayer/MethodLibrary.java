@@ -10,23 +10,31 @@
  *  
  */
 package base.BasePlayer;
+import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.util.BlockCompressedInputStream;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.index.tabix.TabixIndexCreator;
+
 import htsjdk.tribble.util.TabixUtils;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
 import htsjdk.variant.vcf.VCFHeaderVersion;
+
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsEnvironment;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -34,15 +42,24 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
+
+import javax.swing.JButton;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 
 public class MethodLibrary {
 
@@ -68,23 +85,34 @@ public class MethodLibrary {
 	        }       	       
 		}  
 	}
+	public static class varSorter implements Comparator<SampleNode> {
+
+		public int compare(SampleNode o1, SampleNode o2) {			
+			if(o1.getSample() == null || o2.getSample() == null) {
+				return 1;
+			}
+			if(o1.getSample().getIndex() < o2.getSample().getIndex()) {
+				return -1;
+				
+			}
+			else if(o1.getSample().getIndex() > o2.getSample().getIndex()) {
+				return 1;
+			}
+			else {
+				return 0;
+			}			 
+		}
+	}
 	public static class ChromSorter implements Comparator<String> {
 
 		public int compare(String o1, String o2) {  
 			Long n1= null, n2=null;
+			
 			if(o1.matches("^-?\\d+$")) { n1 = Long.parseLong(o1); }
 			
-		/*	else if(o1.equals("X")) { n1 = 23L; }			
-			else if(o1.equals("Y")) { n1 = 24L; }			
-			else if(o1.equals("M")) { n1 = 25L; }			
-			else if(o1.equals("MT")) { n1 = 25L; }		
-		*/
+		
 			if(o2.matches("^-?\\d+$")) { n2 = Long.parseLong(o2); }
-		/*	else if(o2.equals("X")) { n2 = 23L; }
-			else if(o2.equals("Y")) { n2 = 24L; }
-			else if(o2.equals("M")) { n2 = 25L; }
-			else if(o2.equals("MT")) { n2 = 25L; }
-			*/
+			
 			if(n1 != null && n2 != null) {
 			
 		        if ( n1 < n2 ) {  
@@ -93,21 +121,28 @@ public class MethodLibrary {
 		        else if(n1 > n2) {  
 		        		return 1;  
 		        }
-		        else {
-		        	return 0;
-		        }        
+		             
 			}
-		/*	else if (n1 == null && n2 == null) {
-				if ( o1.compareTo(o2) < 0 ) {  
-	                return -1;  
-	        } 
-	        else if(o1.compareTo(o2) > 0 ) {  
-	        		return 1;  
-	        }
-	        else {
-	        	return 0;
-	        }   
-				
+			else if (n1 == null && n2 == null) {
+				if(o1.length() != o2.length()) {
+					if(o1.length() < o2.length()) {
+						return -1;
+					}
+					else if(o1.length() > o2.length()) {
+						return 1;
+					}
+				}
+				else {
+					if ( o1.compareTo(o2) < 0 ) {  
+		                return -1;  
+			        } 
+			        else if(o1.compareTo(o2) > 0 ) {  
+			        		return 1;  
+			        }
+			        else {
+			        	return 0;
+			        }   
+				}
 			}
 			else {
 				if(n1 != null) {
@@ -116,23 +151,201 @@ public class MethodLibrary {
 				else {
 					return 1;
 				}
-			}*/
+			}
 			return 0;
 	}  
 	}
+	static HashMap<String, Integer> mapChrnameToIndex(SAMFileHeader header) {
+		HashMap<String, Integer> chrresult = new HashMap<String, Integer>();
+		
+		SAMSequenceDictionary dict = header.getSequenceDictionary();
+		
+		List<SAMSequenceRecord> chrs = dict.getSequences();
+		String chr = "";
+		for(int i = 0 ; i<chrs.size(); i++) {			
+			chr = chrs.get(i).getSequenceName();
+			if(Main.chromModel.getIndexOf(chr.replace("chr", "")) > -1) {
+				chrresult.put(chr, Main.chromModel.getIndexOf(chr.replace("chr", "")));
+				
+			}
+			else {
+				if(chr.replace("chr", "").equals("M")) {
+					if(Main.chromModel.getIndexOf("MT") > -1) {
+						chrresult.put(chr, Main.chromModel.getIndexOf("MT"));
+						
+					}
+				}
+				else if (chr.replace("chr", "").equals("MT")) {
+					if(Main.chromModel.getIndexOf("M") > -1) {
+						
+						chrresult.put(chr, Main.chromModel.getIndexOf("M"));
+					}
+				}
+			}
+			
+		}
+		
+		return chrresult;
+	}
+	public static void showVariantMenu(Component component, final VarNode varOverLap, SampleNode sampleOverLap, int x, int y, final String altbase) {
+	String line = "";
+	ArrayList<String> annolines = new ArrayList<String>();
+	if(sampleOverLap != null) {
+		line = FileRead.getVCFLine(varOverLap.getChrom(), varOverLap.getPosition(), varOverLap.getPosition()+1, sampleOverLap.getSample());
+	}
+	if(Main.drawCanvas.annotationOn) {
+		for(int i = 0;i<Main.drawCanvas.sampleList.size(); i++) {
+			if(Main.drawCanvas.sampleList.get(i).annotation) {
+				String annoline = FileRead.getVCFLine(varOverLap.getChrom(), varOverLap.getPosition(), varOverLap.getPosition()+1, Main.drawCanvas.sampleList.get(i));
+				
+				if(annoline != null) {
+					annolines.add(Main.drawCanvas.sampleList.get(i).getName() +"§" +annoline);
+				}
+			}
+		}
+	}
+	if(line != null && line.length() > 1) {
+		
+		JPopupMenu menu = new JPopupMenu();
+		JTextArea area = new JTextArea();
+		JScrollPane menuscroll = new JScrollPane();
+		JButton hg19 = new JButton("Show variant in VarSome (hg19)");
+		
+		area.setFont(Main.menuFont);
+		menu.add(hg19);
+		menu.add(menuscroll);		
+		//menu.setPreferredSize(new Dimension(300, 300));
+		//area.setMaximumSize(new Dimension(300, 600));
+		area.setLineWrap(true);
+		area.setWrapStyleWord(true);
+		final String[] split = line.split("\t");
+		hg19.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {	
+				Main.gotoURL("https://varsome.com/variant/hg19/" +split[0] +"-" +split[1] +"-" +split[3] +"-" +split[4]);
+				
+			}
+			
+		});
+		boolean first = true;
+		if(varOverLap.getBedHits() != null) {
+			
+			for(int i = 0; i<varOverLap.getBedHits().size(); i++) {
+				if(varOverLap.getBedHits().get(i).getTrack().selex) {
+					if(varOverLap.getBedHits().get(i).getTrack().getAffinityBox().isSelected()) {
+						if(first) {
+							area.append("Affinity Changes:\n");
+							first = false;
+						}
+						Main.drawCanvas.baseHover = altbase;
+						Double value = MethodLibrary.calcAffiniyChange(varOverLap,Main.drawCanvas.baseHover,varOverLap.getBedHits().get(i));
+						area.append(MethodLibrary.shortName(varOverLap.getBedHits().get(i).name, 7) +"=" +MethodLibrary.round(varOverLap.getBedHits().get(i).value,3) +" (" +MethodLibrary.round(value,3) +")\n");
+					}
+				}
+			}
+		}
+		if(!first) {
+			area.append("\n");
+		}
+		int longest = 0;
+		String longestText = "";
+		try {
+			
+			area.append("VCF info: " +sampleOverLap.getSample().getName() +"\n\n");
+			area.append("POS: " +split[0] +":" +split[1]+"\nID: "+split[2]+"\n");
+			area.append("ALT: " +split[3] +" > " +split[4] +"\n");
+			area.append("QUAL: " +split[5] +"\n");
+			area.append("FILTER: " +split[6] +"\n");
+			area.append("INFO:\n");
+			if(split.length > 7) {
+				String[] infosplit = split[7].split(";");
+				for(int i = 0 ; i< infosplit.length; i++) {
+					if(longest < infosplit[i].length()) {
+						longest = infosplit[i].length();
+						longestText = infosplit[i];
+					}
+					area.append(infosplit[i] +"\n");
+				}
+			}
+			
+			if(annolines.size() != 0) {
+				for(int i = 0;i<annolines.size();i++) {
+					String[] temp = annolines.get(i).split("§");
+					String[] annosplit = temp[1].split("\t");
+					if(annosplit.length > 7) {
+						area.append("\n" +temp[0] +"\n");
+						String[] infosplit = annosplit[7].split(";");
+						
+						for(int j = 0 ; j< infosplit.length; j++) {
+							if(longest < infosplit[j].length()) {
+								longest = infosplit[j].length();
+								longestText = infosplit[j];
+							}
+							area.append(infosplit[j] +"\n");
+						}
+					}
+				}
+			}
+			
+			if(split.length > 8) {
+				area.append("\nFORMAT: " +split[8] +"\n");
+			}
+			
+		if(split.length > 9) {
+			for(int i = 9 ; i<split.length; i++) {
+				area.append(split[i] +"\n");
+			}		
+		}
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		menu.setMaximumSize(new Dimension((int)(Main.width*0.6), 300));
+		menu.setPreferredSize(new Dimension(Main.bedCanvas.buf.getFontMetrics().stringWidth(longestText)+100, 300));
+		
+		area.setCaretPosition(0);
+		area.revalidate();
+		menuscroll.getViewport().add(area);
+		menu.pack();
+		menu.show(component, x,y);		
+		
+	}
+	else {
+		JPopupMenu menu = new JPopupMenu();
+		JTextArea area = new JTextArea();
+		//JScrollPane menuscroll = new JScrollPane();
+		JButton hg19 = new JButton("Show variant in VarSome (hg19)");
+		
+		area.setFont(Main.menuFont);
+		menu.add(hg19);
+		
+		
+		hg19.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {	
+				Main.gotoURL("https://varsome.com/variant/hg19/" +varOverLap.getChrom() +"-" +(varOverLap.getPosition()+1) +"-" +Main.getBase.get(varOverLap.getRefBase()) +"-" +altbase);
+				
+			}
+			
+		});
+		
+		menu.pack();
+		menu.show(component, x,y);		
+	}
+	}
 	public static class mateListSorter implements Comparator<ReadNode> {
 		
-		public int compare(ReadNode o1, ReadNode o2) {  
-		
-	            
+		public int compare(ReadNode o1, ReadNode o2) {	            
 	        if ( o1.split.offset + (o1.getPosition()-o1.split.start)*o1.split.pixel <  o2.split.offset +(o2.getPosition()-o2.split.start)*o2.split.pixel ) {  
 	                return -1;  
 	        } 
 	        else  {  
 	        		return 1;  
-	        }              
-	       
-	}  
+	        }       
+		}  
 	}
 	public int getLongestDel(VarNode node) {
 		int maxlength = 0;
@@ -242,8 +455,7 @@ public class MethodLibrary {
 			}
 		
 	}
-	static void blockCompressAndIndex(String[] in,BlockCompressedOutputStream writer) throws IOException {
-		
+	static void blockCompressAndIndex(String[] in,BlockCompressedOutputStream writer) throws IOException {		
 		       
 		        for(int j = 0 ; j<in.length; j++) {
 		        	if(in[j] == null) {
@@ -256,12 +468,143 @@ public class MethodLibrary {
 		    		}
 		    	}
 		    	
-		    	writer.write('\n');	    	
-		        
-		    	
-		       
-		    
+		    	writer.write('\n');	    
 		
+	}
+	
+	static void blockCompressAndIndex(File infile, File outFile, boolean deleteOnExit) throws IOException {
+		GZIPInputStream gzip = null;
+		
+		  
+	    gzip = new GZIPInputStream(new FileInputStream(infile));
+	    BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));	
+			  
+		  
+		
+	    TabixIndexCreator indexCreator =null;
+	    indexCreator = new TabixIndexCreator(TabixFormat.BED);
+	    BlockCompressedOutputStream writer = new BlockCompressedOutputStream(outFile);
+	    //String header = "#Chrom\tGeneStart\tGeneEnd\tName\tExonCount\tStrand\tENSG\tENST\tUniProt\tCanonical\tBiotype\tCodingStart\tCodingEnd\tExonStarts\tExonEnds\tStartPhases\tDescription\n";
+		String header = "#chrom\tstart\tend\tname\tscore\tstrand\n";
+	    writer.write(header.getBytes());
+		String bedline;
+	    long filePosition= writer.getFilePointer();
+	    OWNCodec bedCodec= new OWNCodec();
+	   //for(int i = 0 ; i<in.size(); i++) {
+	    while((bedline = reader.readLine()) != null) { 
+	    	String[] line = bedline.split("\t");
+	       
+	        Feature bed = bedCodec.decode(line);
+	        if(bed==null) continue;
+	        for(int j = 0 ; j<line.length; j++) {
+	        	if(line[j] == null) {
+	        		System.out.println(j);
+	        		continue;
+	        	}
+	    		writer.write(line[j].getBytes());
+	    		if(j < line.length-1) {
+	    			writer.write('\t');
+	    		}
+	    	}
+	    	//if(i < in.size()-1) {
+	    	writer.write('\n');
+	    	//}
+	    	
+	        indexCreator.addFeature(bed, filePosition);
+	    	
+	        filePosition = writer.getFilePointer();
+	    }
+	    reader.close();
+	    writer.flush();
+
+	    System.err.print("Indexing... ");
+
+	    File tbi= new File(outFile.getCanonicalPath() + TabixUtils.STANDARD_INDEX_EXTENSION);
+	    if(tbi.exists() && tbi.isFile()){
+	        System.err.println("Index file exists: " + tbi);
+	        tbi.delete();
+	    }
+	    Index index = indexCreator.finalizeIndex(writer.getFilePointer());
+	    index.writeBasedOnFeatureFile(outFile);
+	    
+	    writer.close();
+
+	    System.err.println("Done");
+
+	    if(deleteOnExit){
+	        outFile.deleteOnExit();
+	        File idx= new File(outFile.getAbsolutePath() + TabixUtils.STANDARD_INDEX_EXTENSION);
+	        idx.deleteOnExit();
+	    }
+	}
+	static void blockCompressAndIndexVCF(File infile, File outFile, boolean deleteOnExit) throws IOException {
+		GZIPInputStream gzip = null;
+		
+		  
+	    gzip = new GZIPInputStream(new FileInputStream(infile));
+	    BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));	
+			  
+		  
+		
+	    TabixIndexCreator indexCreator =null;
+	    indexCreator = new TabixIndexCreator(TabixFormat.VCF);
+	    BlockCompressedOutputStream writer = new BlockCompressedOutputStream(outFile);
+	    //String header = "#Chrom\tGeneStart\tGeneEnd\tName\tExonCount\tStrand\tENSG\tENST\tUniProt\tCanonical\tBiotype\tCodingStart\tCodingEnd\tExonStarts\tExonEnds\tStartPhases\tDescription\n";
+		//String header = "#chrom\tstart\tend\tname\tscore\tstrand\n";
+	    //writer.write(header.getBytes());
+		String bedline;
+	    long filePosition= writer.getFilePointer();
+	    VCFHeader vcfheader = new VCFHeader();
+		VCFHeaderLine headerline = new VCFHeaderLine("format","##fileformat=VCFv4.1");
+		vcfheader.addMetaDataLine(headerline);
+		VariantHandler.vcfCodec.setVCFHeader(vcfheader, VCFHeaderVersion.VCF4_1);
+	   // OWNCodec bedCodec= new OWNCodec();
+	   //for(int i = 0 ; i<in.size(); i++) {
+	    while((bedline = reader.readLine()) != null) { 
+	    	String[] line = bedline.split("\t");
+	       
+	    	Feature vcf = VariantHandler.vcfCodec.decode(bedline);			
+	        if(vcf==null) continue;
+	        for(int j = 0 ; j<line.length; j++) {
+	        	if(line[j] == null) {
+	        		System.out.println(j);
+	        		continue;
+	        	}
+	    		writer.write(line[j].getBytes());
+	    		if(j < line.length-1) {
+	    			writer.write('\t');
+	    		}
+	    	}
+	    	//if(i < in.size()-1) {
+	    	writer.write('\n');
+	    	//}
+	    	
+	        indexCreator.addFeature(vcf, filePosition);
+	    	
+	        filePosition = writer.getFilePointer();
+	    }
+	    reader.close();
+	    writer.flush();
+
+	    System.err.print("Indexing... ");
+
+	    File tbi= new File(outFile.getCanonicalPath() + TabixUtils.STANDARD_INDEX_EXTENSION);
+	    if(tbi.exists() && tbi.isFile()){
+	        System.err.println("Index file exists: " + tbi);
+	        tbi.delete();
+	    }
+	    Index index = indexCreator.finalizeIndex(writer.getFilePointer());
+	    index.writeBasedOnFeatureFile(outFile);
+	    
+	    writer.close();
+
+	    System.err.println("Done");
+
+	    if(deleteOnExit){
+	        outFile.deleteOnExit();
+	        File idx= new File(outFile.getAbsolutePath() + TabixUtils.STANDARD_INDEX_EXTENSION);
+	        idx.deleteOnExit();
+	    }
 	}
 	static void blockCompressAndIndex(ArrayList<String[]> in, String bgzfOut, boolean deleteOnExit,SAMSequenceDictionary dict) throws IOException {
 
@@ -269,7 +612,7 @@ public class MethodLibrary {
 	    
 	    File outFile= new File(bgzfOut);
 	    TabixIndexCreator indexCreator =null;
-	   if(dict.getSequences().size() > 300) {
+	   if(dict != null && dict.getSequences().size() > 300) {
 		
 		  indexCreator = new TabixIndexCreator(dict,TabixFormat.BED);	  
 	   }
@@ -618,6 +961,7 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 		for(int j = 0; j<nodes.size(); j++) {
 			node = nodes.get(j);
 		if(node.getBedHits() == null) {
+			
 			return null;
 		}
 			makeTrackArray(node, null);
@@ -640,10 +984,11 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 	}
 	
 	public static StringBuffer[] makeTrackArray(VarNode node, String base) {
+	
 		if(node.getBedHits() == null) {
 			return null;
 		}
-		
+	
 		StringBuffer[] bedarray = new StringBuffer[Main.bedCanvas.bedTrack.size()];
 		for(int v = 0; v < node.getBedHits().size(); v++) {
 			
@@ -651,14 +996,13 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 				
 				if(base != null && node.getBedHits().get(v).getTrack().basecolumn != null) {
 					//System.out.println(node.getBedHits().get(v).getPosition() +":" +node.getBedHits().get(v).name +" " +node.getPosition()+":"+base);
-					if(node.getBedHits().get(v).name.equals(base)) {
-						
+					if(node.getBedHits().get(v).name.equals(base)) {						
 						bedarray[node.getBedHits().get(v).getTrack().trackIndex] = new StringBuffer(""+MethodLibrary.round(node.getBedHits().get(v).value,2));
-					}
-					
+					}					
 				}
 				else {
-					if(node.getBedHits().get(v).name != null) {
+					if(node.getBedHits().get(v).name != null && node.getBedHits().get(v).name.length()> 0) {
+						
 						if(node.getBedHits().get(v).name.length() > 10) {
 							bedarray[node.getBedHits().get(v).getTrack().trackIndex] = new StringBuffer(node.getBedHits().get(v).name.substring(0, 10) +"...");
 						}
@@ -676,11 +1020,11 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 						
 					}
 					else {
-						bedarray[node.getBedHits().get(v).getTrack().trackIndex] = new StringBuffer("-");
+						bedarray[node.getBedHits().get(v).getTrack().trackIndex] = new StringBuffer("hit");
 					}
 					if(node.getBedHits().get(v).getTrack().selex) {
 						if(node.getBedHits().get(v).getTrack().getAffinityBox().isSelected()) {
-							Double value = Main.calcAffiniyChange(node, base, node.getBedHits().get(v));
+							Double value = calcAffiniyChange(node, base, node.getBedHits().get(v));
 							bedarray[node.getBedHits().get(v).getTrack().trackIndex].append(">"+round(value,3));
 						}
 					}
@@ -699,7 +1043,7 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 					if(node.getBedHits().get(v).name != null) {
 						
 						bedarray[node.getBedHits().get(v).getTrack().trackIndex].append(shortName(node.getBedHits().get(v).name,10));
-						
+						//bedarray[node.getBedHits().get(v).getTrack().trackIndex].append(node.getBedHits().get(v).name);
 						
 						if(node.getBedHits().get(v).getTrack().hasvalues) {
 							bedarray[node.getBedHits().get(v).getTrack().trackIndex].append("=" +MethodLibrary.round(node.getBedHits().get(v).value,2));
@@ -709,11 +1053,11 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 						bedarray[node.getBedHits().get(v).getTrack().trackIndex].append(""+MethodLibrary.round(node.getBedHits().get(v).value,2));
 					}
 					else {
-						bedarray[node.getBedHits().get(v).getTrack().trackIndex].append("-");
+						bedarray[node.getBedHits().get(v).getTrack().trackIndex].append("hit");
 					}	
 					if(node.getBedHits().get(v).getTrack().selex) {
 						if(node.getBedHits().get(v).getTrack().getAffinityBox().isSelected()) {
-							Double value = Main.calcAffiniyChange(node, base, node.getBedHits().get(v));
+							Double value = calcAffiniyChange(node, base, node.getBedHits().get(v));
 							bedarray[node.getBedHits().get(v).getTrack().trackIndex].append(">"+round(value,3));
 						}
 					}
@@ -737,8 +1081,7 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 					if(longestdel == 0) {
 						longestdel = 1;
 					}	
-				}
-			
+				}			
 			}
 		}
 		StringBuffer buffer = new StringBuffer("");
@@ -881,10 +1224,29 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 	}
 	
 	
-	static void createVCFIndex(File file) {
+	static File createVCFIndex(File file) {
 		try {
+			FileInputStream testfile = new FileInputStream(file);
+			BufferedInputStream testbuf = new BufferedInputStream(testfile);
+			boolean ok = BlockCompressedInputStream.isValidFile(testbuf);
+			testbuf.close();
+			testfile.close();
+			if(!ok) {
+				if (JOptionPane.showConfirmDialog(Main.drawScroll, "File is not bgzipped, want to bgzip it now?", "Bgzipped?", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
+					 Main.drawCanvas.loadingtext = "Bgzipping and creating index for " +file.getName();
+					blockCompressAndIndexVCF(file, new File(file.getCanonicalPath().replace(".vcf.gz", "_bgzip.vcf.gz")), false);
+					return new File(file.getCanonicalPath().replace(".vcf.gz", "_bgzip.vcf.gz"));
+				
+				}
+				else {
+					return null;
+				}
+				
+				
+			}
 			BlockCompressedInputStream reader = new BlockCompressedInputStream(file);
-			 
+			
+			
 		   	String line;
 			
 			TabixIndexCreator indexCreator;	
@@ -916,11 +1278,16 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 		    	 Index index = indexCreator.finalizeIndex(filepointer);
 		    	 index.writeBasedOnFeatureFile(file);
 		    }	
+		    
 		    	reader.close();
+		    	return file;
 		}
 		catch(Exception e) {
 			e.printStackTrace();
+			Main.showError(e.getMessage(), "Error");
+			return null;
 		}	
+		
 	}
 	static void createBEDIndex(File file) {
 		try {
@@ -1008,8 +1375,14 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 	    		first = false;
 	    	}
 	    	if(isChr) {
-	    		Feature bed = bedCodec.decode(line.substring(3));
-	    		indexCreator.addFeature(bed, filepointer);
+	    		try {
+	    			Feature bed = bedCodec.decode(line.substring(3));
+	    			indexCreator.addFeature(bed, filepointer);
+	    		}
+	    		catch(Exception e) {
+	    			
+	    			e.printStackTrace();
+	    		}
 	    	}
 	    	else {
 	    		Feature bed = bedCodec.decode(line);
@@ -1345,7 +1718,51 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 			return "intronic";			
 		}		
 	}
-
+	static Double calcAffiniyChange(VarNode node, String alt, BedNode bednode) {
+		if(alt == null || alt.length() > 1) {
+			return 0.0;
+		}			
+		if(bednode.getTrack().selex) {
+			
+			int index = node.getPosition()-bednode.getPosition();
+			
+			if(index < 0) {
+				
+				return 0.0;
+			}
+			int[][] matrix=null;
+			if(bednode.forward) {
+				matrix = Main.SELEXhash.get(bednode.id);
+			}
+			else {
+				matrix = MethodLibrary.reverseMatrix(Main.SELEXhash.get(bednode.id));
+			}					
+			
+			double sum;										
+			Double value;					
+			double mutatedvalue;
+			sum = matrix[0][index] + matrix[1][index] + matrix[2][index] + matrix[3][index];
+		//	System.out.println(matrix[0][index] +" " +matrix[1][index] +" " +matrix[2][index] +" " +matrix[3][index]);
+			value = matrix[Main.baseMap.get(node.getRefBase())-1][index]/(double)sum;
+			
+			mutatedvalue = matrix[Main.baseMap.get((byte)alt.charAt(0))-1][index]/(double)sum;
+			
+			value = value*Math.log(value/Main.background.get(node.getRefBase()));
+			if(mutatedvalue != 0) {
+				mutatedvalue = mutatedvalue*Math.log(mutatedvalue/Main.background.get((byte)alt.charAt(0)));
+			}
+			
+			
+			
+			return mutatedvalue-value;
+			//System.out.println(mutatedvalue-value);
+								
+		}
+		else {
+			return 0.0;
+		}
+	
+}
 static String getAminoAcid(String codon) {
 	return ChromDraw.aminoacids.get(codon);
 }

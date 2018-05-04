@@ -17,6 +17,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FileDialog;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
@@ -32,11 +33,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.zip.GZIPInputStream;
@@ -49,6 +50,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
@@ -58,6 +60,9 @@ import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
+
+
+
 import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
@@ -70,23 +75,27 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 
-import base.BasePlayer.Main.MyFilterSES;
+
 
 public class AddGenome  extends JPanel implements ActionListener, MouseListener {
 
 	private static final long serialVersionUID = 1L;
 	static JFrame frame = null;
 	static boolean annotation = false;
-	
+	static Color green = new Color(150,255,150);
 	JLabel genomeFileText;
 	JLabel annotationFileText;
+	static JPopupMenu menu = new JPopupMenu();
+	static JTextArea area = new JTextArea();
+	static JScrollPane menuscroll = new JScrollPane();
 	static JTextField genomeName;	
 	static JLabel sizeError = new JLabel("Not enough space on storage.");
 	JButton openRef, openAnno, add, checkUpdates;
-	static JButton download, remove;
+	static JButton download, remove, getLinks, checkEnsembl;
 	static int longestName = 0;
 	static String userDir = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().replace("%20", " ");
 	File genomeFile, annotationFile;
+	static boolean ensemblfetch = false;
 	static boolean downloading = false;
 	static HashMap<String, URL[]> genomeHash = new HashMap<String, URL[]>();
 	static ArrayList<String> removables = new ArrayList<String>();
@@ -122,8 +131,10 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 	};
 	static JTable genometable = new JTable(model);
 	static JTable remtable = new JTable(remmodel);
+	static ArrayList<String[]> news = new ArrayList<String[]>();
 	
 	static void checkGenomes() {
+		
 		//DefaultMutableTreeNode
 		File checkdir = Main.genomeDir, checkAnnodir;
 		File[] addDir, annodir;
@@ -140,7 +151,12 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		
 		int currentlen = 0, length = 0;
 		if(checkdir == null) {
-			checkdir = new File(userDir +"/genomes");
+			try {
+				checkdir = new File(userDir +"/genomes");
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
 		}
   		addDir = checkdir.listFiles();
   		for(int f = 0; f<addDir.length; f++) { 
@@ -196,7 +212,8 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 				}	
 			}
 		}
-	
+		
+		
 		AddGenome.longestName = length;  	
 		
 		if(genometable.getRowCount() > 15) {
@@ -233,6 +250,7 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		
 		setFonts(Main.menuFont);
 	}
+	
 	public static void setFonts(Font menuFont) {
 		if(menuFont == null) {
 			menuFont = new Font("SansSerif", Font.BOLD, Main.defaultFontSize);
@@ -355,9 +373,15 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		openAnno = new JButton("Browse");
 		add = new JButton("Add");
 		download = new JButton("Download");
+		checkEnsembl = new JButton("Ensembl fetch");
+		checkEnsembl.setMinimumSize(Main.buttonDimension);
+		checkEnsembl.addActionListener(this);
+		getLinks = new JButton("Get file links.");
 		remove = new JButton("Remove");
 		checkUpdates = new JButton("Check updates");
 		download.setEnabled(false);
+		getLinks.setEnabled(false);
+		getLinks.addActionListener(this);
 		remove.setEnabled(false);
 		download.addActionListener(this);
 		remove.addActionListener(this);
@@ -366,10 +390,7 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		this.setBackground(Draw.sidecolor);
 		frame.getContentPane().setBackground(Draw.sidecolor);
 		GridBagConstraints c = new GridBagConstraints();
-		c.anchor = GridBagConstraints.NORTHWEST;	
-		c.weightx = 1;
-		c.weighty = 1;
-		c.fill = GridBagConstraints.BOTH;
+		
 		c.gridx = 0;
 		c.gridy = 0;
 		c.insets = new Insets(2,4,2,4);		
@@ -389,8 +410,16 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		remtable.addMouseListener(this);
 	//	panel.add(welcomeLabel,c);
 	//	c.gridy++;
-		
+		c.anchor = GridBagConstraints.NORTHWEST;	
 		panel.add(new JLabel("Download genome reference and annotation"), c);
+		c.gridx++;
+		c.anchor = GridBagConstraints.NORTHEAST;	
+		panel.add(checkEnsembl, c);
+		c.anchor = GridBagConstraints.NORTHWEST;	
+		c.weightx = 1;
+		c.weighty = 1;
+		c.fill = GridBagConstraints.BOTH;
+		c.gridx = 0;
 		c.gridy++;		
 		//c.fill = GridBagConstraints.NONE;
 		panel.add(scroll,c);		
@@ -399,6 +428,8 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		panel.add(download,c);
 		c.gridx = 1;
 		panel.add(sizeError, c);
+		c.gridx = 1;
+		panel.add(getLinks, c);
 		c.gridy++;
 		c.gridx = 0;
 		c.fill = GridBagConstraints.BOTH;
@@ -495,30 +526,93 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		genomeFileText.setEditable(false);
 		annotationFileText.setEditable(false);*/
 	}
-	void updateEnsemblList() {
+	static void updateEnsemblList() {
 		try {
+			
+		menu = new JPopupMenu();
+		area = new JTextArea();
+		menuscroll = new JScrollPane();
+			
+		area.setFont(Main.menuFont);
+		
+		menu.add(menuscroll);		
+		//menu.setPreferredSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("0000000000000000000000000000000000000000000000000")+Main.defaultFontSize*10, (int)menu.getFontMetrics(Main.menuFont).getHeight()*4));
+		menu.setPreferredSize(new Dimension(300,200));
+		
+			//area.setMaximumSize(new Dimension(300, 600));
+		//area.setLineWrap(true);
+		//area.setWrapStyleWord(true);
+		//area.setPreferredSize(new Dimension(300,200));
+		
+		area.revalidate();
+		menuscroll.getViewport().add(area);
+		menu.pack();
+		menu.show(AddGenome.treescroll,0, 0);			
+	/*	area.addMouseListener(new MouseListener() {
+
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mouseExited(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mousePressed(MouseEvent arg0) {
+				StringBuffer buf = new StringBuffer("");
+				for(int i= 0; i<(int)(Math.random()*100); i++) {
+					buf.append("O");
+				}
+				AddGenome.area.append(buf.toString() +"\n");
+				AddGenome.area.setCaretPosition(AddGenome.area.getText().length());
+				AddGenome.area.revalidate();
+				
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+		});*/
+		
+				
 		FTPClient f = new FTPClient();		
+		news = new ArrayList<String[]>();
+		area.append("Connecting to Ensembl...\n");
+		//System.out.println("Connecting to Ensembl...");
 		f.connect("ftp.ensembl.org");	
 		f.enterLocalPassiveMode();
 		f.login("anonymous", "");		
-		/*String filepath = "/pub/grch37/release-89/gff3/homo_sapiens/Homo_sapiens.GRCh37.87.gff3.gz";
-		f.sendCommand("SIZE", filepath);
-		String rep = f.getReplyString().split("\\s+")[1];
-		System.out.println(rep);
-		new URL("ftp://ftp.ensembl.org/pub/grch37/release-89/fasta/homo_sapiens/dna/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz"),
-		  new URL("ftp://ftp.ensembl.org/pub/grch37/release-89/gff3/homo_sapiens/Homo_sapiens.GRCh37.82.gff3.gz"),
-		*/
+		//System.out.println("Connected.");
+		area.append("Connected.\n");
+		
 		FTPFile[] files = f.listFiles("pub");
 		String releasedir = "";
 		String releasenro;
 		for(int i = 0 ; i<files.length;i++) {
+			
 			if(files[i].isDirectory() && files[i].getName().contains("release")) {
-				releasedir = files[i].getName();
+				releasedir = files[i].getName();				
 			}
 		}
+		
+		
 		files = f.listFiles("pub/"+releasedir +"/fasta/");
 		releasenro = releasedir.substring(releasedir.indexOf("-")+1);
-		
+		area.append("Searching for new genomes");
 		for(int i = 0 ; i<files.length;i++) {
 			if(files[i].isDirectory()) {
 				FTPFile[] fastafiles =f.listFiles("pub/"+releasedir +"/fasta/"+files[i].getName() +"/dna/");
@@ -557,45 +651,139 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 				else if(files[i].getName().contains("mus_musculus")) {
 					urls[4] = "http://hgdownload.cse.ucsc.edu/goldenPath/mm10/database/cytoBand.txt.gz";
 				}
-			//	System.out.print(urls[0]+"\t" +urls[1] +"\t" +urls[2] +"\t" +urls[3]);
-				if(urls[4] != null) {
+				String name = urls[0].substring(urls[0].lastIndexOf("/")+1, urls[0].indexOf(".dna."));
+				//System.out.print(urls[0]+"\t" +urls[1] +"\t" +urls[2] +"\t" +urls[3]);
+				if(genomeHash.containsKey(name) || AddGenome.removables.contains(name)) {
+					//System.out.println(name +" already in the list.");
+					area.append(".");
+				}
+				else {
+					area.append("\nNew genome " +name +" added.\n");
+					AddGenome.area.setCaretPosition(AddGenome.area.getText().length());
+					AddGenome.area.revalidate();
+					//System.out.println("New reference " +name +" found.");
+					organisms.add(name);
+					news.add(urls);
+					
+					if(urls[4] != null) {
+						//System.out.println(urls[0] +" " + urls[2] +" " +urls[4]);
+						URL[] newurls = {new URL(urls[0]),new URL(urls[2]),new URL(urls[4])};
+						genomeHash.put(name, newurls);
+					}
+					else {
+						URL[] newurls = {new URL(urls[0]),new URL(urls[2])};
+						genomeHash.put(name, newurls);
+					}
+					Integer[] sizes = {Integer.parseInt(urls[1]), Integer.parseInt(urls[3])};
+					sizeHash.put(name, sizes);
+					
+				}
+				/*if(urls[4] != null) {
 					System.out.print("\t" +urls[4]);
 				}
 				System.out.println();
+			*/
 			}
 		
-		}		
+		}
+		
+		checkGenomes();
+		if(news.size() > 0) {
+			
+			
+			try {
+					//File file = new File();
+					FileWriter fw = new FileWriter(Main.genomeDir.getCanonicalPath() +"/ensembl_fetched.txt");
+				    BufferedWriter bw = new BufferedWriter(fw);
+				    
+				    for(int i=0;i<news.size(); i++) {
+						for(int j=0; j<news.get(i).length; j++) {
+							if(news.get(i)[j] == null) {
+								break;
+							}
+							 if(j > 0) {
+								 bw.write("\t");
+							 }
+							bw.write(news.get(i)[j]);
+						}
+						bw.write("\n");
+					}
+				    bw.close();
+				    fw.close();
+				
+					  
+				} catch (IOException e) {
+					
+				    e.printStackTrace();
+				}
+			
+			}
 		}
 		catch(Exception e) {
 			Main.showError(e.getMessage(), "Error");
 			e.printStackTrace();
 		}
+		
 	}
 	
 	static void makeGenomes() {
 		try {
-			BufferedReader reader = new BufferedReader(new FileReader(userDir +"/genomes/ensembl.txt"));			
-			String line,name;
-			String[] split;
-			
-			while((line = reader.readLine()) != null) {
-				split = line.split("\t");				
-				name = split[0].substring(split[0].lastIndexOf("/")+1, split[0].indexOf(".dna."));
-				organisms.add(name);
+			FileReader freader = null;
+			File file = new File(Main.genomeDir.getCanonicalPath() +"/ensembl.txt");
+			if(file.exists()) {
+				freader = new FileReader(file);
 				
-				if(split.length == 5) {
-					URL[] urls = {new URL(split[0]),new URL(split[2]),new URL(split[4])};
-					genomeHash.put(name, urls);
+				BufferedReader reader = new BufferedReader(freader);			
+				String line,name;
+				String[] split;
+				
+				while((line = reader.readLine()) != null) {
+					split = line.split("\t");				
+					name = split[0].substring(split[0].lastIndexOf("/")+1, split[0].indexOf(".dna."));
+					organisms.add(name);
+					
+					if(split.length == 5) {
+						URL[] urls = {new URL(split[0]),new URL(split[2]),new URL(split[4])};
+						genomeHash.put(name, urls);
+					}
+					else {
+						URL[] urls = {new URL(split[0]),new URL(split[2])};
+						genomeHash.put(name, urls);
+					}
+					Integer[] sizes = {Integer.parseInt(split[1]), Integer.parseInt(split[3])};
+					sizeHash.put(name, sizes);
 				}
-				else {
-					URL[] urls = {new URL(split[0]),new URL(split[2])};
-					genomeHash.put(name, urls);
-				}
-				Integer[] sizes = {Integer.parseInt(split[1]), Integer.parseInt(split[3])};
-				sizeHash.put(name, sizes);
+				
+				freader.close();
+				reader.close();
 			}
-			reader.close();
+			file = new File(Main.genomeDir.getCanonicalPath() +"/ensembl_fetched.txt");
+			if(file.exists()) {
+				
+				freader = new FileReader(file);
 			
+				BufferedReader reader = new BufferedReader(freader);			
+				String line,name;
+				String[] split;
+				while((line = reader.readLine()) != null) {
+					split = line.split("\t");				
+					name = split[0].substring(split[0].lastIndexOf("/")+1, split[0].indexOf(".dna."));
+					organisms.add(name);
+					
+					if(split.length == 5) {
+						URL[] urls = {new URL(split[0]),new URL(split[2]),new URL(split[4])};
+						genomeHash.put(name, urls);
+					}
+					else {
+						URL[] urls = {new URL(split[0]),new URL(split[2])};
+						genomeHash.put(name, urls);
+					}
+					Integer[] sizes = {Integer.parseInt(split[1]), Integer.parseInt(split[3])};
+					sizeHash.put(name, sizes);
+				}
+				freader.close();
+				reader.close();
+			}
 	/*		URL[] urls = {new URL("ftp://ftp.ensembl.org/pub/grch37/release-83/fasta/homo_sapiens/dna/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz"),
 						  new URL("ftp://ftp.ensembl.org/pub/grch37/update/gff3/homo_sapiens/Homo_sapiens.GRCh37.82.gff3.gz"),
 						  new URL("http://hgdownload.cse.ucsc.edu/goldenPath/hg19/database/cytoBand.txt.gz")};
@@ -682,6 +870,17 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 			ex.printStackTrace();
 		}
 	}
+	public static class EnsemblFetch extends SwingWorker<String, Object> {
+
+		@Override
+		protected String doInBackground() throws Exception {
+			ensemblfetch = true;
+			updateEnsemblList();
+			ensemblfetch = false;
+			return null;
+		}
+		
+	}
 	public static class OutputRunner extends SwingWorker<String, Object> {
 		File genomefile, annotationFile;
 		String genomeName, ref;
@@ -691,9 +890,7 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 		public OutputRunner(String genomeName, File genomefile, File annotationFile) {
 			this.genomefile = genomefile;
 			this.genomeName = genomeName;
-			this.annotationFile = annotationFile;
-			
-			
+			this.annotationFile = annotationFile;			
 		}
 		public OutputRunner(String genomeName, File genomefile, File annotationFile, String ref) {
 			this.genomefile = genomefile;
@@ -765,15 +962,20 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 				if(!new File(targetDir).exists()) {
 					File fasta = new File(targetDir +FilenameUtils.getName(fastafile.getFile()));
 				//	fastatest = new File(targetDir +FilenameUtils.getName(fastafile.getFile()).substring(0,FilenameUtils.getName(fastafile.getFile()).indexOf(".gz") ));
-					new File(targetDir).mkdir();
+					File target = new File(targetDir);
+					target.mkdir();
 					if(!fasta.exists() && !fastatest.exists()) {
 						if(Main.drawCanvas != null) {
-							Main.drawCanvas.loadingtext ="Downloading " +genomeFile.getName();
+							Main.drawCanvas.loadingtext ="Downloading " +genomeName;
 						}
 						else {
-							System.out.println("Downloading " +genomeFile.getName());
+							System.out.println("Downloading " +genomeName);
 						}
-						Main.downloadFile(fastafile, targetDir, AddGenome.sizeHash.get(ref)[0]);				
+						String test = Main.downloadFile(fastafile, targetDir, AddGenome.sizeHash.get(ref)[0]);	
+						if(test == null) {
+							target.delete();
+							return;
+						}
 					}
 				}
 				annotationUrl = annotationFile.getName();
@@ -783,7 +985,9 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 					Main.drawCanvas.loadingtext ="Downloading " +gfffile.getFile();
 				}
 				String filetest = Main.downloadFile(gfffile, targetDir, AddGenome.sizeHash.get(ref)[1]);		
-				
+				if(filetest == null) {
+					return;
+				}
 				if(!filetest.equals(FilenameUtils.getName(gfffile.getFile()))) {
 					annotationUrl = filetest;
 					annotationFile = new File( Main.genomeDir.getCanonicalPath() +"/" +ref +"/annotation/" +filetest +"/" +filetest);
@@ -822,10 +1026,10 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 				String genomedir = Main.genomeDir.getCanonicalPath() +"/" +genomeName +"/";
 				if(genomeFile != null && !fastatest.exists()) {
 					if(Main.drawCanvas != null) {
-						Main.drawCanvas.loadingtext = "Unpacking and indexing: " +genomeFile.getName();			
+						Main.drawCanvas.loadingtext = "Unpacking and indexing: " +genomeName;			
 					}
 					else {
-						System.out.println("Unpacking and indexing: " +genomeFile.getName());
+						System.out.println("Unpacking and indexing: " +genomeName);
 					}
 							
 					indexFasta(genomeFile, genomedir);
@@ -841,7 +1045,13 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 					}
 					
 					if(ref == null) {
-						ok = new File(genomedir +"annotation/" +annotationFile.getName().substring(0,annotationFile.getName().indexOf(".gff"))+"/").mkdirs();
+						if(annotationFile.getName().indexOf(".gff") > -1) {
+							ok = new File(genomedir +"annotation/" +annotationFile.getName().substring(0,annotationFile.getName().indexOf(".gff"))+"/").mkdirs();
+						}
+						else {
+							ok = new File(genomedir +"annotation/" +annotationFile.getName().substring(0,annotationFile.getName().indexOf(".gtf"))+"/").mkdirs();
+						}
+						
 					}
 					else {
 						ok = true;
@@ -852,8 +1062,13 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 						
 					}
 					else {
-						annofile = new File(genomedir +"annotation/"+annotationFile.getName().substring(0,annotationFile.getName().indexOf(".gff")) +"/" +annotationFile.getName().substring(0,annotationFile.getName().indexOf(".gff")) +".bed.gz");
-						
+						if(annotationFile.getName().indexOf(".gff") > -1) {
+							annofile = new File(genomedir +"annotation/"+annotationFile.getName().substring(0,annotationFile.getName().indexOf(".gff")) +"/" +annotationFile.getName().substring(0,annotationFile.getName().indexOf(".gff")) +".bed.gz");
+						}
+						else {
+							annofile = new File(genomedir +"annotation/"+annotationFile.getName().substring(0,annotationFile.getName().indexOf(".gtf")) +"/" +annotationFile.getName().substring(0,annotationFile.getName().indexOf(".gtf")) +".bed.gz");
+							
+						}
 					}
 					if(ok) {
 					
@@ -874,7 +1089,7 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 							System.out.println("Unpacking and indexing: " +annotationFile.getName());
 						}
 						parseGFF(annotationFile, annofile, genomeName, genomedir +genomeFile.getName());
-					
+						Main.drawCanvas.ready("all");
 						Main.addAnnotationFile(genomeName, annofile);
 					}
 					else {
@@ -912,13 +1127,14 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 					System.out.println("Genome ready: " +genomeName +" : " +Main.defaultAnnotation);
 				}
 				DefaultMutableTreeNode newref = null;
+				
 				if(genomeFile != null) {
 					
 					DefaultMutableTreeNode last = (DefaultMutableTreeNode)root.getLastChild();
 					root.remove(last);
-					newref = new DefaultMutableTreeNode(genomeFile.getName());
+					newref = new DefaultMutableTreeNode(genomeName);
 					newref.add(new DefaultMutableTreeNode("Add new annotation..."));
-					root.add(new DefaultMutableTreeNode(genomeFile.getName()));
+					root.add(newref);
 					root.add(last);
 					treemodel.reload(root);
 				}
@@ -995,7 +1211,8 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 				e.printStackTrace();
 				Main.showError(e.getMessage(), "Error");
 			}
-		}		
+		}
+		
 	}
 
 static String downloadAnnotation(URL fileurl, String genome) {
@@ -1073,8 +1290,13 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			try {
 				
 				SAMSequenceDictionary dict = ReadDict(new File(genomeFile));				
+				if(gffFile.getName().contains(".gff")) {
+					FileRead.readGFF(gffFile, outfile.getCanonicalPath(), dict);
+				}
+				else {
+					FileRead.readGTF(gffFile, outfile.getCanonicalPath(), dict);
+				}
 				
-				FileRead.readGFF(gffFile, outfile.getCanonicalPath(), dict);
 			}
 			catch(Exception e) {
 				e.printStackTrace();
@@ -1125,7 +1347,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			}
 			String line;
 			
-			long counter = 0, chromlength = 0, pointer = 0, filesize = fastafile.length();
+			long counter = 0, chromlength = 0, pointer = 0;
 			String[] split;
 			Main.drawCanvas.loadbarAll = 0;
 			
@@ -1209,8 +1431,10 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 		    sizeError.setVisible(false);
 	}
 	public static void main(String[] args) {
+		
 		try {
-			//UIManager.setLookAndFeel("com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel"); 
+			
+			
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 			
 		}
@@ -1228,7 +1452,39 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			if(!downloading) {
 	    		downloading = true;
 	    		downloadGenome(genometable.getValueAt(genometable.getSelectedRow(), 0).toString());	    		
-	    	}			
+	    		downloading = false;
+	    	}	
+					}
+		else if(event.getSource() == getLinks) {
+			URL[] urls = AddGenome.genomeHash.get(genometable.getValueAt(genometable.getSelectedRow(), 0).toString());
+			JPopupMenu menu = new JPopupMenu();
+			JTextArea area = new JTextArea();
+			JScrollPane menuscroll = new JScrollPane();			
+			area.setFont(Main.menuFont);			
+			menu.add(menuscroll);			
+			menu.setPreferredSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth(urls[0].toString())+Main.defaultFontSize*10, (int)menu.getFontMetrics(Main.menuFont).getHeight()*4));
+			//area.setMaximumSize(new Dimension(300, 600));
+			area.setLineWrap(true);
+			area.setWrapStyleWord(true);
+			for(int i=0;i<urls.length; i++) {
+				area.append(urls[i].toString() +"\n");
+			}	
+			
+			area.setCaretPosition(0);
+			area.revalidate();
+			menuscroll.getViewport().add(area);
+			menu.pack();
+			menu.show(this,0, 0);			
+			
+		}
+		else if (event.getSource() == checkEnsembl) {
+			if(ensemblfetch ) {
+				menu.show(AddGenome.treescroll,0, 0);		
+			}
+			else {
+				EnsemblFetch fetcher = new EnsemblFetch();
+				fetcher.execute();
+			}
 		}
 		else if(event.getSource() == checkUpdates) {
 			URL testfile = null;
@@ -1243,22 +1499,23 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 						}
 					}
 					testfile = AddGenome.genomeHash.get(ref)[1];					
-						
 					String result = Main.checkFile(testfile, testfiles);
-					if(result.length() == 0) {
-						
+					
+					if(result.length() == 0) {						
 						Main.showError("You have newest annotation file.", "Note");
 					}
 					else {
 						int n = JOptionPane.showConfirmDialog(Main.drawCanvas, "New annotation file found: " +result +"\nDownload it now?", "Note", JOptionPane.YES_NO_OPTION);
 						if(n == JOptionPane.YES_OPTION) {
-						//	System.out.println(testfile.getProtocol() +"://" +testfile.getHost() +testfile.getPath().substring(0,testfile.getPath().lastIndexOf("/")+1)+result);
 							URL fileurl = new URL(testfile.getProtocol() +"://" +testfile.getHost() +testfile.getPath().substring(0,testfile.getPath().lastIndexOf("/")+1)+result);
 							OutputRunner runner = new OutputRunner(fileurl, ref);
 							runner.downloadAnnotation = true;
 							runner.execute();						
 						}						
 					}				
+				}
+				else {
+					Main.showError("This genome is not from Ensembl list, could not check for updates.", "Note", AddGenome.genometable);
 				}
 			}
 			catch(Exception e) {
@@ -1329,7 +1586,10 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 							ChromDraw.exonReader.close();
 						}					
 					}
-					Main.removeAnnotationFile(selectedNode.getParent().toString(), selectedNode.toString());					
+				
+					Main.removeAnnotationFile(selectedNode.getParent().toString(), selectedNode.toString());		
+
+				
 					FileUtils.deleteDirectory(new File(Main.genomeDir.getCanonicalPath() +"/" +selectedNode.getParent().toString() +"/annotation/"+selectedNode.toString()));
 					
 					
@@ -1387,7 +1647,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			
 			else {	
 				
-				OutputRunner runner = new OutputRunner(genomeFile.getName(), genomeFile, annotationFile);
+				OutputRunner runner = new OutputRunner(genomeFile.getName().replace(".fasta", "").replace(".gz", ""), genomeFile, annotationFile);
 				runner.execute();
 			}
 			
@@ -1411,6 +1671,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 	          
 	         if (returnVal == JFileChooser.APPROVE_OPTION) {	        	 
 	        	 genomeFile = chooser.getSelectedFile(); 
+	        	 Main.downloadDir = genomeFile.getParent();
 	        	 Main.writeToConfig("DownloadDir=" +genomeFile.getParent());
 	        	 genomeFileText.setText(genomeFile.getName());
 	        	 genomeFileText.revalidate();  	
@@ -1423,6 +1684,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 		}
 		else if(event.getSource() == openAnno) {
 			try {
+				
 				 JFileChooser chooser = new JFileChooser(Main.downloadDir);	 
 		    	  chooser.setMultiSelectionEnabled(false);
 		    	  chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -1441,11 +1703,12 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 		        		 genomeFile = Main.fastahash.get(Main.hoverGenome);
 		        	 }
 		        	 annotationFile = chooser.getSelectedFile(); 
+		        	 Main.downloadDir = annotationFile.getParent();
 		        	 Main.writeToConfig("DownloadDir=" +annotationFile.getParent());
 		        	
 		        	
 		        	 
-		        	OutputRunner runner = new OutputRunner(genomeFile.getName(), genomeFile, annotationFile);
+		        	OutputRunner runner = new OutputRunner(genomeFile.getName().replace(".fasta", "").replace(".gz", ""), genomeFile, annotationFile);
 					runner.execute();
 		          }
 			 }
@@ -1490,6 +1753,12 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 				if(file.getName().endsWith(".gff3.gz")) {
 					return true;
 				}
+				if(file.getName().endsWith(".gtf.gz")) {
+					return true;
+				}
+				if(file.getName().endsWith(".gtf")) {
+					return true;
+				}
 				else {
 					return false;
 				}	
@@ -1510,9 +1779,38 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 		
 		if(e.getSource() == tree) {
 		
-			if(selectedNode.toString().contains("Add new refe")) {
+			if(selectedNode!= null && selectedNode.toString().contains("Add new refe")) {
 				try {
-					
+					FileDialog fs = new FileDialog(frame, "Select reference fasta-file", FileDialog.LOAD);
+			  		  fs.setDirectory(Main.downloadDir);	  		
+			  		  fs.setVisible(true);
+			  		  String filename = fs.getFile();			
+			          fs.setFile("*.fasta;*.fa");
+			          fs.setFilenameFilter(new FilenameFilter() {
+				  			public boolean accept(File dir, String name) {
+						        return name.toLowerCase().contains(".fasta") || name.toLowerCase().contains(".fa");
+						     }
+						 });
+			         if (filename != null) {
+			        	 File addfile = new File(fs.getDirectory() +"/" +filename);
+			        	
+			        	 if(addfile.exists()) {
+			        		     	
+			        		 genomeFile = addfile; 
+				        	 Main.downloadDir = genomeFile.getParent();
+				        	 Main.writeToConfig("DownloadDir=" +genomeFile.getParent());
+				        	 OutputRunner runner = new OutputRunner(genomeFile.getName().replace(".fasta", "").replace(".fa", "").replace(".gz", ""), genomeFile, null);
+				        	 runner.createGenome = true;
+				        	 runner.execute();
+			        	 }
+			        	 else {
+			        		 Main.showError("File does not exists.", "Error", frame);
+			        	 }
+			        	 
+			         }
+			         if(1==1) {
+			        	 return;
+			         }
 					 JFileChooser chooser = new JFileChooser(Main.downloadDir);	 
 			    	  chooser.setMultiSelectionEnabled(false);
 			    	  chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -1530,8 +1828,9 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			         if (returnVal == JFileChooser.APPROVE_OPTION) {
 			        	 
 			        	 genomeFile = chooser.getSelectedFile(); 
+			        	 Main.downloadDir = genomeFile.getParent();
 			        	 Main.writeToConfig("DownloadDir=" +genomeFile.getParent());
-			        	 OutputRunner runner = new OutputRunner(genomeFile.getName(), genomeFile, null);
+			        	 OutputRunner runner = new OutputRunner(genomeFile.getName().replace(".fasta", "").replace(".gz", ""), genomeFile, null);
 			        	 runner.createGenome = true;
 			        	 runner.execute();
 			        	 
@@ -1541,14 +1840,44 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 					 ex.printStackTrace();
 				 }		
 			}
-			else if (selectedNode.isLeaf() && selectedNode.toString().contains("Add new anno")) {
+			else if (selectedNode!= null && selectedNode.isLeaf() && selectedNode.toString().contains("Add new anno")) {
 				try {
+					  FileDialog fs = new FileDialog(frame, "Select annotation gff3/gtf-file", FileDialog.LOAD);
+			  		  fs.setDirectory(Main.downloadDir);	  		
+			  		  fs.setVisible(true);
+			  		  fs.setFile("*.gff3;*.gtf");
+			  		  fs.setFilenameFilter(new FilenameFilter() {
+				  			public boolean accept(File dir, String name) {
+						        return name.toLowerCase().contains(".gff3") || name.toLowerCase().contains(".gtf");
+						     }
+						 });
+			  		  String filename = fs.getFile();			
+			       
+			         if (filename != null) {
+			        	 File addfile = new File(fs.getDirectory() +"/" +filename);
+			        	
+			        	 if(addfile.exists()) {			        		     	
+			        		 annotationFile = addfile; 
+			        		 Main.downloadDir = annotationFile.getParent();					        	
+				        	 Main.writeToConfig("DownloadDir=" +annotationFile.getParent());		        	 
+				        	 OutputRunner runner = new OutputRunner(selectedNode.getParent().toString(), null, annotationFile);
+				        	 runner.createGenome = true;
+				        	 runner.execute();
+			        	 }
+			        	 else {
+			        		 Main.showError("File does not exists.", "Error", frame);
+			        	 }
+			        	 
+			         }
+			         if(1==1) {
+			        	 return;
+			         }
 					 JFileChooser chooser = new JFileChooser(Main.downloadDir);	 
 			    	  chooser.setMultiSelectionEnabled(false);
 			    	  chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 			    	  chooser.setAcceptAllFileFilterUsed(false);	    	
 			    	  MyFilterGFF gffFilter = new MyFilterGFF();	    
-			    	 
+			    	
 			    	  chooser.addChoosableFileFilter(gffFilter); 	    	
 			    	  chooser.setDialogTitle("Select annotation gff3-file");
 			    	  if(Main.screenSize != null) {
@@ -1559,6 +1888,8 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			         if (returnVal == JFileChooser.APPROVE_OPTION) {
 			        	
 			        	 annotationFile = chooser.getSelectedFile(); 
+			        	 Main.downloadDir = annotationFile.getParent();
+			        	
 			        	 Main.writeToConfig("DownloadDir=" +annotationFile.getParent());		        	 
 			        	 OutputRunner runner = new OutputRunner(selectedNode.getParent().toString(), null, annotationFile);
 			        	 runner.createGenome = true;
@@ -1575,10 +1906,12 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			if(new File(".").getFreeSpace()/1048576 < sizeHash.get(genometable.getValueAt(genometable.getSelectedRow(), 0))[0]/1048576) {
 				sizeError.setVisible(true);
 				download.setEnabled(false);
+				AddGenome.getLinks.setEnabled(false);
 			}
 			else {			
 				sizeError.setVisible(false);
 				download.setEnabled(true);
+				AddGenome.getLinks.setEnabled(true);
 			}
 			tree.clearSelection();
 			remove.setEnabled(false);
@@ -1590,7 +1923,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 		try {		
 			URL fastafile= AddGenome.genomeHash.get(urls)[0];
 			String targetDir = "";
-			boolean writable = true;
+			//boolean writable = true;
 			
 			File test = new File(Main.genomeDir.getCanonicalPath() +"/test");
 				

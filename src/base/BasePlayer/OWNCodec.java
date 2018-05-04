@@ -102,9 +102,13 @@ public class OWNCodec extends AsciiFeatureCodec<BEDFeature> {
         String chr = tokens[0];
 
         // The BED format uses a first-base-is-zero convention,  Tribble features use 1 => add 1.
-       
-        int start = Integer.parseInt(tokens[1]) + startOffsetValue;
-
+        int start = 0;
+        try {
+        	start = Integer.parseInt(tokens[1]) + startOffsetValue;
+        }
+        catch(Exception e) {
+        	return null;
+        }
         int end = start;
         if (tokenCount > 2) {
         	try {

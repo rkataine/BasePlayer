@@ -27,6 +27,7 @@ public class Gene {
 	ArrayList<Sample> samples = new ArrayList<Sample>();
 	StringBuffer transcriptString = new StringBuffer();
 	boolean intergenic = false;
+	ArrayList<VarNode> compounds = new ArrayList<VarNode>();
 	
 	public Gene() {
 		
@@ -72,6 +73,35 @@ public class Gene {
 		}
 		else {
 			this.ID = FileRead.getInfoValue(gffhash,"id");
+		}
+		this.start = Integer.parseInt(gffhash.get("start"));
+		
+		this.end = Integer.parseInt(gffhash.get("end"));
+		if(gffhash.containsKey("description")) {
+			this.description = FileRead.getInfoValue(gffhash,"description").replace("%20", " ");
+		}
+		else if (gffhash.containsKey("note")) {
+			this.description = FileRead.getInfoValue(gffhash,"note").replace("%20", " ");
+		}
+		if(FileRead.getInfoValue(gffhash,"strand").equals("+")) {
+			this.strand = true;			
+		}	
+	}
+	public Gene(String chrom, HashMap<String, String> gffhash, boolean gtf) {
+		if(chrom.equals("-1")) {
+			this.chrom = gffhash.get("seqid");
+		}
+		else {
+			this.chrom = chrom;
+		}
+		
+		this.name = FileRead.getInfoValue(gffhash,"gene_symbol");
+		
+		if(gffhash.containsKey("dbxref")) {
+			this.ID = gffhash.get("dbxref");
+		}
+		else {
+			this.ID = FileRead.getInfoValue(gffhash,"gene_id");
 		}
 		this.start = Integer.parseInt(gffhash.get("start"));
 		

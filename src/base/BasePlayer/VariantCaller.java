@@ -438,7 +438,7 @@ public class VarCaller extends SwingWorker<String, Object> {
 				for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
 					if(Main.bedCanvas.bedTrack.get(i).small && Main.bedCanvas.bedTrack.get(i).getBBfileReader() == null) {						
 						if( Main.bedCanvas.bedTrack.get(i).intersect && !Main.bedCanvas.bedTrack.get(i).loading) {
-							Main.bedCanvas.annotate(Main.bedCanvas.bedTrack.get(i).getHead());	
+							Main.bedCanvas.annotate(Main.bedCanvas.bedTrack.get(i).getHead(), FileRead.head.getNext());	
 							Main.bedCanvas.intersected = true;
 							
 						}							

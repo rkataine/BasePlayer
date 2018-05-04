@@ -10,9 +10,9 @@ import javax.swing.plaf.basic.*;
 /**
  * @version 1.0 12/12/98
  */
-class SteppedComboBoxUI extends BasicComboBoxUI {
+class SampleComboBoxUI extends BasicComboBoxUI {
 	
-	public SteppedComboBoxUI() {
+	public SampleComboBoxUI() {
 		super();
 	}
   protected ComboPopup createPopup() {
@@ -22,7 +22,7 @@ class SteppedComboBoxUI extends BasicComboBoxUI {
 
 	public void show() {
 		
-        Dimension popupSize = ((SteppedComboBox)comboBox).getPopupSize();
+        Dimension popupSize = ((SampleComboBox)comboBox).getPopupSize();
         popupSize.setSize( popupSize.width, getPopupHeightForRowCount( comboBox.getMaximumRowCount() ) );
         Rectangle popupBounds = computePopupBounds( 0,
         comboBox.getBounds().height, popupSize.width, popupSize.height);
@@ -50,30 +50,19 @@ class SteppedComboBoxUI extends BasicComboBoxUI {
 }
  
  
-public class SteppedComboBox extends JComboBox<String> {
+public class SampleComboBox extends JComboBox<Sample> {
  
 	private static final long serialVersionUID = 1L;
 protected int popupWidth;
   
-  public SteppedComboBox(ComboBoxModel<String> aModel) {
-    super(aModel);
-    //setUI(new SteppedComboBoxUI());
-    setUI(new SteppedComboBoxUI());
-    popupWidth = 0;
-  }
+  
  
-  public SteppedComboBox(final String[] items) {
+  public SampleComboBox(final Vector<Sample> items) {
     super(items);
-    setUI(new SteppedComboBoxUI());
+    setUI(new SampleComboBoxUI());
     popupWidth = 0;
   }
    
-  public SteppedComboBox(Vector<String> items) {
-    super(items);
-    setUI(new SteppedComboBoxUI());
-    popupWidth = 0;
-  }
- 
   public void setPopupWidth(int width) {
     popupWidth = width;
   }

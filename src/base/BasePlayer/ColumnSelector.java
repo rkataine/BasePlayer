@@ -25,7 +25,7 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 
 import java.io.InputStreamReader;
-
+import java.util.Iterator;
 import java.util.zip.GZIPInputStream;
 
 import javax.swing.DefaultCellEditor;
@@ -37,6 +37,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.table.TableColumn;
+
+import htsjdk.samtools.seekablestream.SeekableStream;
+import htsjdk.samtools.seekablestream.SeekableStreamFactory;
 
 public class ColumnSelector extends JPanel implements ActionListener, ComponentListener {
 	private static final long serialVersionUID = 1L;
@@ -98,11 +101,102 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 		String line;
 		String[] split;
 		BufferedReader reader;
-		
+		reader = null;
 		String[][] data = null;
+		if(this.track.file == null) {
+			try {
+			SeekableStream stream = SeekableStreamFactory.getInstance().getStreamFor(this.track.url);
+			TabixReaderMod tabixReader = new TabixReaderMod(track.url.toString(), track.index.toString(), stream);
+			int count = 0;
+			String[] columns = null;
 			
-		gzip = new GZIPInputStream(new FileInputStream(this.track.file));			
-		reader = new BufferedReader(new InputStreamReader(gzip));	
+		  while((line = tabixReader.readLine()) != null) {	    	
+		    			    	
+		    	if(line.startsWith("#")) {		    		
+		    		continue;
+		    	}
+		    	split = line.split("\\s+");
+		    	if(count == 0) {
+		    		data = new String[11][split.length];
+		    		columns = new String[split.length];
+		    		
+		    		for(int i = 0; i<split.length; i++) {
+			    		data[0][i] = "Select";
+			    		if(track.chromcolumn != null && track.chromcolumn == i) {
+			    			data[0][i] = "Chromosome";				    			
+			    		}
+			    		else if(track.startcolumn != null && track.startcolumn == i) {
+			    			data[0][i] = "Start";				    			
+			    		}
+			    		else if(track.endcolumn != null && track.endcolumn == i) {
+			    			data[0][i] = "End";				    			
+			    		}
+			    		else if(track.namecolumn != null && track.namecolumn == i) {
+			    			data[0][i] = "Name";				    			
+			    		}
+			    		else if(track.valuecolumn != null && track.valuecolumn == i) {
+			    			data[0][i] = "Value";				    			
+			    		}
+			    		else if(track.strandcolumn != null && track.strandcolumn == i) {
+			    			data[0][i] = "Strand";				    			
+			    		}
+			    		else if(track.basecolumn != null && track.basecolumn == i) {
+			    			data[0][i] = "Base";				    			
+			    		}
+			    	}
+		    	}
+		    	
+		    	for(int i = 0; i<split.length; i++) {
+		    		data[count+1][i] = split[i];
+		    	}		
+		    	
+		    	count++;
+		    	if(count > 9) {
+		    		break;
+		    	}		    
+		  }
+		  tabixReader.close();
+		  stream.close();
+		  for(int i = 0 ; i<columns.length; i++) {
+			  columns[i] = "";
+		  }
+		
+		panel.setBackground(Draw.sidecolor);
+		table = new JTable(data, columns);
+		for(int i = 0 ; i<columns.length; i++) {
+			TableColumn column = table.getColumnModel().getColumn(i);			
+			JComboBox<String> comboBox = new JComboBox<String>();
+			comboBox.addItem("None");
+			comboBox.addItem("Chromosome");
+			comboBox.addItem("Start");
+			comboBox.addItem("End");
+			comboBox.addItem("Name");
+			comboBox.addItem("Value");	
+			comboBox.addItem("Strand");
+			comboBox.addItem("Base");		
+			column.setCellEditor(new DefaultCellEditor(comboBox));
+			
+			if(track.chromcolumn != null && track.chromcolumn == i) {
+				comboBox.setSelectedItem("Chromosome");					
+			}
+		}
+							
+			
+								
+				
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+				
+				track.getHead().putNext(null);						
+			}
+		}
+		else {
+			gzip = new GZIPInputStream(new FileInputStream(this.track.file));			
+			reader = new BufferedReader(new InputStreamReader(gzip));	
+		
+		
+		
 		int count = 0;
 		String[] columns = null;
 		
@@ -151,6 +245,7 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 	    		break;
 	    	}		    
 	  }
+	  
 	  for(int i = 0 ; i<columns.length; i++) {
 		  columns[i] = "";
 	  }
@@ -174,39 +269,8 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 			comboBox.setSelectedItem("Chromosome");					
 		}
 	}
+		}
 	
-	/*
-	if(track.startcolumn != null) {
-		if(table.getValueAt(0, track.startcolumn).toString().contains("Non")) {
-			track.startcolumn = null;
-		}
-	}
-	if(track.endcolumn != null) {
-		if(table.getValueAt(0, track.endcolumn).toString().contains("Non")) {
-			track.endcolumn = null;
-		}
-	}
-	if(track.namecolumn != null) {
-		if(table.getValueAt(0, track.namecolumn).toString().contains("Non")) {
-			track.namecolumn = null;
-		}
-	}
-	if(track.valuecolumn != null) {
-		if(table.getValueAt(0, track.valuecolumn).toString().contains("Non")) {
-			track.valuecolumn = null;
-		}
-	}
-	if(track.strandcolumn != null) {
-		if(table.getValueAt(0, track.strandcolumn).toString().contains("Non")) {
-			track.strandcolumn = null;
-		}
-	}
-	if(track.basecolumn != null) {
-		if(table.getValueAt(0, track.basecolumn).toString().contains("Non")) {
-			track.basecolumn = null;
-		}
-	}
-	*/
 	GridBagConstraints c = new GridBagConstraints();	
 	c.gridx=0;
 	c.gridy=0;
@@ -346,7 +410,7 @@ public class ColumnSelector extends JPanel implements ActionListener, ComponentL
 				}
 				
 			}
-			if(track.file.getName().endsWith(".tsv.gz")) {
+			if((track.file != null && track.file.getName().endsWith(".tsv.gz")) || (track.url != null && track.url.toString().toLowerCase().endsWith(".tsv.gz"))) {
 				if(track.chromcolumn == null || track.startcolumn == null) {
 					info.setForeground(Color.red);
 					info.revalidate();

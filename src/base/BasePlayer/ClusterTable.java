@@ -821,7 +821,12 @@ void drawGeneheader(int y) {
 		}
 		else  {
 			BedTrack track = (BedTrack)geneheader.get(i)[0];
-			buf.drawString(track.file.getName(), (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+			if(track.file != null) {
+				buf.drawString(track.file.getName(), (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+			}
+			else {
+				buf.drawString(track.url.getFile().toString(), (int)geneheader.get(i)[1]+14, y+rowHeight-3);
+			}
 			track = null;
 		}
 		buf.setColor(Color.black);

@@ -23,7 +23,9 @@ public class Launcher  {
 	static boolean fromMain = false, firstStart = false;
 	static File configfile;
 //	private static long timer;	
-	static String memlimit = "1200m", defaultDir = "demo", line, ctrldir = "demo", defaultAnnotation ="", defaultGenome = "", defaultSaveDir = "", genomeDir = "", fontSize = "";
+	static String memlimit = "1200m", defaultDir = "demo", line, ctrldir = "demo", defaultAnnotation ="", defaultGenome = "", defaultSaveDir = "", genomeDir = "", fontSize = "", backColor ="";
+	static String proxyHost ="", proxyPort ="", proxyType = "";
+	static boolean isProxy = false;
 	static String gerpfile;	
 	static ArrayList<String> config = new ArrayList<String>();
 	public static String trackDir = "";
@@ -124,15 +126,31 @@ public class Launcher  {
 						  firstStart = true;
 					  }					 
 				  }
+				  else if(line.startsWith("backColor")) {
+					  backColor = line.substring(line.indexOf("=")+1).replace(" ", "");
+				  }
 				  else if(line.startsWith("DefaultSave")) {
 					  defaultSaveDir = line.substring(line.indexOf("=")+1).replace(" ", "");
 				  }
 				  else if(line.startsWith("genomeDir")) {
 					  genomeDir = line.substring(line.indexOf("=")+1).replace(" ", "");
 				  }
-				  else if(line.startsWith("fontSize")) {
-					  
+				  else if(line.startsWith("fontSize")) {					  
 					  fontSize = line.substring(line.indexOf("=")+1).replace(" ", "");
+				  }
+				  else if(line.startsWith("proxyHost")) {					  
+					  proxyHost = line.substring(line.indexOf("=")+1).replace(" ", "");
+				  }
+				  else if(line.startsWith("proxyPort")) {					  
+					  proxyPort = line.substring(line.indexOf("=")+1).replace(" ", "");
+				  }
+				  else if(line.startsWith("proxyType")) {					  
+					  proxyType = line.substring(line.indexOf("=")+1).replace(" ", "");
+				  }
+				  else if(line.startsWith("isProxy")) {		
+					  if(line.contains("rue")) {
+						  isProxy = true;
+					  }					  
 				  }
 			  }
 			  if(!new File(defaultDir).exists()) {

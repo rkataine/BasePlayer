@@ -320,9 +320,14 @@ static void useVCFoverlap(TabixReader.Iterator iterator, VarNode current, int c,
 		    					 if(current.vars.get(i).getKey().equals(templist[t]) || baselength > 1) {
 		    						
 		    						 if(controlData.fileArray.get(c).varcount > 2) {
-		    							 alleles = Integer.parseInt(split[7].substring(index, acendindex).split(",")[t]);	    							 					    		
-		 					    		 allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
-		 					    	
+		    							 alleles = Integer.parseInt(split[7].substring(index, acendindex).split(",")[t]);	  
+		    							 try {
+		    								 allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
+			    						 }
+		    							catch(Exception e) {
+		    								System.out.println(line);
+		    								Main.showError("Controlling error in line:\n" +line, "Error");
+		    							}
 		    						 }
 		    						 else {
 		    							 infosplit = split[split.length-1].split(":");		    							 
@@ -433,6 +438,7 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 	    	 }	    	
 	    	
 	    	 if(current.getPosition() == position) { 
+	    		 
 	    		 if(!split[4].contains(",")) {
 		    		 controlvar = FileRead.getVariant(split[3], split[4]);		    	
 		    	 }
@@ -481,6 +487,7 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 	    							}
 	    							catch(Exception e) {
 	    								System.out.println(line);
+	    								Main.showError("Controlling error in line:\n" +line, "Error");
 	    							}
 	    					//		 allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
 	    							
@@ -599,9 +606,7 @@ static void addFiles(File[] filestemp) {
   	try {
   	
   	int samplecount = 0;
-  	if(Main.trackPane.isVisible() && Control.controlData.fileArray.size() == 0) {
-  		Main.trackPane.setDividerLocation(Main.varpane.getDividerLocation());
-  	}
+  	
 	
 	for(int i=0;i<filestemp.length; i++) {
 		if(filestemp[i].isDirectory()) {
@@ -660,195 +665,108 @@ static void addFiles(File[] filestemp) {
     		}   
 		}
 		else {	
+			if(!filestemp[i].getName().endsWith(".vcf.gz")) {
+				continue;
+			}
 			ControlFile addSample = new ControlFile(filestemp[i].getName(), (short)(controlData.fileArray.size()), filestemp[i].getCanonicalPath());			
 			controlData.fileArray.add(addSample);		
-			MethodLibrary.addHeaderColumns(addSample);
+			MethodLibrary.addHeaderColumns(addSample);			
 			Main.controlDraw.trackDivider.add(0.0);
-		/*	VariantHandler.table.addRowGeneheader(addSample);	
-			VariantHandler.table.addRowGeneheader("OR");
-			 if(VariantHandler.tables.size() > 0) {
-				  for(int t = 0; t < VariantHandler.tables.size(); t++) {
-					  VariantHandler.tables.get(t).addRowGeneheader(Control.controlData.fileArray.get(i));
-					  VariantHandler.tables.get(t).addRowGeneheader("OR");
-					  VariantHandler.tables.get(t).repaint();
-				  }
-			  }
-			  VariantHandler.clusterTable.addColumnGeneheader(addSample);
-			  VariantHandler.clusterTable.addColumnGeneheader("OR");
-			  VariantHandler.clusterTable.repaint();
-			  VariantHandler.table.repaint();
-			*/  
-			if(filestemp[i].getName().endsWith(".ctrl")) {
-				
-				Object[] addi = { "", filestemp[i].getName(), new Boolean(true) };
-				try {
-					samplecount = 0;
-					BufferedReader reader = new BufferedReader(new FileReader(filestemp[i]));
-					String line = reader.readLine();
-					while(line.startsWith("#")) {
-						if(line.startsWith("##Chr")) {
-							break;
-						}
-						if(line.contains("#SampleCount")) {
-							samplecount = Integer.parseInt(line.split("=")[1]);
-							controlData.total += samplecount*2;
-						}
-						else {
-							samplecount++;
-							controlData.total+=2;
-						}
-//						controlData.sampleArray.add(line);
-			//			Object[] add = {row, line, new Boolean(true)};
-						
-						row++;
-						line = reader.readLine();
-					}
-					reader.close();					
-		//			controlsamples.put(addi[1].toString(), samplecount);
-					addi[1] = ""+samplecount +"_"+addi[1];
-    				
-				}
-				catch(Exception e){
-					ErrorLog.addError(e.getStackTrace());
-					e.printStackTrace();
-				}
-			}
-			else if(filestemp[i].getName().endsWith(".ctrl.gz")) {
-		//		Object[] addi = { "", filestemp[i].getName(), new Boolean(true) };
-		//		model.addRow(addi);
 			
-				try {
-					samplecount = 0;
-					GZIPInputStream gzip = new GZIPInputStream(new FileInputStream(filestemp[i]));
-					BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));
-				
-					String line = reader.readLine();
-					while(line.startsWith("#")) {
-						if(line.startsWith("##")) {
-							break;
-						}
-						if(line.startsWith("#SampleCount")) {
-							samplecount = Integer.parseInt(line.split("=")[1]);
-							controlData.total += samplecount*2;
-						}
-						else {
-							samplecount++;
-							controlData.total+=2;
-						}						
-						
-						line = reader.readLine();
-					}
-					addSample.varcount = samplecount*2;
-					reader.close();					
-		//			controlsamples.put(addi[1].toString(), samplecount);
-					controlData.sampleCount +=samplecount;
-				//	addi[1] = ""+samplecount +"_"+addi[1];
-    		//		model.fireTableDataChanged();
-    				
-    				
-				}
-				catch(Exception e){
-					ErrorLog.addError(e.getStackTrace());
-					e.printStackTrace();
-				}
-				
-				
-			}
-			else if(filestemp[i].getName().endsWith(".vcf.gz")) {
-			
-				try {
-					samplecount = 0;
-					GZIPInputStream gzip = new GZIPInputStream(new FileInputStream(filestemp[i]));
-					BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));				
-					String line = reader.readLine(), population = "";
-					int idindex = 0, dotindex = 0;
-					while(line.startsWith("#")) {
-						if(line.contains("##INFO")) {
-							if(line.contains("ID=")) {
-								idindex = line.indexOf("ID=");
-								dotindex = line.indexOf(",");
-								if(idindex > 0 && dotindex > 0) {
-									if(line.substring(idindex, dotindex).contains("AC")) {
-										population = line.substring(idindex+3, dotindex).replace("AC", "").replace("_", "");
-										if(population.length() == 0) {
-											population = "ALL";
-										}
-										
-										
+			try {
+				samplecount = 0;
+				GZIPInputStream gzip = new GZIPInputStream(new FileInputStream(filestemp[i]));
+				BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));				
+				String line = reader.readLine(), population = "";
+				int idindex = 0, dotindex = 0;
+				while(line.startsWith("#")) {
+					if(line.contains("##INFO")) {
+						if(line.contains("ID=")) {
+							idindex = line.indexOf("ID=");
+							dotindex = line.indexOf(",");
+							if(idindex > 0 && dotindex > 0) {
+								if(line.substring(idindex, dotindex).contains("AC")) {
+									population = line.substring(idindex+3, dotindex).replace("AC", "").replace("_", "");
+									if(population.length() == 0) {
+										population = "ALL";
 									}
-								}								
-							}
+									
+									
+								}
+							}								
 						}
-						else if(line.startsWith("#CHROM")) {
-							if(line.split("\t").length -9 < 0) {
-								samplecount = 0;
+					}
+					else if(line.startsWith("#CHROM")) {
+						if(line.split("\t").length -9 < 0) {
+							samplecount = 0;
+						}
+						else {
+							samplecount = line.split("\t").length -9;
+						}
+						controlData.total += samplecount*2;
+					}					
+					
+					line = reader.readLine();
+				}
+				addSample.varcount = samplecount*2;
+				if(samplecount == 0) {
+					int count =0, maxnumber = 0, endindex = -1;
+					String[] split = line.split("\t");
+					if(line.contains("AN=")) {
+						while(count < 1000) {
+							
+							refindex = split[7].indexOf(";AN=")+4;
+				    		if(refindex == -1) {
+				    			refindex = split[7].indexOf("AN=")+3;
+				    		}
+				    		endindex = split[7].indexOf(";", refindex);
+				    		if(endindex == -1) {
+				    			endindex = split[7].length();					    			
+				    		}				
+				    		
+				    		allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
+				    		
+				    		if(allelenumber > maxnumber) {
+				    			maxnumber = allelenumber;
+				    		}
+							count++;
+							line = reader.readLine();
+							if(line != null) {
+								split = line.split("\t");
 							}
 							else {
-								samplecount = line.split("\t").length -9;
+								break;
 							}
-							controlData.total += samplecount*2;
-						}					
-						
-						line = reader.readLine();
-					}
-					addSample.varcount = samplecount*2;
-					if(samplecount == 0) {
-						int count =0, maxnumber = 0, endindex = -1;
-						String[] split = line.split("\t");
-						if(line.contains("AN=")) {
-							while(count < 1000) {
-								
-								refindex = split[7].indexOf(";AN=")+4;
-					    		if(refindex == -1) {
-					    			refindex = split[7].indexOf("AN=")+3;
-					    		}
-					    		endindex = split[7].indexOf(";", refindex);
-					    		if(endindex == -1) {
-					    			endindex = split[7].length();					    			
-					    		}				
-					    		
-					    		allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
-					    		
-					    		if(allelenumber > maxnumber) {
-					    			maxnumber = allelenumber;
-					    		}
-								count++;
-								line = reader.readLine();
-								if(line != null) {
-									split = line.split("\t");
-								}
-								else {
-									break;
-								}
-							}
-							
 						}
-						addSample.varcount = maxnumber;
-						samplecount = maxnumber/2;
+						
 					}
-				
-					else if(samplecount == 1) {
-						addSample.varcount = 2;
-						samplecount = 1;
-					}
-				
-					reader.close();					
-					gzip.close();
-					controlData.sampleCount +=samplecount;
-					
+					addSample.varcount = maxnumber;
+					samplecount = maxnumber/2;
 				}
-				catch(Exception e){
-					ErrorLog.addError(e.getStackTrace());
-					e.printStackTrace();
-				}				
-			}	
 			
-		}
-		 
+				else if(samplecount == 1) {
+					addSample.varcount = 2;
+					samplecount = 1;
+				}
+			
+				reader.close();					
+				gzip.close();
+				controlData.sampleCount +=samplecount;
+				
+			}
+			catch(Exception e){
+				ErrorLog.addError(e.getStackTrace());
+				e.printStackTrace();
+			}				
+					
+		}		 
 	}
-  
+
 	
- if(controlData.fileArray.size() > 0) {	
+ if(controlData.fileArray.size() > 0 && samplecount > 0) {	
+	 if(Main.trackPane.isVisible() && Control.controlData.fileArray.size() == 0) {
+	  		Main.trackPane.setDividerLocation(Main.varpane.getDividerLocation());
+	  	}
 	 for(int i = 0 ; i<Main.controlDraw.trackDivider.size(); i++) {
 		 Main.controlDraw.trackDivider.set(i, ((i+1)*(Main.varpane.getDividerLocation()/(double)Main.controlDraw.trackDivider.size())));
 	 }	

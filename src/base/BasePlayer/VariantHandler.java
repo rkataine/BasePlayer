@@ -24,6 +24,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FileDialog;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -48,6 +49,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -102,7 +105,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JLabel coverageLabelIndel = new JLabel();
 	static JLabel maxCoverageLabelIndel = new JLabel();
 	static JLabel qualityLabelIndel = new JLabel(), gqLabelIndel = new JLabel();
-	static JLabel slideLabel = new JLabel("Common variants in 1/1 samples");	
+	static JLabel slideLabel = new JLabel("Shared variants in 1/1 samples");	
 	static JLabel clusterLabel = new JLabel("Window size for variant clusters");	
 	static JSlider qualitySliderIndel = new JSlider(0,60);
 	static JSlider gqSliderIndel = new JSlider(0,60);
@@ -134,6 +137,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JCheckBox hideIndels;
 	static JCheckBox synonymous;
 	static JCheckBox nonsense;
+	static JCheckBox windowcalc;
 	static JCheckBox intronic;
 	static JCheckBox intergenic;
 	static JCheckBox utr;
@@ -176,6 +180,15 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JButton advQualitiesIndel;
 	static OwnVCFCodec vcfCodec= new OwnVCFCodec();
 	static String format = "GT:DP:AD:GQ";
+	static JRadioButton none = new JRadioButton("None");
+	static JRadioButton recessiveHomo = new JRadioButton("Homozygous Recessive");
+	static JRadioButton dominant = new JRadioButton("Autosomal Dominant");
+	static JRadioButton denovo = new JRadioButton("De Novo");
+	static JRadioButton xLinked = new JRadioButton("X-Linked Recessive");
+	static JRadioButton compound = new JRadioButton("Compound Heterozygous");
+	static JRadioButton recessive = new JRadioButton("Recessive");
+	ButtonGroup inheritgroup = new ButtonGroup();
+    
 	int moveX=0, moveY=0, pressX=0,pressY=0;
 	static JLabel adder, adder2, adder3, adder4, adder5;
 	//final int buttonHeight = 15, buttonWidth = 40;
@@ -191,9 +204,10 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JPanel filterpanel;
 	static JPanel filterpanelIndel;
 	static JPanel hidepanel;
+	static JPanel inheritpanel;
 	static JPanel comparepanel;	
 	static JPanel aminopanel;
-
+	
 	public VariantHandler() {	
 		super(new GridBagLayout());		 
 		
@@ -229,34 +243,24 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		
 		stattable = new StatsTable((int)Main.screenSize.width, (int)Main.screenSize.height,statsScroll);
 		stattable.setEnabled(true);
-		table = new AminoTable((int)Main.screenSize.width, (int)Main.screenSize.height,tableScroll);
-		
-		table.setEnabled(true);
-		
+		table = new AminoTable((int)Main.screenSize.width, (int)Main.screenSize.height,tableScroll);		
+		table.setEnabled(true);		
 		clusterTable = new ClusterTable((int)Main.screenSize.width, (int)Main.screenSize.height,clusterScroll);
-		clusterTable.setEnabled(true);
-	
-		
+		clusterTable.setEnabled(true);	
 		tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
-		filterPanes.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
-	//	filterpanelIndel.setLayout(new GridLayout(7, 2));
-	//	hidepanel.setLayout(new GridBagLayout());
-	//	comparepanel.setLayout(new GridLayout(4, 2));
-		aminopanel.setLayout(new GridLayout(1,3));
-		
-		//tableScroll.setPreferredSize(new Dimension(500,400));
-		
+		filterPanes.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);	
+		aminopanel.setLayout(new GridLayout(1,3));		
 		tableScroll.getViewport().add(table);
 		tableScroll.getVerticalScrollBar().addAdjustmentListener(
 				
-				new AdjustmentListener() {
+			new AdjustmentListener() {
+				
+				public void adjustmentValueChanged(AdjustmentEvent event) {
 					
-					public void adjustmentValueChanged(AdjustmentEvent event) {
-						
-						table.repaint();
-						
-					}										
-				}				
+					table.repaint();
+					
+				}										
+			}				
 		);
 		
 		tableScroll.getVerticalScrollBar().setUnitIncrement(16);		
@@ -296,10 +300,9 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		c.gridy = 1;
 		filterPanes.add("SNVs",filterpanel);
 		filterPanes.add("Indels",filterpanelIndel);
-		filterPanes.add("Hide", hidepanel);
-		
+		filterPanes.add("Hide", hidepanel);		
 		filterPanes.add("Compare", comparepanel);
-	
+		filterPanes.add("Inheritance", inheritpanel);
 		add(filterPanes, c);		
 		c.gridy = 2;
 		//add(comparepanel,c);
@@ -373,7 +376,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		 maxCoverageLabelIndel = new JLabel();
 		 qualityLabelIndel = new JLabel();
 		 gqLabelIndel = new JLabel();
-		 slideLabel = new JLabel("Common variants in 1/1 samples");	
+		 slideLabel = new JLabel("Shared variants in 1/1 samples");	
 		 clusterLabel = new JLabel("Window size for variant clusters");
 		
 		
@@ -407,6 +410,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		hideIndels = new JCheckBox("Hide indels");
 		synonymous = new JCheckBox("Only non-synonymous");
 		nonsense = new JCheckBox("Only truncs");
+		windowcalc = new JCheckBox("Window calculation");
 		intronic = new JCheckBox("Show intronic");
 		intergenic = new JCheckBox("Show intergenic");
 		utr = new JCheckBox("Show UTR");
@@ -469,6 +473,17 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 				       
 				    }		
 			};
+			inheritpanel = new JPanel(new GridBagLayout()) {				
+				private static final long serialVersionUID = 1L;
+
+				protected void paintComponent(Graphics g) {
+				        super.paintComponent(g);     
+				  
+				        g.setColor(backColor);
+				        g.fillRect(0, 0, this.getWidth(), this.getHeight());        
+				       
+				    }		
+			};
 			comparepanel = new JPanel(new GridBagLayout()) {		
 				
 				private static final long serialVersionUID = 1L;
@@ -500,12 +515,14 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		geneSlider.setMinorTickSpacing(1);
 		geneSlider.setOpaque(false);
 		geneSlider.addChangeListener(this);
+		
 		geneSlider.addMouseWheelListener(sliderWheelListener);
 		commonSlider.addMouseWheelListener(sliderWheelListener);
 	//	commonSlider.setPreferredSize(buttondimension);
 		commonSlider.setValue(1);
 		commonSlider.setUpperValue(1);		
 		commonSlider.addChangeListener(this);
+		commonSlider.addMouseListener(this);
 		commonSlider.setOpaque(false);
 		qualitySlider.addMouseWheelListener(sliderWheelListener);
 		qualitySlider.addChangeListener(this);
@@ -743,6 +760,52 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		c.gridx = 0;
 		c.gridy = 0;
 		c.gridwidth = 1;
+		none.setSelected(true);
+		inheritgroup.add(none);
+		inheritgroup.add(recessiveHomo);
+		inheritgroup.add(dominant);
+		inheritgroup.add(denovo);
+		inheritgroup.add(xLinked);
+		inheritgroup.add(recessive);
+		inheritgroup.add(compound);
+		none.setOpaque(false);
+		recessiveHomo.setOpaque(false);
+		dominant.setOpaque(false);
+		denovo.setOpaque(false);
+		xLinked.setOpaque(false);
+		recessive.setOpaque(false);
+		compound.setOpaque(false);
+		/*
+		none.addActionListener(inheritListener);
+		recessiveHomo.addActionListener(inheritListener);
+		dominant.addActionListener(inheritListener);
+		denovo.addActionListener(inheritListener);
+		xLinked.addActionListener(inheritListener);
+		recessive.addActionListener(inheritListener);
+		compound.addActionListener(inheritListener);
+		*/
+		
+		inheritpanel.add(none,c);
+		c.gridy++;
+		inheritpanel.add(dominant,c);
+		c.gridy++;
+		
+		inheritpanel.add(recessive,c);
+		c.gridy++;	
+		inheritpanel.add(recessiveHomo,c);
+		c.gridy++;		
+		inheritpanel.add(compound,c);
+		
+		c.gridy=0;
+		c.gridx=1;
+		
+		inheritpanel.add(xLinked,c);
+		c.gridy++;
+		inheritpanel.add(denovo,c);
+		
+		c.gridx = 0;
+		c.gridy = 0;
+		c.gridwidth = 1;
 		c.insets = new Insets(2,4,0,4);
 		c.weightx = 0;
 		c.weighty = 0;
@@ -789,7 +852,8 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		aminomenu.add(allChroms);
 		aminomenu.add(onlyselected);
 		onlyStats.addActionListener(this);
-		aminomenu.add(onlyStats);		
+		aminomenu.add(onlyStats);	
+		aminomenu.add(windowcalc);
 		aminomenu.add(writetofile);
 		if(Main.settingsIcon == null) {
 			URL imgUrl = getClass().getResource("icons/settings.png");
@@ -862,6 +926,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			variantSettings.put("tsv", 1);
 			variantSettings.put("compact", 0);
 			variantSettings.put("vcf", 0);
+			variantSettings.put("windowcalc", 0);
 			variantSettings.put("oncodrive", 0);			
 		}
 		
@@ -898,6 +963,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			VariantHandler.geneSlider.setMaximum(1);
 		}
 		VariantHandler.geneSlider.setValue(variantSettings.get("geneSlider"));
+		
 		VariantHandler.commonSlider.setValue(variantSettings.get("commonSliderMin"));
 		VariantHandler.commonSlider.setUpperValue(variantSettings.get("commonSliderMax"));
 		VariantHandler.clusterSize = variantSettings.get("clusterSize");
@@ -911,13 +977,18 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		
 		VariantHandler.synonymous.setSelected(variantSettings.get("nonSyn") == 1);
 		VariantHandler.nonsense.setSelected(variantSettings.get("truncs") == 1);
+		if(variantSettings.get("windowcalc") != null) {
+			VariantHandler.windowcalc.setSelected(variantSettings.get("windowcalc") == 1);
+		}
 		VariantHandler.intronic.setSelected(variantSettings.get("intronic") == 1);
 		VariantHandler.intergenic.setSelected(variantSettings.get("intergenic") == 1);
 		VariantHandler.utr.setSelected(variantSettings.get("utr") == 1);
 		VariantHandler.allChroms.setSelected(variantSettings.get("allChroms") == 1);
 		VariantHandler.onlyselected.setSelected(variantSettings.get("onlySel") == 1);
 		VariantHandler.onlyStats.setSelected(variantSettings.get("onlyStats") == 1);
-		VariantHandler.outputContexts.setSelected(variantSettings.get("contexts") == 1);
+		if(variantSettings.get("contexts") != null) {
+			VariantHandler.outputContexts.setSelected(variantSettings.get("contexts") == 1);
+		}
 		VariantHandler.writetofile.setSelected(variantSettings.get("writeFile") == 1);
 		checkWriteFiles();
 		
@@ -959,6 +1030,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		
 		variantSettings.put("nonSyn", VariantHandler.synonymous.isSelected() ? 1 : 0);
 		variantSettings.put("truncs", VariantHandler.nonsense.isSelected() ? 1 : 0);
+		variantSettings.put("windowcalc", VariantHandler.windowcalc.isSelected() ? 1 : 0);
 		variantSettings.put("intronic", VariantHandler.intronic.isSelected() ? 1 : 0);
 		variantSettings.put("intergenic", VariantHandler.intergenic.isSelected() ? 1 : 0);
 		variantSettings.put("utr", VariantHandler.utr.isSelected() ? 1 : 0);
@@ -988,7 +1060,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			table.setMinimumSize(new Dimension(tableScroll.getViewport().getWidth(),tableScroll.getViewport().getHeight()));
 			table.resizeTable(tableScroll.getViewport().getWidth());		
 		    aminobar.setMinimumSize(new Dimension((int)aminobar.getSize().getWidth(),(int)aminobar.getSize().getHeight()));
-		    frame.setAlwaysOnTop(true);
+		   // frame.setAlwaysOnTop(true);
 		    filters.setMinimumSize(new Dimension((int)filters.getSize().getWidth(),(int)filters.getSize().getHeight()));
 		    clusterTable.resizeTable(tableScroll.getViewport().getWidth());
 		    if(Main.chromDraw == null) {
@@ -1030,10 +1102,13 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	}
 	@Override
 	public void stateChanged(ChangeEvent event) {
-		if(event.getSource() == commonSlider){
-			slideLabel.setText("Common variants in " +commonSlider.getValue() +"/" +commonSlider.getUpperValue() +" samples");
+		if(Main.drawCanvas.varCalc < 1000000) {
 			Draw.calculateVars = true;
 			Draw.updatevars = true;
+		}
+		if(event.getSource() == commonSlider){
+			slideLabel.setText("Shared variants in " +commonSlider.getValue() +"/" +commonSlider.getUpperValue() +" samples");
+		
 			
 			if((commonSlider.getValue() > 1 || commonSlider.getUpperValue() < Main.varsamples) && (!clusterBox.getText().equals("0") && !clusterBox.getText().equals(""))) {
 				clusterSize = Integer.parseInt(clusterBox.getText());
@@ -1080,8 +1155,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			
 			qualityLabel.setText("Min. quality score: " +qualitySlider.getValue());
 			
-			Draw.calculateVars = true;
-			Draw.updatevars = true;
+			
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
@@ -1093,8 +1167,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		}
 		else if(event.getSource() == gqSlider) {
 			gqLabel.setText("Min. genotype quality score: " +gqSlider.getValue());
-			Draw.calculateVars = true;
-			Draw.updatevars = true;
+			
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
@@ -1107,8 +1180,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		else if(event.getSource() == coverageSlider){
 			
 			coverageLabel.setText("Min. coverage: " +coverageSlider.getValue());
-			Draw.calculateVars = true;
-			Draw.updatevars = true;
+			
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
@@ -1124,8 +1196,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			if(Settings.selectedVarDraw == 1) {
 				maxSlideValue = callSlider.getUpperValue()/(float)100;
 			}
-			Draw.calculateVars = true;
-			Draw.updatevars = true;
+			
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
@@ -1141,8 +1212,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			if(Settings.selectedVarDraw == 0) {
 				maxSlideValue = maxCoverageSlider.getValue();
 			}
-			Draw.calculateVars = true;
-			Draw.updatevars = true;
+			
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
@@ -1156,8 +1226,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			
 			qualityLabelIndel.setText("Min. quality score: " +qualitySliderIndel.getValue());
 			
-			Draw.calculateVars = true;
-			Draw.updatevars = true;
+			
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
@@ -1169,8 +1238,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		}
 		else if(event.getSource() == gqSliderIndel) {
 			gqLabelIndel.setText("Min. genotype quality score: " +gqSliderIndel.getValue());
-			Draw.calculateVars = true;
-			Draw.updatevars = true;
+			
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
@@ -1183,8 +1251,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		else if(event.getSource() == coverageSliderIndel){
 			
 			coverageLabelIndel.setText("Min. coverage: " +coverageSliderIndel.getValue());
-			Draw.calculateVars = true;
-			Draw.updatevars = true;
+		
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
@@ -1196,8 +1263,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		}
 		else if(event.getSource() == callSliderIndel){
 			callsLabelIndel.setText("Min/max allelic fraction: " +callSliderIndel.getValue() +"% - " +callSliderIndel.getUpperValue() +"%");
-			Draw.calculateVars = true;
-			Draw.updatevars = true;
+		
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
@@ -1210,8 +1276,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		else if(event.getSource() == maxCoverageSliderIndel){			
 			maxCoverageLabelIndel.setText("Max. coverage: " +maxCoverageSliderIndel.getValue());
 	//		maxCoverageIndel = maxCoverageSliderIndel.getValue();
-			Draw.calculateVars = true;
-			Draw.updatevars = true;
+			
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
@@ -1221,6 +1286,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			}
 			return;
 		}
+		
 	}
 	public static class NodeSorter implements Comparator<VarNode> {
 		
@@ -1305,6 +1371,57 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			if(VariantHandler.onlyStats.isSelected()) {
 				if(VariantHandler.outputContexts.isSelected()) {
 					try {
+						
+						FileDialog fs = new FileDialog(frame, "Save output as...", FileDialog.SAVE);
+						 fs.setDirectory(Main.savedir);
+				  		  fs.setFile("*.tsv");
+				  		  fs.setVisible(true);	  			        	 
+				        	
+			        		String filename = fs.getFile();
+				        
+						    if(filename != null) {   		    	  
+						    	File outfname = new File(fs.getDirectory() +"/" +filename);
+						    	BufferedWriter output = null, sigOutput =null;
+					    		 Main.savedir = fs.getDirectory();
+					        	 Main.writeToConfig("DefaultSaveDir=" +Main.savedir);
+					        	 lastWrittenPos = 0;
+						    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected()) {
+						    		   if(!outfname.getName().contains(".tsv")) {
+								    	   File outfile = new File(outfname.getCanonicalPath() +".tsv");						    	
+								    	   FileRead.outputName = outfname.getCanonicalPath() +".tsv";
+								    	   output = new BufferedWriter(new FileWriter(outfile));
+								       }
+								       else {
+								    	   File outfile =outfname;
+								    	   FileRead.outputName = outfname.getCanonicalPath();						    	
+								    	   output = new BufferedWriter(new FileWriter(outfile));
+								       }    
+						    		 
+										 if(output != null) {
+											sigOutput = new BufferedWriter(new FileWriter(outfname.getCanonicalPath() +"_signatures.tsv"));
+											String header = createTSVHeader();
+											output.write(header);
+											FileRead.output = output;	
+											FileRead.sigOutput = sigOutput;
+																		    	
+										 }			    		 
+						    	 	}	
+						    	 	VariantHandler.table.clear();
+									VariantHandler.table.headerHover = 2;
+									VariantHandler.table.sorter.ascending = true;
+									VariantHandler.table.createPolygon();
+									VariantHandler.table.repaint();	
+									
+									FileRead calculator = new FileRead();
+									calculator.varcalc = true;
+									calculator.execute();			
+						    	 
+						    }
+							  
+				        if(1==1) {
+				        	return;
+				        }
+				       
 				  		String outfname = "";
 				  		String path =Main.savedir;			 		    		   		    
 			    		JFileChooser chooser = new JFileChooser(path);		    
@@ -1356,83 +1473,93 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			}
 			else if(writetofile.isSelected()) {
 				try {
-			  		String outfname = "";
+			  	/*	
 			  		String path =Main.savedir;			 		    		   		    
 		    		JFileChooser chooser = new JFileChooser(path);		    
 		    		int returnVal = chooser.showSaveDialog((Component)this.getParent());		    		
-		    		if(returnVal == JFileChooser.APPROVE_OPTION) {  		    	  
-		    		outfname = chooser.getSelectedFile().getAbsolutePath();		      	
-		    		BufferedWriter output = null;
-		    		Main.savedir = chooser.getSelectedFile().getParent();
-		        	 Main.writeToConfig("DefaultSaveDir=" +chooser.getSelectedFile().getParent());
-		        	 lastWrittenPos = 0;
-			    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected()) {
-			    		 if(!outfname.contains(".tsv")) {
-					    	   File outfile = new File(outfname +".tsv");
-					    	//   statout = new BufferedWriter(new FileWriter(new File (outfname +"_stats.tsv")));
-					    	   FileRead.outputName = outfname +".tsv";
-					    	   output = new BufferedWriter(new FileWriter(outfile));
-					       }
-					       else {
-					    	   File outfile = new File(outfname);
-					    	   FileRead.outputName = outfname;
-					    	 //  statout = new BufferedWriter(new FileWriter(new File (outfname.replace(".tsv", "") +"_stats.tsv")));
-					    	   output = new BufferedWriter(new FileWriter(outfile));
-					       }    
-			    		 
-			    		 if(output != null) {
-			    			String header = createTSVHeader();
-			    	    	output.write(header);
-			    			VariantHandler.table.clear();
-			 				VariantHandler.table.headerHover = 2;
-			 				VariantHandler.table.sorter.ascending = true;
-			 				VariantHandler.table.createPolygon();
-			 				VariantHandler.table.repaint();	
-			 				FileRead.output = output;			 				
-			 				FileRead calculator = new FileRead();
-			 				calculator.varcalc = true;
-			 				calculator.execute();						    							    	
-			    		 }			    		 
-			    	 }
-			    	 else {
-			    		 if(vcf.isSelected()) {
-			    			SAMSequenceDictionary dict = AddGenome.ReadDict(Main.ref);
-			    			FileRead.indexCreator = new TabixIndexCreator(dict, TabixFormat.VCF);			    			
-			    			FileRead.filepointer = 0;			    			
-			    			
-			    			if(!outfname.contains(".vcf")) {
-			    				outfname = outfname +".vcf";						  
+		    		
+		    		if(returnVal == JFileChooser.APPROVE_OPTION) {  
+	    			*/
+					//File savefile = null;
+					    FileDialog fs = new FileDialog(frame, "Save output file to...", FileDialog.SAVE);
+			  		    fs.setDirectory(Main.savedir);
+			  		    fs.setFile("*.tsv");
+			  		    fs.setVisible(true);			        	 
+			  		    String outfname = "";
+			        	String filename = fs.getFile();
+				        
+					    if(filename != null) {   		    	  
+				    	
+			    		 outfname = fs.getDirectory() +"/" +filename;
+			    		 BufferedWriter output = null;
+			    		 Main.savedir = fs.getDirectory();
+			        	 Main.writeToConfig("DefaultSaveDir=" +Main.savedir);
+			        	 lastWrittenPos = 0;
+				    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected()) {
+				    		 if(!outfname.contains(".tsv")) {
+						    	   File outfile = new File(outfname +".tsv");
+						       	   FileRead.outputName = outfname +".tsv";
+						    	   output = new BufferedWriter(new FileWriter(outfile));
 						       }
 						       else {
-						       	   FileRead.outputName = outfname;						    	
+						    	   File outfile = new File(outfname);
+						    	   FileRead.outputName = outfname;
+						      	   output = new BufferedWriter(new FileWriter(outfile));
 						       }    
-				    			
-				    			 if(!outfname.endsWith(".gz")) {
-				    				 outfname = outfname +".gz";
-				    			 }
-				    			 FileRead.lastpos = 0;
-				    			 FileRead.outputgz = new BlockCompressedOutputStream(outfname);
-				    			 FileRead.outFile = new File(outfname);
-				    			String header = createVCFHeader();
-				    			VCFHeader vcfheader = new VCFHeader();
-				    			VCFHeaderLine headerline = new VCFHeaderLine("format","##fileformat=VCFv4.1");
-				    			vcfheader.addMetaDataLine(headerline);
-				    			vcfCodec.setVCFHeader(vcfheader, VCFHeaderVersion.VCF4_1);
-				    			
-				    			FileRead.outputgz.write(header.getBytes());
+	
+				    		 if(output != null) {
+				    			String header = createTSVHeader();
+				    	    	output.write(header);
 				    			VariantHandler.table.clear();
 				 				VariantHandler.table.headerHover = 2;
 				 				VariantHandler.table.sorter.ascending = true;
 				 				VariantHandler.table.createPolygon();
 				 				VariantHandler.table.repaint();	
-				 				
-				 				//FileRead.output = output;			 				
+				 				FileRead.output = output;			 				
 				 				FileRead calculator = new FileRead();
 				 				calculator.varcalc = true;
-				 				calculator.execute();					    							    	
-				    		 			    		
-			    		 }
-			    	 }			    	 
+				 				calculator.execute();						    							    	
+				    		 }			    		 
+				    	 }
+				    	 else {
+				    		 if(vcf.isSelected()) {
+				    			SAMSequenceDictionary dict = AddGenome.ReadDict(Main.ref);
+				    			FileRead.indexCreator = new TabixIndexCreator(dict, TabixFormat.VCF);			    			
+				    			FileRead.filepointer = 0;			    			
+				    			
+				    			if(!outfname.contains(".vcf")) {
+				    				outfname = outfname +".vcf";						  
+							       }
+							       else {
+							       	   FileRead.outputName = outfname;						    	
+							       }    
+					    			
+					    			 if(!outfname.endsWith(".gz")) {
+					    				 outfname = outfname +".gz";
+					    			 }
+					    			 FileRead.lastpos = 0;
+					    			 FileRead.outputgz = new BlockCompressedOutputStream(outfname);
+					    			 FileRead.outFile = new File(outfname);
+					    			String header = createVCFHeader();
+					    			VCFHeader vcfheader = new VCFHeader();
+					    			VCFHeaderLine headerline = new VCFHeaderLine("format","##fileformat=VCFv4.1");
+					    			vcfheader.addMetaDataLine(headerline);
+					    			vcfCodec.setVCFHeader(vcfheader, VCFHeaderVersion.VCF4_1);
+					    			
+					    			FileRead.outputgz.write(header.getBytes());
+					    			VariantHandler.table.clear();
+					 				VariantHandler.table.headerHover = 2;
+					 				VariantHandler.table.sorter.ascending = true;
+					 				VariantHandler.table.createPolygon();
+					 				VariantHandler.table.repaint();	
+					 				
+					 				//FileRead.output = output;			 				
+					 				FileRead calculator = new FileRead();
+					 				calculator.varcalc = true;
+					 				calculator.execute();					    							    	
+					    		 			    		
+				    		 }
+				    	 }			    	 
 		    		}
 			     }
 			     catch(Exception e) {
@@ -1536,7 +1663,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			
 			 try {
 				
-		  		String outfname = "";
+		  		/*String outfname = "";
 		  		String path =Main.savedir;			 
 	    		//path = new java.io.File(".").getCanonicalPath();		    		    
 	    		JFileChooser chooser = new JFileChooser(path);	
@@ -1546,15 +1673,20 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	    		else {
 	    			chooser.setDialogTitle("Save variants");
 	    		}
-	    		
-	    		int returnVal = chooser.showSaveDialog((Component)this.getParent());	  
-	    		
-		      
-	    		if(returnVal == JFileChooser.APPROVE_OPTION) {  		    	  
-	    		outfname = chooser.getSelectedFile().getCanonicalPath();		      	
+	    		*/
+	    		 FileDialog fs = new FileDialog(frame, "Save output file to...", FileDialog.SAVE);
+		  		    fs.setDirectory(Main.savedir);
+		  		    fs.setFile("*.tsv");
+		  		    fs.setVisible(true);			        	 
+		  		    String outfname = "";
+		        	String filename = fs.getFile();
+			        
+				    if(filename != null) {   		    	  
+			    	
+		    		 outfname = fs.getDirectory() +"/" +filename;   	
 	    		BufferedWriter output = null;
-	    		Main.savedir = chooser.getSelectedFile().getParent();
-	        	 Main.writeToConfig("DefaultSaveDir=" +chooser.getSelectedFile().getParent());
+	    		Main.savedir = fs.getDirectory();
+	        	 Main.writeToConfig("DefaultSaveDir=" +Main.savedir);
 		     try {
 		    	 File outfile = null;
 		    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected()) {
@@ -2160,7 +2292,7 @@ static void addMenuComponents(String line) {
 	    	headerstring.append("##Variant clusters in " +VariantHandler.commonSlider.getValue() +"/" +Main.varsamples +" samples within " +VariantHandler.clusterSize +"bp"+Main.lineseparator);
 	      }
    		  else {
-   			headerstring.append("##Common variants in " +VariantHandler.commonSlider.getValue() +"/" +Main.varsamples +" samples"+Main.lineseparator);   			
+   			headerstring.append("##Shared variants in " +VariantHandler.commonSlider.getValue() +"/" +Main.varsamples +" samples"+Main.lineseparator);   			
    		  }   		  
    	  }
    	  if(VariantHandler.geneSlider.getValue() > 1) {
@@ -2308,6 +2440,9 @@ static void addMenuComponents(String line) {
 	    		 
 	    		 output.write(createTSVHeader());  	
 	    		 for(int gene = 0; gene < table.genearray.size(); gene++) {
+	    			
+	    			Main.drawCanvas.loadbarAll = (int)((gene/(double)table.genearray.size())*100);
+	    			Main.drawCanvas.loadBarSample = (int)((gene/(double)table.genearray.size())*100);
 	 	 		 	writeTranscriptToFile(table.genearray.get(gene), output);  	    		
 	 	    	 }
 	    		 output.close();
@@ -2931,6 +3066,7 @@ static void	writeTranscriptToFile(Gene gene, BufferedWriter output) {
 								}
 							}				
 	    			 }
+	    			
     			if(compactTsv.isSelected()) {
     				 samples = new StringBuffer("");
     	    		 genotypes = new StringBuffer("");
@@ -3334,6 +3470,9 @@ void writeGeneListToVCF(ArrayList<Gene> genelist, BufferedWriter output, BlockCo
 				Main.drawCanvas.calcClusters(FileRead.head,1);
 			}
 		}
+		Draw.updatevars = true;
+		Draw.calculateVars = true;
+		Main.drawCanvas.repaint();
 	}
 	void freezeFilters(boolean value) {
 		
@@ -3416,6 +3555,9 @@ static void setFonts(Font menuFont) {
 	    }
 	    for(int i = 0 ; i<VariantHandler.hidepanel.getComponentCount(); i++) {	   
 	    	VariantHandler.hidepanel.getComponent(i).setFont(menuFont);	    	
+	    }
+	    for(int i = 0 ; i<VariantHandler.inheritpanel.getComponentCount(); i++) {	   
+	    	VariantHandler.inheritpanel.getComponent(i).setFont(menuFont);	    	
 	    }
 	    VariantHandler.filterPanes.setFont(menuFont);
 	    VariantHandler.filters.setFont(menuFont);

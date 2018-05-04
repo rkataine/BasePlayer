@@ -97,8 +97,15 @@ public class ReferenceSeq {
 				start = 0;
 				this.startpos = 0;
 			}		
-			
-			byte[] seqresult = new byte[(end-start+1)+((end-start)/(Main.chromIndex.get(Main.refchrom +chrom)[2].intValue()-1))];		
+			byte[] seqresult = null;
+			try {
+				seqresult = new byte[(end-start+1)+((end-start)/(Main.chromIndex.get(Main.refchrom +chrom)[2].intValue()-1))];
+			}
+			catch(Exception e) {
+				System.out.println((end-start) +" " +Main.chromIndex.get(Main.refchrom +chrom)[2].intValue());
+				e.printStackTrace();
+				seqresult = new byte[(end-start+1)+((end-start)/40)];
+			}
 			byte[] temp = new byte[end-start];
 			
 			seqchrom.seek((Main.chromIndex.get(Main.refchrom +chrom)[0]+(start)+((start)/Main.chromIndex.get(Main.refchrom +chrom)[2].intValue())));

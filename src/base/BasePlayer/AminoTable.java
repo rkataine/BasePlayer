@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -85,6 +86,10 @@ private static final long serialVersionUID = 1L;
 		private boolean mouseDrag = false;
 		private int geneHeaderHover = -1;
 		private int firstrow;
+
+		private SampleNode hoverSampleNode;
+
+		private String hoverBase;
 
 		AminoTable(int width, int height, JScrollPane tablescroll) {			
 			this.width = width;
@@ -224,6 +229,7 @@ void drawScreen(Graphics g) {
 		return;
 	}
 	//Header Draw	
+	
 		genemutcount = 0;		
 		hoverVar = null;
 		hoverSample = -1;
@@ -486,7 +492,8 @@ void drawScreen(Graphics g) {
 									if(aminoarray.get(s).getNode().vars.get(v).getKey().equals(aminoarray.get(s).getRow()[5])) {
 										
 										hoverSample = aminoarray.get(s).getNode().vars.get(v).getValue().get(0).getSample().getIndex();	
-										
+										hoverSampleNode = aminoarray.get(s).getNode().vars.get(v).getValue().get(0);
+										hoverBase = aminoarray.get(s).getRow()[5];
 										break;
 									}
 								}
@@ -535,6 +542,7 @@ void drawScreen(Graphics g) {
 									
 								}
 								else {
+									
 									buf.drawString(aminoarray.get(s).getRow()[h],  (int)geneheader.get(h)[1]+14, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+rowHeight);				
 									
 								}
@@ -674,7 +682,7 @@ void drawScreen(Graphics g) {
 								buf.setColor(Color.lightGray);
 							}
 							vararray = null;
-							if(Main.bedCanvas.bedOn) {					
+							//if(Main.bedCanvas.bedOn) {					
 								
 								for(int a =0;a<aminoarray.size(); a++) {						
 									
@@ -704,7 +712,7 @@ void drawScreen(Graphics g) {
 								buf.fillRect((int)header.get(c+1)[1]+1, (rowHeight*(i+genemutcount+1))-tablescroll.getVerticalScrollBar().getValue()+4, (int)header.get(c)[2], rowHeight-1);	
 											
 							}*/
-							}
+						//	}
 							
 							buf.setColor(Color.darkGray);
 							for(int j = 0; j<geneheader.size(); j++) {								
@@ -722,13 +730,17 @@ void drawScreen(Graphics g) {
 											if(aminoarray.get(s).getNode().vars.get(v).getValue().get(l).alleles != null) {
 												break;
 											}
+											if(aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getSample().annotation) {
+												continue;
+											}
 										if(mouseY > (rowHeight*(i+s+pointer+4)) && mouseY < (rowHeight*(i+s+pointer+5))) {
 											textcolor = Color.white;
 											
 											hoverVar = aminoarray.get(s).getNode();		
 											hoverString = aminoarray.get(s).getRow();
 											hoverSample = aminoarray.get(s).getNode().vars.get(v).getValue().get(l).getSample().getIndex();
-										
+											hoverSampleNode = aminoarray.get(s).getNode().vars.get(v).getValue().get(l);
+											hoverBase = aminoarray.get(s).getRow()[5];
 										}
 										else {
 											textcolor = Color.lightGray;
@@ -758,10 +770,8 @@ void drawScreen(Graphics g) {
 											for(int j = 5; j<7; j++) {								
 												
 												buf.drawLine((int)geneheader.get(j)[1]+11, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue(), (int)geneheader.get(j)[1]+11, (rowHeight*(i+s+pointer+3))-tablescroll.getVerticalScrollBar().getValue()+rowHeight+2);	
-											}
-										
-										}
-										
+											}										
+										}										
 								}
 									
 							}
@@ -1006,6 +1016,9 @@ public void mouseClicked(MouseEvent event) {
 			}
 			if(this.headerHover == -1) {
 				if(event.getClickCount() == 2 ) {
+					if(Draw.variantcalculator) {
+						return;
+					}
 					FileRead.novars = true;
 					
 					if(hoverSample > -1) {
@@ -1014,49 +1027,88 @@ public void mouseClicked(MouseEvent event) {
 						Main.drawCanvas.resizeCanvas(Main.drawScroll.getViewport().getWidth(), (int)(Main.samples*Main.drawCanvas.drawVariables.sampleHeight));					
 						Draw.setScrollbar((int)(hoverSample*Main.drawCanvas.drawVariables.sampleHeight));	
 					}
+					else {
+						Main.drawCanvas.drawVariables.visiblestart = (short)(0);
+						Main.drawCanvas.drawVariables.visiblesamples = (short)(Main.samples);						
+						Main.drawCanvas.resizeCanvas(Main.drawScroll.getViewport().getWidth(), (int)(Main.samples*Main.drawCanvas.drawVariables.sampleHeight));					
+						Draw.setScrollbar(0);	
+					}
 					
 					if(hoverVar != null) {
+						
 						FileRead.search = true;
 						VarNode searchHead = hoverVar;
-						
+					
 						while(searchHead.getPrev() != null) {
-							if(searchHead.getPrev().getPosition() == 0) {
+							/*if(searchHead.getPrev().getPosition() == 0) {
 								searchHead.getPrev().putNext(searchHead);
+								
+							}*/
+							if(searchHead.getPrev().getChrom() == null || !searchHead.getPrev().getChrom().equals(hoverVar.getChrom())) {
+								if(searchHead.getPrev().getNext() == null) {
+									searchHead.getPrev().putNext(searchHead);
+									
+								}
+								FileRead.head = searchHead.getPrev();
+								
+								break;
 							}
 							searchHead = searchHead.getPrev();							
-						}
+						}					
 						
-						FileRead.head = searchHead;					
 						searchHead = null;
+						
 						Main.drawCanvas.current = hoverVar;	
 						
 						if(hoverVar.getExons() != null) {
-							Main.drawCanvas.gotoPos(hoverVar.getExons().get(0).getTranscript().getChrom(), hoverVar.getPosition()+1-50, hoverVar.getPosition()+1+50);
+							Main.drawCanvas.gotoPos(hoverVar.getChrom(), hoverVar.getPosition()+1-50, hoverVar.getPosition()+1+50);
 						}
 						else {
 							if(hoverVar.getTranscripts().size() > 0) {
-								Main.drawCanvas.gotoPos(hoverVar.getTranscripts().get(0).getChrom(), hoverVar.getPosition()+1-50, hoverVar.getPosition()+1+50);
+								Main.drawCanvas.gotoPos(hoverVar.getChrom(), hoverVar.getPosition()+1-50, hoverVar.getPosition()+1+50);
 							}
 						}
 					}
 					else if(hoverNode != null) {
-						FileRead.search = true;
-						VarNode searchHead = hoverNode.varnodes.get(0);
 						
-						while(searchHead.getPrev() != null) {
-							if(searchHead.getPrev().getPosition() == 0) {
-								searchHead.getPrev().putNext(searchHead);
-							}
-							searchHead = searchHead.getPrev();							
-						}
 						
-						FileRead.head = searchHead;					
-						searchHead = null;
-						Main.drawCanvas.current = hoverNode.varnodes.get(0);	
 						
 						FileRead.search = true;					
-						Main.drawCanvas.gotoPos(hoverNode.getChrom(), hoverNode.getStart(), hoverNode.getEnd());					
-					}					
+						
+						if(hoverNode.varnodes.get(0).getTranscripts() != null && hoverNode.varnodes.get(0).getTranscripts().size() == 2) {
+							Main.drawCanvas.gotoPos(hoverNode.getChrom(), hoverNode.getEnd(), hoverNode.varnodes.get(0).getTranscripts().get(1).getGene().getStart());		
+						}
+						else {
+							VarNode searchHead = hoverNode.varnodes.get(0);
+							
+							/*while(searchHead.getPrev() != null) {
+								if(searchHead.getPrev().getPosition() == 0) {
+									searchHead.getPrev().putNext(searchHead);
+								}
+								searchHead = searchHead.getPrev();							
+							}*/
+							
+							while(searchHead.getPrev() != null) {
+								/*if(searchHead.getPrev().getPosition() == 0) {
+									searchHead.getPrev().putNext(searchHead);
+									
+								}*/
+								if(searchHead.getPrev().getChrom() == null || !searchHead.getPrev().getChrom().equals(searchHead.getChrom())) {
+									
+									FileRead.head = searchHead.getPrev();
+									break;
+								}
+								searchHead = searchHead.getPrev();							
+							}					
+							//FileRead.head = searchHead;					
+							searchHead = null;
+							Main.drawCanvas.current = hoverNode.varnodes.get(0);	
+							Main.drawCanvas.gotoPos(hoverNode.getChrom(), hoverNode.getStart(), hoverNode.getEnd());		
+						}
+					}			
+					Main.chromDraw.updateExons = true;
+					Main.chromDraw.repaint();
+					
 					break;
 				}
 				else if(event.getClickCount() == 1 ) {
@@ -1065,15 +1117,23 @@ public void mouseClicked(MouseEvent event) {
 						selectedString = hoverString;
 						
 					}
-					else*/ 
+					else*/
+					
+					//MethodLibrary.showVariantMenu(this, varOverLap, sampleOverLap, moveX+(int)selectedSplit.pixel, moveY);
 					if(hoverVar != null && (selectedVar == null || !selectedVar.equals(hoverVar) )){
 						
 						selectedVar = hoverVar;
 						selectedString = hoverString;
-					
+						
 						if(selectedVar.isRscode() !=null) {
 							hoverString[4] = selectedVar.rscode;
 						}
+					
+						//MethodLibrary.showVariantMenu(this, hoverVar, null, mouseX+(int)Main.defaultFontSize*2, mouseY,hoverBase);
+					/*	if(hoverBase != null) {
+							MethodLibrary.showVariantMenu(this, hoverVar, null, 0, mouseY-Main.defaultFontSize*6,hoverBase);
+						}
+						*/
 						repaint();
 					
 						this.setPreferredSize(new Dimension(this.getWidth(), (this.getTableSize()+2+samplecount+Integer.parseInt(selectedString[1]))*rowHeight));
@@ -1085,13 +1145,19 @@ public void mouseClicked(MouseEvent event) {
 						
 						if(hoverSample == -1) {
 							
-						
+							
 							selectedVar = null;
 							
 							repaint();
 							this.setPreferredSize(new Dimension(this.getWidth(), (this.getTableSize()+2+samplecount)*rowHeight));
 							
 							this.revalidate();
+						}
+						else {
+							if(hoverSampleNode != null) {
+								MethodLibrary.showVariantMenu(this, hoverVar, hoverSampleNode, mouseX+(int)Main.defaultFontSize*2, mouseY,hoverBase);
+							}
+							
 						}
 					}
 					else {					
@@ -1439,6 +1505,7 @@ void getAminos(Gene gene) {
 	
 	try {
 	aminoarray.clear();
+	
 	VarNode varnode = null;
 	Map.Entry<String, ArrayList<SampleNode>>  entry;
 	
@@ -1455,7 +1522,22 @@ void getAminos(Gene gene) {
 						if(entry.getValue().get(m).alleles != null) {							
 							break;
 						}
-						if(!Main.drawCanvas.hideVar(entry.getValue().get(m), entry.getKey().length() > 1)) {
+						if(entry.getValue().get(m).getSample().annotation) {
+							entry.getValue().remove(m);
+							m--;
+							continue;
+						}
+						if(!Main.drawCanvas.hideVar(entry.getValue().get(m), entry.getKey().length() > 1) && !entry.getValue().get(m).getSample().annotation) {
+							if(!VariantHandler.none.isSelected()) {
+								if(!entry.getValue().get(m).inheritance) {
+									if(!entry.getValue().get(m).getSample().equals(Main.drawCanvas.selectedSample)) {
+										entry.getValue().remove(m);
+										m--;
+										continue;
+									}
+								}
+								//mutcount++;
+							}
 							if(VariantHandler.onlyselected.isSelected()) {
 								if(!entry.getValue().get(m).getSample().equals(Main.drawCanvas.selectedSample)) {
 									entry.getValue().remove(m);
@@ -1503,14 +1585,10 @@ void getAminos(Gene gene) {
 				addrow[5] = base;
 				addrow[6] = "Intergenic";
 				addrow[7] = "Intergenic";
-				addrow[8] = "Intergenic";
-				
-				AminoEntry aminoentry = new AminoEntry(addrow, varnode);
-				
+				addrow[8] = "Intergenic";				
+				AminoEntry aminoentry = new AminoEntry(addrow, varnode);				
 				aminoarray.add(aminoentry);		
-			}
-			
-			
+			}			
 			continue;
 		}
 		if(varnode.getExons() != null) {
@@ -1529,27 +1607,45 @@ void getAminos(Gene gene) {
 			}
 			
 			for(int v = 0; v<varnode.vars.size(); v++) {
+				
 					entry = varnode.vars.get(v);
 					mutcount = 0;
-						for(int m = 0; m<entry.getValue().size(); m++) {
-							if(entry.getValue().get(m).alleles != null) {							
-								break;
-							}
-							if(!Main.drawCanvas.hideVar(entry.getValue().get(m), entry.getKey().length() > 1)) {
-								if(VariantHandler.onlyselected.isSelected()) {
-									if(!entry.getValue().get(m).getSample().equals(Main.drawCanvas.selectedSample)) {
-										entry.getValue().remove(m);
-										m--;
-										continue;
-									}
-								}							
-								mutcount++;
-							}
-							else {							
+					for(int m = 0; m<entry.getValue().size(); m++) {
+						if(entry.getValue().get(m).alleles != null) {							
+							continue;
+						}
+						if(entry.getValue().get(m).getSample().annotation) {
+							
+							
+							continue;
+						}
+						if(!VariantHandler.none.isSelected()) {
+							
+							if(!entry.getValue().get(m).inheritance) {
 								entry.getValue().remove(m);
 								m--;
+								continue;
 							}
+						}
+						
+						if(!Main.drawCanvas.hideVar(entry.getValue().get(m), entry.getKey().length() > 1) ) {
+							
+							if(VariantHandler.onlyselected.isSelected()) {
+								if(!entry.getValue().get(m).getSample().equals(Main.drawCanvas.selectedSample)) {
+									entry.getValue().remove(m);
+									m--;
+									continue;
+								}
+							}							
+							mutcount++;
+						}
+						else {				
+						
+							entry.getValue().remove(m);
+							m--;
+						}
 					}
+					
 					if(mutcount == 0) {
 						continue;
 					}
@@ -1633,6 +1729,11 @@ void getAminos(Gene gene) {
 								
 								break;
 							}
+							if(entry.getValue().get(m).getSample().annotation) {
+								entry.getValue().remove(m);
+								m--;
+								continue;
+							}
 							if(!Main.drawCanvas.hideVar(entry.getValue().get(m), entry.getKey().length() > 1)) {
 								if(VariantHandler.onlyselected.isSelected()) {
 									if(!entry.getValue().get(m).getSample().equals(Main.drawCanvas.selectedSample)) {
@@ -1701,11 +1802,7 @@ void getAminos(Gene gene) {
 												
 					}
 			}
-			
 		
-		
-		//	}
-			
 		}
 	
 	
@@ -1717,6 +1814,50 @@ void getAminos(Gene gene) {
 		}
 	
 }
+/*boolean checkCompounds(Gene gene) {
+	
+	boolean mother = false;
+	boolean father = false;
+	
+	Entry<String, ArrayList<SampleNode>> entry;
+	for(int i = 0 ;i<gene.varnodes.size(); i++) {
+		for(int v = 0; v<gene.varnodes.get(i).vars.size(); v++) {
+			
+			entry = gene.varnodes.get(i).vars.get(v);
+			for(int m = 0; m<entry.getValue().size(); m++) {
+				if(!entry.getValue().get(m).inheritance) {
+					continue;
+				}
+				if(entry.getValue().size() != 2) continue;
+				if(entry.getValue().get(m).getSample().children != null) {
+			 		if(entry.getValue().get(m).getSample().female) {
+			 			mother = true;
+			 		}
+			 		else {
+			 			father = true;
+			 		}
+			 	}
+			}			
+		}
+	}
+	if(!mother || !father) {
+		for(int i = 0 ;i<gene.varnodes.size(); i++) {
+			for(int v = 0; v<gene.varnodes.get(i).vars.size(); v++) {
+				
+				entry = gene.varnodes.get(i).vars.get(v);
+				for(int m = 0; m<entry.getValue().size(); m++) {
+					if(!entry.getValue().get(m).inheritance) {
+						continue;
+					}
+					if(entry.getValue().size() != 2) continue;
+					entry.getValue().get(m).inheritance = false;
+				}
+			}
+		}
+		return false;
+	}
+	return true;
+}*/
 
 @Override
 public void mouseWheelMoved(MouseWheelEvent e) {

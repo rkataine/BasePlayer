@@ -13,6 +13,7 @@ package base.BasePlayer;
 
 import htsjdk.samtools.util.BlockCompressedInputStream;
 
+import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -36,6 +37,14 @@ public class Sample implements Serializable{
 	private String tabixfile;
 	private transient BlockCompressedInputStream inputStream;
 	private transient BufferedReader vcfreader;
+	Sample mother, father;
+	boolean annotation = false, annoTrack = false, intersect = false;
+	int parents = 0;
+	ArrayList<Sample> children;
+	
+	Boolean female;
+	Boolean affected = false;
+	Color familyColor;
 	
 	short infolocation = 0;
 	int varcount = 0, homozygotes = 0, heterozygotes = 0, indels = 0, snvs=0, ins=0, coding = 0;
@@ -93,6 +102,7 @@ public class Sample implements Serializable{
 /*	ArrayList<Reads> getreadHash() {
 		return this.readHash;
 	}*/
+	
 	public float getMaxCoverage() {
 		if(maxCoverage == null) {
 			return 0F;
@@ -162,6 +172,9 @@ public class Sample implements Serializable{
 	}	
 	String getName() {
 		return this.sampleName;
+	}
+	void setName(String name) {
+		this.sampleName = name;
 	}
 	String getTabixFile() {
 		return this.tabixfile;

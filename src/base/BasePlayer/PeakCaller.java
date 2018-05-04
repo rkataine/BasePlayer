@@ -248,7 +248,7 @@ public class PeakRunner extends SwingWorker<String, Object> {
 							
 						int startpos = (int)Main.drawCanvas.splits.get(0).start;
 						int endpos = (int)Main.drawCanvas.splits.get(0).end;						
-						int coveragestart = 0, coverageend = 0, prevend = 0;
+						//int coveragestart = 0, coverageend = 0, prevend = 0;
 												
 						boolean start = false;
 						wigiter = track.getBBfileReader().getBigWigIterator(track.chr+Main.chromosomeDropdown.getSelectedItem().toString() , startpos, track.chr+Main.chromosomeDropdown.getSelectedItem().toString(), endpos, false);
@@ -264,6 +264,10 @@ public class PeakRunner extends SwingWorker<String, Object> {
 						    	}
 						    	catch(Exception ex) {
 						    		ex.printStackTrace();
+						    		ErrorLog.addError(ex.getStackTrace());
+						    		Main.showError(ex.getMessage(), "Error");
+						    		
+						    		break;
 						    	}
 						    	if(features.getWigValue() >= readlevel && !start) {
 						    		start = true;
@@ -283,7 +287,11 @@ public class PeakRunner extends SwingWorker<String, Object> {
 						    				samplewriter.get(s).write(Main.chromosomeDropdown.getSelectedItem() +"\t" +(regionstart+1) +"\t" +regionend +"\t" +genes +"\t" +maxvalue +"\t" +(regionend-regionstart) +"\n");
 						    			}
 						    			catch(Exception e) {
+						    				
 						    				e.printStackTrace();
+						    				ErrorLog.addError(e.getStackTrace());
+						    				Main.showError(e.getMessage(), "Error");
+						    				break;
 						    			}
 						    			//System.out.println(features.getChromosome().replace("chr", "") +"\t" +(regionstart+1) +"\t" +regionend +"\t" +genes +"\t" +maxvalue +"\t" +(regionend-regionstart));
 						    		}
@@ -299,6 +307,8 @@ public class PeakRunner extends SwingWorker<String, Object> {
 															
 					}
 					catch(Exception e) {
+						ErrorLog.addError(e.getStackTrace());
+						Main.showError(e.getMessage(), "Error");
 						e.printStackTrace();
 						break;
 					}						
@@ -322,7 +332,9 @@ public class PeakRunner extends SwingWorker<String, Object> {
 				}
 			}
 			catch(Exception e) {
+				ErrorLog.addError(e.getStackTrace());
 				e.printStackTrace();
+				Main.showError(e.getMessage(), "Error");
 			}
 			Main.drawCanvas.ready("Calling peaks");			
 					

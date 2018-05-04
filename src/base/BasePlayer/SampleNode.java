@@ -23,6 +23,8 @@ public class SampleNode {
 	private final ControlFile controlSample;
 	private final boolean genotype;	
 	Integer alleles, allelenumber;
+	boolean common = false;
+	boolean inheritance = false;
 	//HashMap<String, Float> advQualities;
 	
 	public SampleNode(int alleles, int allelenumber, ControlFile sample) {
@@ -55,6 +57,7 @@ public class SampleNode {
 		switch(Settings.selectedVarDraw) {	
 		
 			case 0: {	
+				
 				if(sample.getMaxCoverage() < coverage) {					
 					sample.setMaxCoverage((float)(coverage));					
 				}	

@@ -14,10 +14,11 @@ package base.BasePlayer;
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
 //import htsjdk.samtools.SamReader;
-
+import htsjdk.samtools.SamReader;
 import htsjdk.tribble.readers.TabixReader;
 
 import java.awt.Component;
+import java.awt.FileDialog;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -30,6 +31,7 @@ import javax.swing.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 
 
@@ -87,6 +89,8 @@ public class Average extends JPanel implements TableCellRenderer, MouseListener 
 	        });			
 	}
 	public static void setSamples() {
+		outVector.clear();
+		model.setRowCount(0);
 		if(outVector.size() == 0) {
 			for(int i = 0; i<Main.samples; i++) {
 				if(Main.drawCanvas.sampleList.get(i).samFile != null) {
@@ -103,21 +107,18 @@ public class Average extends JPanel implements TableCellRenderer, MouseListener 
 			outVector.clear();
 			model.getDataVector().clear();
 			for(int i = 0; i<Main.samples; i++) {
-				if(Main.drawCanvas.sampleList.get(i).samFile != null) {
-					
+				if(Main.drawCanvas.sampleList.get(i).samFile != null) {					
 					java.util.List<String> addVector = Collections.synchronizedList(new ArrayList<String>());	
 					outVector.add(addVector);
 					Object[] row =  {Main.drawCanvas.sampleList.get(i).getName()};
-					model.addRow(row);
-					
+					model.addRow(row);					
 				}
 			}
-		}
-		
+		}		
 	}
-public Average() {	
-
-super(new GridBagLayout());		
+	
+public Average() {
+	super(new GridBagLayout());		
 	
 	panel.setBackground(Draw.sidecolor);
 	
@@ -251,9 +252,12 @@ static void calcAverageRegions() {
 	  String status = "";
 	  String percent = "";
 	  int[] coverageWidth = new int[10];
-	 
-	  
+	  FileRead reader = new FileRead();
 	  int[] coverageArray = {};
+	  Reads readClass;
+	  
+	  Iterator<SAMRecord> iterator;
+	 // SamReader inputSam;
 	  for(int s=0;s<Main.drawCanvas.sampleList.size();s++) {
 		 
 		  if (Main.cancel) {
@@ -266,18 +270,20 @@ static void calcAverageRegions() {
 		  long result = 0, qualities = 0, cliplengths = 0, readlengths = 0, reads =0;
 			
 		  int currentLength = 0;
-		 
+		  readClass = Main.drawCanvas.sampleList.get(s).getreadHash().get(Main.drawCanvas.splits.get(0));
 		  coverageWidth = new int[10];
 		  for(int i = 0; i<10; i++) {
 			  coverageWidth[i] = 0;
 		  }
 		  boolean first = true;
+		
 		  for(int c = 0; c<mergeVector.size(); c++) {
-			
-			  SAMFileReader inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
-			  Iterator<SAMRecord> iterator = inputSam.queryOverlapping(Main.chromosomeDropdown.getItemAt(mergeVector.get(c)[0]), mergeVector.get(c)[1], mergeVector.get(c)[2]);
-			
+			  			  
+			  //inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
+			  //Iterator<SAMRecord> iterator = inputSam.queryOverlapping(Main.chromosomeDropdown.getItemAt(mergeVector.get(c)[0]), mergeVector.get(c)[1], mergeVector.get(c)[2]);
+			  iterator = reader.getBamIterator(readClass, readClass.sample.chr +Main.chromosomeDropdown.getItemAt(mergeVector.get(c)[0]), mergeVector.get(c)[1], mergeVector.get(c)[2]);
 			  SAMRecord samRecord = null;
+			  
 			  coverageArray = new int[mergeVector.get(c)[2]-mergeVector.get(c)[1]];
 				for(int i = 0 ; i<coverageArray.length; i++) {
 					coverageArray[i] = 0;
@@ -286,8 +292,10 @@ static void calcAverageRegions() {
 				if (Main.cancel) {
 					break;
 				}
+				
+				
 			  while(iterator.hasNext()) {
-				 
+				  
 				  try {
 					  samRecord = iterator.next();
 					 
@@ -351,7 +359,7 @@ static void calcAverageRegions() {
 						
 				   }
 		  		
-		  		inputSam.close();			
+		  	//	inputSam.close();			
 		  		for(int i = 0; i<coverageArray.length; i++) {
 					result+=coverageArray[i];
 					if(coverageArray[i] > 0) {
@@ -413,7 +421,9 @@ static void calcAverage() {
 	
 	  int currentLength = 0;
 	  int start = 0, end = 0;
-	 		
+	  Reads readClass;
+	  FileRead reader = new FileRead();
+	  Iterator<SAMRecord> iterator;
 	 
 	  int pointer = 0, stat = 0;
 	  
@@ -421,7 +431,7 @@ static void calcAverage() {
 	  String percent = "";
 	  int[] coverageWidth = new int[10];
 	  boolean first = true;
-	  
+	  SamReader inputSam = null;
 	  int[] coverageArray = {};
 	  for(int s=0;s<Main.drawCanvas.sampleList.size();s++) {
 		 
@@ -432,10 +442,10 @@ static void calcAverage() {
 			 continue; 
 		  }
 		  //SamReader inputSam = SamReaderFactory.make().open(Main.drawCanvas.sampleList.get(s).samFile);
-		  SAMFileReader inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
+		   //SAMFileReader inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
 		  pointer = 0;
 		  qualities = 0;
-	
+		  readClass = Main.drawCanvas.sampleList.get(s).getreadHash().get(Main.drawCanvas.splits.get(0));
 		  currentLength = 0;
 		  result = 0;
 		  zeros = 0;
@@ -443,13 +453,17 @@ static void calcAverage() {
 		  cliplengths = 0;
 		  readlengths = 0;
 		  coverageWidth = new int[10];
-		  Iterator<SAMRecord> iterator = null;
-		  System.out.println(Main.chromosomeDropdown.getItemAt(startchrom) +" " +Average.startpos +" " +Average.endpos);
+		  HashMap<String, Integer> chrmap = null;
+		  //Iterator<SAMRecord> iterator = null;
+		  //System.out.println(Main.chromosomeDropdown.getItemAt(startchrom) +" " +Average.startpos +" " +Average.endpos);
 		  if(startchrom == endchrom) {
-			  iterator = inputSam.queryOverlapping(Main.chromosomeDropdown.getItemAt(startchrom), Average.startpos,  Average.endpos);
-			 
+			  //iterator = inputSam.queryOverlapping(Main.chromosomeDropdown.getItemAt(startchrom), Average.startpos,  Average.endpos);
+			  iterator = reader.getBamIterator(readClass, readClass.sample.chr +Main.chromosomeDropdown.getItemAt(startchrom),  Average.startpos, Average.endpos);
+				 
 		  }
 		  else {
+			  inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
+			  chrmap = MethodLibrary.mapChrnameToIndex(inputSam.getFileHeader());
 			  iterator = inputSam.iterator();
 		  }
 		 
@@ -463,6 +477,7 @@ static void calcAverage() {
 				  samRecord = iterator.next();
 			  }
 			  catch(Exception ex) {
+				  ex.printStackTrace();
 				  continue;
 			  }
 			  if (Main.cancel) {
@@ -480,7 +495,22 @@ static void calcAverage() {
 				if(pointer > mergeVector.size()-1) {
 					break;
 				}
-				if(samRecord.getReferenceIndex() < mergeVector.get(pointer)[0]) {
+				
+				if(chrmap.get(samRecord.getReferenceName()) == null) {
+					continue;
+				}
+				 
+				if(chrmap.get(samRecord.getReferenceName()) != mergeVector.get(pointer)[0]) {
+					pointer = 0;
+					int chrtest = chrmap.get(samRecord.getReferenceName());
+					
+					while(chrtest != mergeVector.get(pointer)[0] ) {
+						pointer++;
+					}
+					first = true;
+				}
+				
+				/*if(samRecord.getReferenceIndex() < mergeVector.get(pointer)[0]) {
 					
 					continue;
 				}
@@ -491,13 +521,15 @@ static void calcAverage() {
 						break;
 					}	
 					first = true;
-				}
+				}*/
 				if(end < mergeVector.get(pointer)[1]) {
 					
 					continue;
 				}
+				
 				start = samRecord.getAlignmentStart();
 				if(start > mergeVector.get(pointer)[2]) {
+					
 					if(!first) {
 						
 						for(int i = 0; i<coverageArray.length; i++) {
@@ -598,7 +630,7 @@ static void calcAverage() {
 }
 static void createAndShowGUI() {
 	
-	frame = new JFrame("Coverage handler");    	
+	frame = new JFrame("Coverage calculator");    	
 	JFrame.setDefaultLookAndFeelDecorated(true);
     frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
   
@@ -609,8 +641,6 @@ static void createAndShowGUI() {
     frame.setContentPane(newContentPane);
 
     frame.pack();
- //   frame.setVisible(false);
-     
  
 }
 
@@ -622,13 +652,13 @@ public void mouseClicked(MouseEvent e) {
 			 output.setEnabled(false);
 			 execute.setEnabled(false);
 	         cancel.setEnabled(false);
-	    	 String path = new java.io.File(".").getCanonicalPath();
+	    	 //String path = new java.io.File(".").getCanonicalPath();
 	    	
-	    	 path = Main.path;	
+	    	 //path = Main.trackDir;	
 	    	 
 	    	 TabixReader tabixReader = null;
 	    	 BufferedReader bedfilereader = null;
-	    	  JFileChooser chooser = new JFileChooser(path);
+	    	 /* JFileChooser chooser = new JFileChooser(path);
 	    	  MyFilter bedFilter = new MyFilter();
 	    	  chooser.setMultiSelectionEnabled(true);
 	    	  chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
@@ -637,26 +667,41 @@ public void mouseClicked(MouseEvent e) {
 	    	  
 	    	  chooser.setDialogTitle("Add region file");
 	          int returnVal = chooser.showOpenDialog((Component)this.getParent());
-	          Boolean tabix = false;
+	          */
+	          FileDialog fc = new FileDialog(frame, "Choose region file", FileDialog.LOAD);
+	    	  fc.setDirectory(Main.trackDir);
+	    	  fc.setFile("*.bed");
+	    	  fc.setFilenameFilter(new FilenameFilter() {
+		  			public boolean accept(File dir, String name) {
+				        return name.endsWith(".bed") || name.endsWith(".bed.gz");
+				     }
+				 });
+	    	  fc.setMultipleMode(false);
+	    	  fc.setVisible(true);
+	    	  String openfile = fc.getFile();			
+	      
+	       if (openfile != null) {
+	    	   File bedfile = new File(fc.getDirectory() +"/" +openfile);
+	    	   	 
+	           Boolean tabix = false;
 	          
-	          if (returnVal == JFileChooser.APPROVE_OPTION) {
+	         // if (returnVal == JFileChooser.APPROVE_OPTION) {
 	        	 
-	        	  File bedfile = chooser.getSelectedFile(); 
-	        	  Main.path = chooser.getSelectedFile().getParent();	        	 
+	        	//  File bedfile = chooser.getSelectedFile(); 
+	        	 // Main.trackDir = chooser.getSelectedFile().getParent();	        	 
 	        	  String line;
 	        	  String[] split;	        	  	        	  
-	        	  
+	        	  if(bedfile.getAbsolutePath().endsWith(".tbi")) {
+	        		  Main.showError("Oops, you opened the index file.", "Note");
+	        		  return;
+	        	  }
 	              if(bedfile.getAbsolutePath().endsWith(".gz")) {
 	            	  tabix = true;
-	            	  tabixReader = new TabixReader(bedfile.getCanonicalPath());
-	            	 
+	            	  tabixReader = new TabixReader(bedfile.getCanonicalPath());	            	 
 	              }            	 
 	              
-	              else {
-	            	  
-	            	bedfilereader = new BufferedReader(new FileReader(bedfile));
-	      			
-	      			
+	              else {	            	  
+	            	bedfilereader = new BufferedReader(new FileReader(bedfile));   			
 	      			
 	             }
 	              
@@ -690,14 +735,20 @@ public void mouseClicked(MouseEvent e) {
 	    		
 	    			if(!split[0].matches("(chr)?\\d+")) {
 	    				if(split[0].contains("X")) {
-	    					split[0] = "23";
+	    					split[0] = ""+Main.chromModel.getIndexOf("X");
 	    				}
 	    				else if(split[0].contains("Y")) {
-	    					split[0] = "24";
+	    					split[0] =""+Main.chromModel.getIndexOf("Y");
 	    			
 	    				}
-	    				else if(split[0].contains("M")) {
-	    					split[0] = "25";
+	    				else if(split[0].matches("(chr)?MT?")) {
+	    					if(Main.chromModel.getIndexOf("MT") > -1) {
+	    						split[0] = ""+Main.chromModel.getIndexOf("MT");
+	    					}
+	    					else if(Main.chromModel.getIndexOf("M") > -1){
+	    						split[0] = ""+Main.chromModel.getIndexOf("M");
+	    					}
+	    					
 	    				}
 	    				else {
 	    					continue;
@@ -782,22 +833,15 @@ public void mouseClicked(MouseEvent e) {
         					Average.mergeVector.add(index+1, add);
 	     				}
 	      			
-	      		}
-	      	
+	      		}	      	
   				endchrom = chrom;
-  				endpos = end;
-      			
+  				endpos = end;      			
 	      		Average.mergeVector.remove(0);
 	      		output.setEnabled(true);
 	        	execute.setEnabled(true);
-	            cancel.setEnabled(true);
-	      //      open.setText("Add region file");
-	            fileLabel.setText(""+bedfile.getName() +" | region size: " +size);
-	           
-		      }
-	         
-		 
-		 
+	            cancel.setEnabled(true);	     
+	            fileLabel.setText(""+bedfile.getName() +" | region size: " +size);	           
+		      }	 
 		 }
 		 catch(Exception ex) {
 			 ex.printStackTrace();
@@ -824,7 +868,8 @@ public void mouseClicked(MouseEvent e) {
 	
 	else if(e.getSource() == output) {
 		  try {
-		  		String outfilename = "";
+			  String outfilename = "";
+		  	/*	
 		  		String path ="";
 		 
 	    		path = new java.io.File(".").getCanonicalPath();
@@ -838,25 +883,34 @@ public void mouseClicked(MouseEvent e) {
 	      	{
 	        	 outfilename = chooser.getSelectedFile().getAbsolutePath();
 	      	}
-	         
+	         */
 	       BufferedWriter output;
-	     
-   	   
-	       
-	      if(returnVal != JFileChooser.CANCEL_OPTION) {    	  
+	       FileDialog fs = new FileDialog(frame, "Save output file to...", FileDialog.SAVE);
+ 		    fs.setDirectory(Main.savedir);
+ 		    fs.setFile("*.tsv");
+ 		    fs.setVisible(true);			        	 
+ 		    
+ 		    String filename = fs.getFile();
+	        
+		    if(filename != null) {   		    	  
+	    	
+		    	outfilename = fs.getDirectory() +"/" +filename;   	
+   		 		
+				Main.savedir = fs.getDirectory();
+   	 			Main.writeToConfig("DefaultSaveDir=" +Main.savedir);    
 	    	  
-	    	  		File outfile = new File(outfilename);
-	    	    	output = new BufferedWriter(new FileWriter(outfile));
-	    	    	output.write("#" +fileLabel.getText() +"\n");
-	    	    	System.out.println(fileLabel.getText());
-	    	    	output.write("#Sample\tAverage coverage\tAverage mapping quality\tSoft clip rate\tZero quality rate\tCovered (%) (Coverage : Percentage)\n");
-	    	  		for(int j = 0; j< model.getRowCount(); j++) {
-	    	  			if(model.getValueAt(j, 1) != null) {
-	    	  				output.write(model.getValueAt(j, 0).toString() +"\t" +model.getValueAt(j, 1).toString() +"\t" +model.getValueAt(j, 2).toString() +"\t" +model.getValueAt(j, 3).toString() +"\t" +model.getValueAt(j, 4).toString() +"\t" +model.getValueAt(j, 5).toString()  +"\n");
-	    	  			}
-	    	  		}
-	    	  		output.close();
-	    	  	}	    	  
+    	  		File outfile = new File(outfilename);
+    	    	output = new BufferedWriter(new FileWriter(outfile));
+    	    	output.write("#" +fileLabel.getText() +"\n");
+    	    	System.out.println(fileLabel.getText());
+    	    	output.write("#Sample\tAverage coverage\tAverage mapping quality\tSoft clip rate\tZero quality rate\tCovered (%) (Coverage : Percentage)\n");
+    	  		for(int j = 0; j< model.getRowCount(); j++) {
+    	  			if(model.getValueAt(j, 1) != null) {
+    	  				output.write(model.getValueAt(j, 0).toString() +"\t" +model.getValueAt(j, 1).toString() +"\t" +model.getValueAt(j, 2).toString() +"\t" +model.getValueAt(j, 3).toString() +"\t" +model.getValueAt(j, 4).toString() +"\t" +model.getValueAt(j, 5).toString()  +"\n");
+    	  			}
+    	  		}
+    	  		output.close();
+    	  	}	    	  
 	    	  	
 	      
 		  }

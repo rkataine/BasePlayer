@@ -55,6 +55,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	private static JSlider rSlider = new JSlider(60,255);
 	private static JSlider gSlider = new JSlider(60,255);
 	private static JSlider bSlider = new JSlider(60,255);
+	static JSlider graySlider = new JSlider(0,255);
 	static SteppedComboBox fontlist, varDrawList;
     static DefaultComboBoxModel<String> fontModel, varModel;
 	private static JSlider mappingQuality = new JSlider(0,60), baseQuality = new JSlider(0,60);
@@ -63,6 +64,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	private static JLabel rLabel = new JLabel("Red: ");
 	private static JLabel gLabel = new JLabel("Green: ");
 	private static JLabel bLabel = new JLabel("Blue: ");
+	private static JLabel backLabel = new JLabel("Gray: ");
 	static JFrame frame = new JFrame("Settings");
 	private static JCheckBox softclips = new JCheckBox("Show bases in softclips");
 	private static JPanel readPanel = new JPanel(new GridBagLayout());
@@ -137,10 +139,13 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		softclips.setOpaque(false);
 		
 		depthLimitLabel.setMinimumSize(mindimension);
+		graySlider.addChangeListener(this);
+		graySlider.addMouseListener(this);
 		rSlider.addChangeListener(this);	
 		gSlider.addChangeListener(this);	
 		bSlider.addChangeListener(this);	
 		setValues();
+		graySlider.setOpaque(false);
 		rSlider.setOpaque(false);
 		gSlider.setOpaque(false);
 		bSlider.setOpaque(false);
@@ -155,6 +160,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.anchor = GridBagConstraints.NORTHWEST;		
 		c.insets = new Insets(2,0,0,30);
+		
 		c.gridx = 0;
 		c.gridy = 0;
 		c.gridwidth = 1;	
@@ -225,10 +231,19 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		appearancePanel.add(new JSeparator(),c);
 		c.gridy++;
 		
-		JLabel colors = new JLabel("Background color");
+		JLabel backlabel = new JLabel("Background color");
+		JLabel sidelabel = new JLabel("Sidebar color");
 		c.gridwidth = 1;	
-		colors.setName("header");
-		appearancePanel.add(colors,c);
+		backlabel.setName("header");
+		sidelabel.setName("header");
+		appearancePanel.add(backlabel,c);
+		c.gridy++;
+		appearancePanel.add(graySlider,c);
+		c.gridx = 2;
+		appearancePanel.add(backLabel,c);
+		c.gridx = 0;
+		c.gridy++;
+		appearancePanel.add(sidelabel,c);
 		c.gridy++;
 		appearancePanel.add(rSlider,c);
 		c.gridx = 2;
@@ -312,7 +327,12 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		tabPanel.add("Variants", varPanel);
 		tabPanel.add("Reads", readPanel);
 		tabPanel.add("Appearance", appearancePanel);
-		
+		if(Main.proxysettings == null) {
+			tabPanel.add("Proxy", new ProxySettings());
+		}
+		else {
+			tabPanel.add("Proxy", Main.proxysettings);
+		}
 		//tabPanel.setBackground(color);
 		/*generalPanel.setBackground(Draw.sidecolor);
 		readPanel.setBackground(Draw.sidecolor);
@@ -403,6 +423,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		rSlider.setValue(settings.get("rValue"));
 		gSlider.setValue(settings.get("gValue"));
 		bSlider.setValue(settings.get("bValue"));
+		
 		
 		rLabel.setText("Red: " +rSlider.getValue());
 		gLabel.setText("Green: " +gSlider.getValue());
@@ -520,6 +541,16 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 			settings.put("insertSize", insertSizeSlider.getValue());
 			reloadReads.setVisible(true);
 			return;
+		}
+		else if(event.getSource() == graySlider) {
+			Draw.backColor = new Color(graySlider.getValue(), graySlider.getValue(), graySlider.getValue());	
+			settings.put("backValue",graySlider.getValue());
+			backLabel.setText("Gray: " +graySlider.getValue());
+			if(Main.drawCanvas != null) {
+				Main.drawCanvas.repaint();
+				Main.chromDraw.repaint();
+				Main.bedCanvas.repaint();
+			}
 		}
 		else if(event.getSource() == rSlider || event.getSource() == gSlider || event.getSource() == bSlider) {
 			
@@ -682,6 +713,10 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		if(event.getSource() == reloadReads) {
 			reloadReads.setVisible(false);
 			reloadReads.setForeground(Color.red);
+		}
+		else if (event.getSource() == graySlider) {
+		
+			Main.writeToConfig("backColor=" +graySlider.getValue());
 		}
 		
 	}

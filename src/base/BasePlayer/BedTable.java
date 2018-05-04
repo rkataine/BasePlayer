@@ -1071,7 +1071,8 @@ public void mouseClicked(MouseEvent event) {
 						FileRead.head = searchHead;					
 						searchHead = null;
 						Main.drawCanvas.current = hoverNode.varnodes.get(0);
-						Main.drawCanvas.gotoPos(hoverNode.getChrom(), hoverNode.getPosition(),  hoverNode.getPosition()+hoverNode.getLength());						
+						
+						Main.drawCanvas.gotoPos(hoverNode.getChrom().replace("chr",""), hoverNode.getPosition(),  hoverNode.getPosition()+hoverNode.getLength());						
 					}
 				
 					break;

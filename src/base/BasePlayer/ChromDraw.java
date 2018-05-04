@@ -37,6 +37,8 @@ import java.util.Hashtable;
 import java.util.Map.Entry;
 import javax.swing.JPanel;
 
+import base.BasePlayer.BedCanvas.bedFeatureFetcher;
+
 public class ChromDraw extends JPanel implements MouseMotionListener, MouseListener {
 
 private static final long serialVersionUID = 1L;
@@ -44,7 +46,7 @@ private static final long serialVersionUID = 1L;
 	Color[] colorPalette = new Color[11];
 	VarNode varnode = null, vardraw;
 	String s, startPhaseCodon, endPhaseCodon;
-
+	int chromScrollvalue = 0; 
 	int cytoHeight = 15, exonInfoWidth, aminoNro, codonStartPos, lastAmino;
 	Runtime instance = Runtime.getRuntime();
 	int mouseY=0, pressY=0, maxGeneLevel = 0;
@@ -142,6 +144,7 @@ private static final long serialVersionUID = 1L;
 	private SplitClass clickedSplit = null;
 	private int seqstart;
 	private int seqend;
+	private int prepixel;
 	
 	
 	ChromDraw(int width, int height) {		
@@ -354,15 +357,17 @@ private static final long serialVersionUID = 1L;
 				else seqstart = (int)split.start-(int)split.viewLength;
 				if((int)split.end+(int)split.viewLength > split.chromEnd) seqend = split.chromEnd; 
 				else seqend = (int)split.end+(int)split.viewLength;				
-			
+				
 				split.setReference(new ReferenceSeq(split.chrom,seqstart, seqend, Main.referenceFile));
+				
 				
 			}
 			
 			else if(split.getReference().getStartPos() > 1 && split.getReference().getStartPos() > split.start-200) {
 				if(split.getReference().getStartPos()-(int)split.viewLength < 1) seqstart = 1;
 				else seqstart = split.getReference().getStartPos()-(int)split.viewLength;
-				split.getReference().appendToStart(seqstart);								
+				split.getReference().appendToStart(seqstart);			
+				
 			}
 			else if(split.getReference().getEndPos() < split.end+200) {
 				if(split.getReference().getEndPos()+(int)split.viewLength > split.chromEnd) seqend = split.chromEnd;
@@ -370,7 +375,37 @@ private static final long serialVersionUID = 1L;
 				split.getReference().append(seqend);											
 				
 			}
+				
+		}
+	}
+void getReadSeq(SplitClass split) {
 		
+		if(!ReferenceSeq.wait) {
+			
+			if(split.getReadReference() == null) {
+				if((int)split.start-(int)split.viewLength < 0) seqstart = 0;				
+				else seqstart = (int)split.start-(int)split.viewLength;
+				if((int)split.end+(int)split.viewLength > split.chromEnd) seqend = split.chromEnd; 
+				else seqend = (int)split.end+(int)split.viewLength;				
+			
+				split.setReadReference(new ReferenceSeq(split.chrom,seqstart, seqend, Main.referenceFile));
+				
+				
+			}
+			
+			else if(split.getReadReference().getStartPos() > 1 && split.getReadReference().getStartPos() > split.start-200) {
+				if(split.getReadReference().getStartPos()-(int)split.viewLength < 1) seqstart = 1;
+				else seqstart = split.getReadReference().getStartPos()-(int)split.viewLength;
+				split.getReadReference().appendToStart(seqstart);			
+				
+			}
+			else if(split.getReadReference().getEndPos() < split.end+200) {
+				if(split.getReadReference().getEndPos()+(int)split.viewLength > split.chromEnd) seqend = split.chromEnd;
+				else seqend = split.getReadReference().getEndPos()+(int)split.viewLength+200;
+				split.getReadReference().append(seqend);											
+				
+			}
+				
 		}
 	}
 	void drawSeq(SplitClass split) {
@@ -385,9 +420,10 @@ private static final long serialVersionUID = 1L;
 			if(Main.noreadthread) {				
 				return;
 			}
+			chromScrollvalue = Main.chromScroll.getVerticalScrollBar().getValue();
 			
 		//	if(split.pixel >= 0.1) {
-				split.getExonImageBuffer().fillRect(0, Main.chromScroll.getViewport().getHeight()-(Main.defaultFontSize*2+11), this.getWidth(), Main.defaultFontSize+12);
+				split.getExonImageBuffer().fillRect(0, Main.chromScroll.getViewport().getHeight()-(Main.defaultFontSize*2+11)+chromScrollvalue, this.getWidth(), Main.defaultFontSize+12);
 				
 				for(int i = Math.max(0,(int)(split.start-split.getReference().getStartPos()-1)); i< split.getReference().getSeq().length; i++) {
 					try {
@@ -417,15 +453,15 @@ private static final long serialVersionUID = 1L;
 						split.getExonImageBuffer().setFont(seqFont);
 						if(split.getExonImageBuffer().getFontMetrics().stringWidth("T") < split.pixel) {
 						
-							split.getExonImageBuffer().drawString(Main.getBase.get(split.getReference().getSeq()[i]), (int)((split.getReference().getStartPos()+i+1 -split.start)*split.pixel)+(int)(split.pixel/3), Main.chromScroll.getViewport().getHeight()-(Main.defaultFontSize+11));
+							split.getExonImageBuffer().drawString(Main.getBase.get(split.getReference().getSeq()[i]), (int)((split.getReference().getStartPos()+i+1 -split.start)*split.pixel)+(int)(split.pixel/3), Main.chromScroll.getViewport().getHeight()-(Main.defaultFontSize+11)+chromScrollvalue);
 							
 						}
 						else {
 							if(split.pixel < 1) {
-								split.getExonImageBuffer().fillRect((int)((split.getReference().getStartPos()+i -split.start)*split.pixel), Main.chromScroll.getViewport().getHeight()-(Main.defaultFontSize*2+9), 1, Main.defaultFontSize*2+10);
+								split.getExonImageBuffer().fillRect((int)((split.getReference().getStartPos()+i -split.start)*split.pixel), Main.chromScroll.getViewport().getHeight()-(Main.defaultFontSize*2+9)+chromScrollvalue, 1, Main.defaultFontSize*2+10);
 							}
 							else {
-								split.getExonImageBuffer().fillRect((int)((split.getReference().getStartPos()+i -split.start)*split.pixel), Main.chromScroll.getViewport().getHeight()-(Main.defaultFontSize*2+9), (int)split.pixel, Main.defaultFontSize*2+10);
+								split.getExonImageBuffer().fillRect((int)((split.getReference().getStartPos()+i -split.start)*split.pixel), Main.chromScroll.getViewport().getHeight()-(Main.defaultFontSize*2+9)+chromScrollvalue, (int)split.pixel, Main.defaultFontSize*2+10);
 							}
 						}
 					}
@@ -483,7 +519,21 @@ void drawSideBar() {
 	chromImageBuffer.drawString("Genes: " +Main.annotationfile, 10,Main.defaultFontSize*3+25);
 	*/
 	if(memoryUsage > (int)(((instance.totalMemory()-instance.freeMemory())/toMegabytes))) {
-		if(instance.maxMemory()/toMegabytes  < 1300) {
+		if(instance.maxMemory()/toMegabytes  < 600) {
+			
+			if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 100) {		
+				System.gc();
+				if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 100) {
+					Main.drawCanvas.clearReads();
+					//System.gc();
+					
+					if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 100) {
+						Loader.memory = true;
+					}
+				}
+			}
+		}
+		else if(instance.maxMemory()/toMegabytes  < 1300) {
 			
 			if((instance.maxMemory()-(instance.totalMemory()-instance.freeMemory()))/toMegabytes < 200) {		
 				System.gc();
@@ -709,7 +759,7 @@ void drawScreen(Graphics g) {
 	if(clickedExon != null) {
 		drawClickedExon(clickedSplit);
 	}
-	 
+	
 	drawExons(Main.drawCanvas.selectedSplit);
 	
 	for(int s = 0; s<Main.drawCanvas.splits.size(); s++) {
@@ -895,7 +945,7 @@ public StringBuffer getSeq(String chrom, int start, int end, RandomAccessFile se
 	//chromo = seqchrom;
 	
 	try {
-	
+		
 		try {
 			seqchrom.seek((Main.chromIndex.get(Main.refchrom +chrom)[0]+(start)+((start)/Main.chromIndex.get(Main.refchrom +chrom)[2].intValue())));
 		}
@@ -984,6 +1034,8 @@ void drawExons(SplitClass split) {
 			ex.printStackTrace();
 		}
 	}
+	//Main.chromDraw.getDrawSeq(split);
+	
 	if(split.getGenes() != null && split.getGenes().size() > 0) {
 		
 	
@@ -1168,22 +1220,26 @@ void drawExons(SplitClass split) {
 							break;
 						}
 						// FORWARD STRAND aminoacid sequence draw TODO split
-						
+					
 						if(transcript.getStrand()) {
 							
 							if(split.end > transcript.getCodingStart() && split.start < transcript.getCodingEnd()) {
 								if(exon.getStartPhase() == -1){
 									continue;
 								}
+								
 								// Start exon
 								else if(exon.getEnd() > transcript.getCodingStart() && exon.getStart() < transcript.getCodingStart()) {
 									aminoNro = exon.getFirstAmino();
 									
 									for(int codon = transcript.getCodingStart(); codon<exon.getEnd()-exon.getEndPhase(); codon+=3) {
-										if(codon >= transcript.getCodingEnd() || (codon-split.getReference().getStartPos())+3 > split.getReference().getSeq().length-1 || codon-split.getReference().getStartPos() < 0) {
+										
+										if(codon >= transcript.getCodingEnd() || (codon-split.getReference().getStartPos())+3 > split.getReference().getSeq().length-1) {
 											break;
 										}
-																	
+										if(codon-split.getReference().getStartPos() < 0) {
+											continue;
+										}
 										codonStartPos = (int)((codon+1-split.start)*split.pixel);
 										split.getExonImageBuffer().setColor(Color.white);								
 										split.getExonImageBuffer().drawLine(codonStartPos, transcript.ypos, codonStartPos, transcript.ypos+this.exonDrawY/2-2);
@@ -1326,6 +1382,7 @@ void drawExons(SplitClass split) {
 			
 		}
 	}
+	
 	if(split.equals(Main.drawCanvas.splits.get(0))) {
 		drawMutations((exonDrawY*level)+2);
 	}
@@ -1337,12 +1394,14 @@ void drawExons(SplitClass split) {
 	updateExons = false;
 	
 	}
+	
 	if(Main.referenceFile != null) {
 		if(!Draw.variantcalculator) {
 			
 			drawSeq(split);
 		}
 	}
+	
 	}
 	catch(Exception e) {
 		e.printStackTrace();
@@ -1797,6 +1856,10 @@ void drawMutations(int ylevel) {
 					
 					 mutScreenPos = (int)((vardraw.getPosition()+1-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel);
 				 }
+				 if(prepixel == mutScreenPos) {
+					 continue;
+				 }
+				 prepixel = mutScreenPos; 
 				if(vardraw.coding) {
 					
 					/*foundexon = false;
@@ -2107,7 +2170,7 @@ String getChange(VarNode node, String base, Transcript.Exon exon) {
 					if(phase == 1) {
 						if(node.getCodon() == null) {
 							nextExonStart = exon.getTranscript().getExons()[exon.getNro()].getStart();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), nextExonStart, nextExonStart+1, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), nextExonStart, nextExonStart+1, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2117,7 +2180,7 @@ String getChange(VarNode node, String base, Transcript.Exon exon) {
 						if(exon.getEndPhase() == 2) {
 							if(node.getCodon() == null) {
 								nextExonStart = exon.getTranscript().getExons()[exon.getNro()].getStart();
-								node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), nextExonStart, nextExonStart+1, Main.referenceFile))));
+								node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), nextExonStart, nextExonStart+1, Main.referenceFile))));
 							}
 							array = node.getCodon().toCharArray();
 							array[phase] = base.charAt(0);
@@ -2126,7 +2189,7 @@ String getChange(VarNode node, String base, Transcript.Exon exon) {
 						else {
 							if(node.getCodon() == null) {
 								nextExonStart = exon.getTranscript().getExons()[exon.getNro()].getStart();
-								node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-1, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), nextExonStart, nextExonStart+2, Main.referenceFile))));
+								node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-1, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), nextExonStart, nextExonStart+2, Main.referenceFile))));
 							}
 							array = node.getCodon().toCharArray();
 							array[phase] = base.charAt(0);
@@ -2134,14 +2197,14 @@ String getChange(VarNode node, String base, Transcript.Exon exon) {
 						}
 						
 					}
-			//		System.out.println(Main.chromosomeDropdown.getSelectedItem().toString() +":" +node.getPosition() +" " +phase);
+			//		System.out.println(node.getChrom() +":" +node.getPosition() +" " +phase);
 					
 				}				
 				else if(phase == -2) {
 					phase = 1;
 					if(node.getCodon() == null) {
 						prevExonEnd = exon.getTranscript().getExons()[exon.getNro()-2].getEnd();
-						node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getStart(), exon.getStart()+2, Main.referenceFile))));
+						node.setCodon(new String(this.getSeq(node.getChrom(), prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(node.getChrom(), exon.getStart(), exon.getStart()+2, Main.referenceFile))));
 					}
 					array = node.getCodon().toCharArray();
 					array[phase] = base.charAt(0);
@@ -2153,7 +2216,7 @@ String getChange(VarNode node, String base, Transcript.Exon exon) {
 					if(node.getPosition() == exon.getStart()) {
 						if(node.getCodon() == null) {
 							prevExonEnd = exon.getTranscript().getExons()[exon.getNro()-2].getEnd();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd-2, prevExonEnd, Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getStart(), exon.getStart()+1, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(), prevExonEnd-2, prevExonEnd, Main.referenceFile).append(this.getSeq(node.getChrom(), exon.getStart(), exon.getStart()+1, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2162,7 +2225,7 @@ String getChange(VarNode node, String base, Transcript.Exon exon) {
 					else {
 						if(node.getCodon() == null) {
 							prevExonEnd = exon.getTranscript().getExons()[exon.getNro()-2].getEnd();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getStart(), exon.getStart()+2, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(), prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(node.getChrom(), exon.getStart(), exon.getStart()+2, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2203,7 +2266,7 @@ String getChange(VarNode node, String base, Transcript.Exon exon) {
 					if(exon.getEndPhase() == 1) {
 						if(node.getCodon() == null) {
 							prevExonEnd = exon.getTranscript().getExons()[exon.getTranscript().getExons().length -exon.getNro()-1].getEnd();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(),prevExonEnd-2, prevExonEnd, Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getStart(),  exon.getStart()+1, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(),prevExonEnd-2, prevExonEnd, Main.referenceFile).append(this.getSeq(node.getChrom(), exon.getStart(),  exon.getStart()+1, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2215,7 +2278,7 @@ String getChange(VarNode node, String base, Transcript.Exon exon) {
 								return "";
 							}
 							prevExonEnd = exon.getTranscript().getExons()[exon.getTranscript().getExons().length -exon.getNro()-1].getEnd();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(),prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(),  exon.getStart(),  exon.getStart()+2, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(),prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(node.getChrom(),  exon.getStart(),  exon.getStart()+2, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2229,7 +2292,7 @@ String getChange(VarNode node, String base, Transcript.Exon exon) {
 					phase  = 1;
 					if(node.getCodon() == null) {
 						prevExonEnd = exon.getTranscript().getExons()[exon.getTranscript().getExons().length -exon.getNro()+1].getStart();
-						node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd, prevExonEnd+1, Main.referenceFile))));
+						node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), prevExonEnd, prevExonEnd+1, Main.referenceFile))));
 					}
 					array = node.getCodon().toCharArray();
 					array[phase] = base.charAt(0);
@@ -2240,7 +2303,7 @@ String getChange(VarNode node, String base, Transcript.Exon exon) {
 						
 						if(node.getCodon() == null) {
 							prevExonEnd = exon.getTranscript().getExons()[exon.getTranscript().getExons().length -exon.getNro()+1].getStart();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd, prevExonEnd+1, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), prevExonEnd, prevExonEnd+1, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2250,7 +2313,7 @@ String getChange(VarNode node, String base, Transcript.Exon exon) {
 					else {
 						if(node.getCodon() == null) {
 							prevExonEnd = exon.getTranscript().getExons()[exon.getTranscript().getExons().length -exon.getNro()+1].getStart();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-1, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd, prevExonEnd+2, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-1, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), prevExonEnd, prevExonEnd+2, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2398,7 +2461,7 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 						if(node.getCodon() == null || node.phase != 1) {
 							node.phase = 1;
 							nextExonStart = exon.getTranscript().getExons()[exon.getNro()].getStart();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), nextExonStart, nextExonStart+1, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), nextExonStart, nextExonStart+1, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2409,7 +2472,7 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 							if(node.getCodon() == null || node.phase != 2) {
 								node.phase = 2;
 								nextExonStart = exon.getTranscript().getExons()[exon.getNro()].getStart();
-								node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), nextExonStart, nextExonStart+1, Main.referenceFile))));
+								node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), nextExonStart, nextExonStart+1, Main.referenceFile))));
 								
 							}
 							array = node.getCodon().toCharArray();
@@ -2420,7 +2483,7 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 							if(node.getCodon() == null || node.phase != 0) {
 								node.phase = 0;
 								nextExonStart = exon.getTranscript().getExons()[exon.getNro()].getStart();
-								node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-1, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), nextExonStart, nextExonStart+2, Main.referenceFile))));
+								node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-1, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), nextExonStart, nextExonStart+2, Main.referenceFile))));
 							}
 							array = node.getCodon().toCharArray();
 							array[phase] = base.charAt(0);
@@ -2435,7 +2498,7 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 					if(node.getCodon() == null || node.phase != -2) {
 						node.phase = -2;
 						prevExonEnd = exon.getTranscript().getExons()[exon.getNro()-2].getEnd();
-						node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getStart(), exon.getStart()+2, Main.referenceFile))));
+						node.setCodon(new String(this.getSeq(node.getChrom(), prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(node.getChrom(), exon.getStart(), exon.getStart()+2, Main.referenceFile))));
 					}
 					array = node.getCodon().toCharArray();
 					array[phase] = base.charAt(0);
@@ -2448,8 +2511,9 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 						if(node.getCodon() == null || node.phase != 2) {
 							node.phase = 2;
 							prevExonEnd = exon.getTranscript().getExons()[exon.getNro()-2].getEnd();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd-2, prevExonEnd, Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getStart(), exon.getStart()+1, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(), prevExonEnd-2, prevExonEnd, Main.referenceFile).append(this.getSeq(node.getChrom(), exon.getStart(), exon.getStart()+1, Main.referenceFile))));
 						}
+						
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
 						return MethodLibrary.getAminoAcid(node.getCodon()) +(aminopos-1) +MethodLibrary.getAminoAcid(new String(array));
@@ -2458,7 +2522,7 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 						if(node.getCodon() == null || node.phase != 0) {
 							node.phase = 0;
 							prevExonEnd = exon.getTranscript().getExons()[exon.getNro()-2].getEnd();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getStart(), exon.getStart()+2, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(), prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(node.getChrom(), exon.getStart(), exon.getStart()+2, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2505,7 +2569,7 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 								return "";
 							}
 							prevExonEnd = exon.getTranscript().getExons()[exon.getTranscript().getExons().length -exon.getNro()-1].getEnd();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(),prevExonEnd-2, prevExonEnd, Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getStart(),  exon.getStart()+1, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(),prevExonEnd-2, prevExonEnd, Main.referenceFile).append(this.getSeq(node.getChrom(), exon.getStart(),  exon.getStart()+1, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2525,7 +2589,7 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 								System.out.println(exon.getTranscript().getGenename());
 								e.printStackTrace();
 							}
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(),prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(),  exon.getStart(),  exon.getStart()+2, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(),prevExonEnd-1, prevExonEnd, Main.referenceFile).append(this.getSeq(node.getChrom(),  exon.getStart(),  exon.getStart()+2, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2540,7 +2604,7 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 					if(node.getCodon() == null || node.phase != -1) {
 						node.phase = -1;
 						prevExonEnd = exon.getTranscript().getExons()[exon.getTranscript().getExons().length -exon.getNro()+1].getStart();
-						node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd, prevExonEnd+1, Main.referenceFile))));
+						node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), prevExonEnd, prevExonEnd+1, Main.referenceFile))));
 					}
 					array = node.getCodon().toCharArray();
 					array[phase] = base.charAt(0);
@@ -2552,7 +2616,7 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 						if(node.getCodon() == null || node.phase != -2) {
 							node.phase = -2;
 							prevExonEnd = exon.getTranscript().getExons()[exon.getTranscript().getExons().length -exon.getNro()+1].getStart();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd, prevExonEnd+1, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-2, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), prevExonEnd, prevExonEnd+1, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2563,7 +2627,7 @@ String getAminoChange(VarNode node, String base, Transcript.Exon exon) {
 						if(node.getCodon() == null || node.phase != -1) {
 							node.phase = -1;
 							prevExonEnd = exon.getTranscript().getExons()[exon.getTranscript().getExons().length -exon.getNro()+1].getStart();
-							node.setCodon(new String(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), exon.getEnd()-1, exon.getEnd(), Main.referenceFile).append(this.getSeq(Main.chromosomeDropdown.getSelectedItem().toString(), prevExonEnd, prevExonEnd+2, Main.referenceFile))));
+							node.setCodon(new String(this.getSeq(node.getChrom(), exon.getEnd()-1, exon.getEnd(), Main.referenceFile).append(this.getSeq(node.getChrom(), prevExonEnd, prevExonEnd+2, Main.referenceFile))));
 						}
 						array = node.getCodon().toCharArray();
 						array[phase] = base.charAt(0);
@@ -2892,11 +2956,10 @@ public void mouseReleased(MouseEvent arg0) {
 		Draw.updatevars = true;
 		
 	}
-	for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
-		if(Main.bedCanvas.bedTrack.get(i).graph) {
-			Main.bedCanvas.calcScale(Main.bedCanvas.bedTrack.get(i));			
-		}
-		Main.bedCanvas.getMoreBeds(Main.bedCanvas.bedTrack.get(i));
+	if(Main.bedCanvas.bedTrack.size() > 0) {
+		bedFeatureFetcher fetch = Main.bedCanvas.new bedFeatureFetcher();
+		
+		fetch.execute();
 	}
 	Main.bedCanvas.repaint();
 	Main.drawCanvas.repaint();
@@ -3059,7 +3122,9 @@ public BufferedImage createBands(SplitClass split) {
 					else {
 						color = getGposColor(bandVector.get(i)[4]);
 					}
-					
+					if(color == null ||color.length < 3) {
+						break;
+					}
 					if(bandVector.get(i)[3].contains("p11") && Integer.parseInt(color[0]) > 200 && Integer.parseInt(color[1]) < 100) {
 						first = i;
 						continue;

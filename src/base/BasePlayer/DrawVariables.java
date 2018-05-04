@@ -18,7 +18,7 @@ import java.util.ArrayList;
 public class DrawVariables implements Serializable {	
 	private static final long serialVersionUID = 1L;
 	double sampleHeight = Draw.defaultSampleHeight;
-	
+	Boolean somatic = false; 
 	short visiblesamples=1,visiblestart=0;
 	int scrollbarpos = 0;
 	String projectName = "Untitled";
@@ -26,4 +26,5 @@ public class DrawVariables implements Serializable {
 	
 	ArrayList<QualEntry> advQDraw = null;
 	ArrayList<QualEntry> advQDrawIndel = null;
+	
 }

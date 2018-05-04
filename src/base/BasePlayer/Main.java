@@ -14,6 +14,7 @@ package base.BasePlayer;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FileDialog;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GradientPaint;
@@ -40,12 +41,10 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
-
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.seekablestream.SeekableStreamFactory;
 import htsjdk.tribble.readers.TabixReader;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -71,11 +70,13 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.Proxy.Type;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.net.URL;
 import java.net.URLConnection;
-
-
-
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.ImageIcon;
@@ -108,14 +109,14 @@ import javax.swing.event.HyperlinkListener;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
-
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+
+import base.BasePlayer.BedCanvas.bedFeatureFetcher;
 
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManager;
@@ -123,13 +124,14 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
 	public class Main extends JPanel implements ActionListener, ChangeListener, ComponentListener, MouseListener, KeyListener, MouseMotionListener {
 	private static final long serialVersionUID = 1L;		
     static JFrame frame;  
 	//UI
     
     static ImageIcon save, open, settingsIcon;
-    static String version = "1.0.0";
+    static String version = "1.0.1";
     static int sidebarWidth = 200;
     static String[] argsit = {}, args;
     static int defaultFontSize;
@@ -143,8 +145,8 @@ import javax.net.ssl.X509TrustManager;
     static Dimension screenSize;
     static int drawWidth, drawHeight, chromHeight = 150, bedHeight = 200;
     static GradientPaint gradient = new GradientPaint(drawWidth/2-loadTextWidth/2,0,Color.red,drawWidth/2+loadTextWidth,height,Color.green,true);
-    private String[] searchList;
-    static Short samples = 0, varsamples = 0, readsamples = 0;
+    private static String[] searchList;
+    static int samples = 0, varsamples = 0, readsamples = 0;
     static boolean readingControls = false, readingbeds = false;
     public static String gerp;
     static int searchStart=-1, searchEnd=-1;
@@ -153,6 +155,8 @@ import javax.net.ssl.X509TrustManager;
     static int letterlength = 0 ;
 	//Labels	
     static JTextField chromlabel = new JTextField(" Chrom ");
+    static TableBrowser tablebrowser;
+    static BEDconvert bedconverter;
     static HashMap<String, String> factorNames = new HashMap<String, String>();
     static boolean configChanged = false;
     static int trackdivider = 0;
@@ -175,7 +179,7 @@ import javax.net.ssl.X509TrustManager;
     static BedCanvas bedCanvas;
     static VarMaster varmaster;
     public static ChromDraw chromDraw;
-    static Draw drawCanvas;
+    public static Draw drawCanvas;
     static ControlCanvas controlDraw;
     static java.util.List<String> undoList = Collections.synchronizedList(new ArrayList<String>());
     static int undoPointer = 0;
@@ -187,12 +191,17 @@ import javax.net.ssl.X509TrustManager;
     static JMenuItem peakCaller;
     static String defaultGenome = "";
     static String downloadDir = "";
+    static String proxyHost = "";
+    static String proxyPort = "";
+    static String proxyType = "";
+    static boolean isProxy = false;
     static JSplitPane splitPane, trackPane, varpane, drawpane;
     public static boolean nothread = false, noreadthread = false;	
     static Hashtable<String, String[]> searchTable = new Hashtable<String, String[]>();
     static Hashtable<String, String> geneIDMap = new Hashtable<String, String>();
     static JMenuItem addGenome = new JMenuItem("Add new genome...");	   
     static JButton zoomout;
+    static JButton manual;
     static JButton dosomething = new JButton("Do stuff!");
     static JButton back, forward;
   //  static double[][] snow = new double[200][4];
@@ -217,13 +226,14 @@ import javax.net.ssl.X509TrustManager;
 	static JMenuItem settings;
 	static JMenuItem update;
 	static JMenuItem errorlog;
-	static JLabel helpLabel = new JLabel("This is pre-release version of BasePlayer\nContact: help@baseplayer.fi\n\nUniversity of Helsinki");
+	//static JLabel helpLabel = new JLabel("This is pre-release version of BasePlayer\nContact: help@baseplayer.fi\n\nUniversity of Helsinki");
 	static JMenu genome;
 	static JMenu addURL;
 	static JTextField urlField;
 	static boolean updatelauncher = false;
-	static JMenuItem opensamples, exit;
+	static JMenuItem openvcfs, openbams, exit;
 	static JMenuItem addtracks;
+	static JMenuItem fromURL;
 	static JMenuItem addcontrols;
 	static JMenuItem pleiadesButton;
 	static JMenuItem saveProject;
@@ -253,6 +263,10 @@ import javax.net.ssl.X509TrustManager;
 	static Image glass;	 
     static JTextField positionField = new JTextField();
 	static JTextField widthLabel = new JTextField();
+	MyFilterLINK linkFilter = new MyFilterLINK();
+	MyFilterBAM bamFilter = new MyFilterBAM();
+	MyFilterVCF vcfFilter = new MyFilterVCF();
+	String defaultSelectType = "vcf";
 	static JTextField searchField = new JTextField("Search by position or gene") {
 	       
 		private static final long serialVersionUID = 1L;
@@ -342,9 +356,7 @@ import javax.net.ssl.X509TrustManager;
 				}
 	};
     	  
-	ActionListener ChromoDropActionListener = new ActionListener() {
-		
-    	
+	ActionListener ChromoDropActionListener = new ActionListener() {   	
 
 		public void actionPerformed(ActionEvent actionEvent) {
     		
@@ -365,19 +377,19 @@ import javax.net.ssl.X509TrustManager;
     		  drawCanvas.clearReads();
     		  selectedChrom = chromosomeDropdown.getSelectedIndex();    
     		  if(chromosomeDropdown.getSelectedItem() == null) {
-    			  drawCanvas.chrom = "";
+    			 // drawCanvas.chrom = "";
     			  drawCanvas.splits.get(0).chromEnd = 100;
     			  drawCanvas.splits.get(0).viewLength = 100;
     			  drawCanvas.splits.get(0).start = 0;
     		  }
     		  else {
     			 
-    			  drawCanvas.chrom = chromosomeDropdown.getSelectedItem().toString();
+    			 // drawCanvas.chrom = chromosomeDropdown.getSelectedItem().toString();
     			  drawCanvas.splits.get(0).chromEnd = chromIndex.get(Main.refchrom + Main.chromosomeDropdown.getSelectedItem().toString())[1].intValue();
-    			  chromLabel.setText("Chromosome " +drawCanvas.chrom);
+    			  chromLabel.setText("Chromosome " +chromosomeDropdown.getSelectedItem().toString());
         		  chromDraw.cytoImage = null;	    		 
         		  drawCanvas.splits.get(0).setCytoImage(null);
-        		  drawCanvas.splits.get(0).chrom = drawCanvas.chrom;
+        		  drawCanvas.splits.get(0).chrom = chromosomeDropdown.getSelectedItem().toString();
         		  drawCanvas.splits.get(0).transStart = 0;
         		  drawCanvas.splits.get(0).nullRef();
         		 
@@ -430,14 +442,16 @@ import javax.net.ssl.X509TrustManager;
 
 	private int keyCode;
 
-	private String[] returnlist;
+	private static String[] returnlist;
 
 	private JTextField chooserTextField;
 
 	private Image iconImage;
 
 	private boolean pleiades = false;
-
+	private JMenuItem tbrowser;
+	private JMenuItem bconvert;
+	int mouseX = 0;
 	static String lineseparator;
 
 	static String savedir = "";
@@ -621,10 +635,150 @@ import javax.net.ssl.X509TrustManager;
 	static int annotation = 0;
 
 	public static String defaultAnnotation = "";
-
-	static boolean shift = false;	
+	static ProxySettings proxysettings; 
+	static boolean shift = false;
+	private static Type type;
+	private static String address;
+	private static int port;	
 	
-	
+	public void openPleiades(String pleiadesurl) {
+			boolean bamonly = false;
+			String pleiades = pleiadesurl.trim();
+			if(pleiades.toLowerCase().startsWith("bam")) {
+				bamonly = true;
+				pleiades = pleiades.replace("bam", "").trim();
+			}			
+     		
+   		  if(pleiades.contains("`")) {
+   			pleiades.replace("`", "?");		        			  
+   		  }
+   		  if(pleiades.contains(" ")) {
+   			pleiades.replace(" ", "%20");
+   		  }
+   		  if(pleiades.contains("pleiades")) {
+   			 try {
+   			  URL url = new URL(pleiadesurl.trim());
+   			  //System.out.println(Main.chooserText);
+   			  HttpURLConnection httpConn = (HttpURLConnection)url.openConnection();
+   			  httpConn.connect();
+   
+   				int responseCode = httpConn.getResponseCode();
+   	
+   				if (responseCode == HttpsURLConnection.HTTP_OK) {	        				
+   	
+		      			
+		      			String loading = drawCanvas.loadingtext;
+		      			InputStream inputStream = httpConn.getInputStream();
+		      			BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+		      			Main.drawCanvas.loadingtext = loading + " 0MB";
+		      			String line;
+		      			StringBuffer buffer = new StringBuffer("");
+		      			while((line=reader.readLine()) != null) {		
+		      				
+		      				buffer.append(line);
+		      				
+		      			}
+		      			inputStream.close();
+		      			reader.close();
+		      			String split2;
+		      			String[] split = buffer.toString().split("dataUnit");
+		      			String location;
+		      			ArrayList<File> array = new ArrayList<File>();
+		      			File[] paths;
+		    			FileSystemView fsv = FileSystemView.getFileSystemView();
+		    			paths = File.listRoots();
+		    			String loc = "/mnt";
+		    			boolean missingfiles = false;
+		    			for(File path:paths){
+		    				if(fsv.getSystemDisplayName(path).contains("merit")) {
+		    					loc = path.getCanonicalPath();
+		    				}					    			  
+		    			}
+		    			
+		      			for(int i = 0; i<split.length; i++) {
+		      				
+		      				if(!split[i].contains("lastLocation")) {		
+		      					
+		      					continue;
+		      				}
+		      				
+		      				split2 = split[i].split("\"lastLocation\":\"")[1];
+		      				location = split2.substring(0,split2.indexOf("\"}"));
+		      				String filename = "";
+		      				String testloc = location.replace("/mnt", loc) +"/wgspipeline/";
+		      				File testDir = new File(testloc);
+		      				if(testDir.exists() && testDir.isDirectory()) {
+		      					if(bamonly) {
+		      						File[] addDir = testDir.listFiles(new FilenameFilter() {
+			      		  	    	     public boolean accept(File dir, String name) {
+			      		  	    	        return name.toLowerCase().endsWith(".bam") || name.toLowerCase().endsWith(".cram");
+			      		  	    	     }
+			      		  	    	});
+			      					if(addDir.length > 0) {
+			      						filename = addDir[0].getName();
+			      					}
+		      					}
+		      					else {
+			      					File[] addDir = testDir.listFiles(new FilenameFilter() {
+			      		  	    	     public boolean accept(File dir, String name) {
+			      		  	    	        return name.toLowerCase().endsWith(".vcf.gz");
+			      		  	    	     }
+			      		  	    	});
+			      					if(addDir.length > 0) {
+			      						filename = addDir[0].getName();
+			      					}
+		      					}
+		      				}
+		      				
+		      				location = testloc +"/" +filename;
+		      				
+		      				
+		      				if(!new File(location).exists()) {				      					
+		      					
+		      					if(!new File(location).exists()) {
+		      						missingfiles = true;				      						
+		      			   			ErrorLog.addError("No sample files found in " +testloc);
+			      					
+			      				}
+		      					else {
+		      						array.add(new File(location));
+		      					}
+		      				}
+		      				else {
+		      					
+		      					array.add(new File(location));
+		      				}				      				
+		      			}				      			
+		      			
+		      			File[] files = new File[array.size()];
+		      			for(int i = 0; i<files.length; i++) {
+		      				
+		      				files[i] = array.get(i);
+		      			}				      			
+		      			 FileRead filereader = new FileRead(files);
+		      			 filereader.start = (int)drawCanvas.selectedSplit.start;
+		        		 filereader.end = (int)drawCanvas.selectedSplit.end;
+		        		 if(bamonly) {
+		        			 filereader.readBAM = true;
+		        		 }
+		        		 else {
+		        			 filereader.readVCF = true;
+		        		 }
+		        		 filereader.execute();
+		        		 if(missingfiles) {
+		        			 JOptionPane.showMessageDialog(Main.drawScroll, "Missing files. Check Tools->View log", "Note", JOptionPane.INFORMATION_MESSAGE);
+		        		 }
+		        		 
+   				}
+       		  }
+       		  catch(Exception ex) {
+       			  ex.printStackTrace();
+       		  }
+   		  	}
+   		  	
+   		  return;
+   	  
+	}
 public Main() {	
 	
 super(new GridBagLayout());	
@@ -646,7 +800,7 @@ try {
     UIManager.put("ToolTip.background", new Color(255, 255, 214)); 
     UIManager.put( "ToolTip.border", BorderFactory.createCompoundBorder( UIManager.getBorder( "ToolTip.border" ), BorderFactory.createEmptyBorder( 4, 4, 4, 4 ) ) ); 
     lineseparator = System.getProperty("line.separator");
-    
+    proxysettings = new ProxySettings();
 	panel = new JPanel(new GridBagLayout());
 	//menuFont = menuFont.deriveFont(Font.PLAIN,12);
 	Draw.defaultFont = menuFont;
@@ -785,13 +939,38 @@ try {
    
  //   Average.frame.setVisible(false);
 	
-	
+	try {
 	userDir = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().replace("%20", " ");
 	savedir  = Launcher.defaultSaveDir;
 	path = Launcher.defaultDir;		
 	gerp = Launcher.gerpfile;
 	defaultGenome = Launcher.defaultGenome;
 	defaultAnnotation = Launcher.defaultAnnotation;
+	isProxy = Launcher.isProxy;
+	proxyHost = Launcher.proxyHost;
+	proxyPort = Launcher.proxyPort;
+	proxyType = Launcher.proxyType;
+	if(isProxy) {
+		ProxySettings.useProxy.setSelected(true);
+	}
+	if(!proxyHost.equals("")) {
+		ProxySettings.hostField.setText(proxyHost);
+	}
+	if(!proxyPort.equals("")) {
+		ProxySettings.portField.setText(proxyPort);
+	}
+	if(!Launcher.proxyType.equals("")) {
+		ProxySettings.proxytypes.setSelectedItem(proxyType);
+	}
+	if(Launcher.backColor.equals("")) {
+		Draw.backColor = new Color(90,90,90);
+	}
+	
+	else {
+		
+		Draw.backColor = new Color(Integer.parseInt(Launcher.backColor), Integer.parseInt(Launcher.backColor),Integer.parseInt(Launcher.backColor));
+		Settings.graySlider.setValue(Integer.parseInt(Launcher.backColor));
+	}
 	
 	if(Launcher.genomeDir.equals("")) {
 		
@@ -806,16 +985,21 @@ try {
 			genomeDir = new File(userDir +"/genomes/");
 		}
 	}
-	File[] genomes = genomeDir.listFiles(new FilenameFilter() {
-		 public boolean accept(File dir, String name) {
-		        return !name.contains(".txt") && !name.startsWith(".") ;
-		     }
- 		 });
+	
 	annotationfile = defaultAnnotation;
 	controlDir = Launcher.ctrldir;
 	trackDir = Launcher.trackDir;
 	projectDir = Launcher.projectDir;
 	downloadDir = Launcher.downloadDir;
+	}
+	catch(Exception e) {
+		e.printStackTrace();
+	}
+	File[] genomes = genomeDir.listFiles(new FilenameFilter() {
+		 public boolean accept(File dir, String name) {
+		        return !name.contains(".txt") && !name.startsWith(".") ;
+		     }
+		 });
 	chromHeight = (int)(drawHeight * 0.1);
 	 drawDimensions = new Dimension(drawWidth,drawHeight-chromHeight);
 	 bedDimensions = new Dimension(drawWidth, bedHeight);		   
@@ -973,6 +1157,8 @@ try {
 	glassPane.addMouseListener(this);
 	glassPane.addMouseMotionListener(new MouseMotionListener() {
 		
+		
+
 		@Override
 		public void mouseDragged(MouseEvent arg0) {
 			
@@ -980,7 +1166,8 @@ try {
 		}
 
 		@Override
-		public void mouseMoved(MouseEvent event) {			
+		public void mouseMoved(MouseEvent event) {	
+			
 			// g.drawRect(drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2, Main.drawScroll.getViewport().getHeight()*2/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4, Main.canceltextwidth+Main.defaultFontSize, Draw.loadingFont.getSize()+Main.defaultFontSize/2);					 
 				
 			if(drawCanvas.loading && event.getX() > drawScroll.getWidth()/2-Main.canceltextwidth/2-Main.defaultFontSize/2 && event.getX()  < drawScroll.getWidth()/2+Main.canceltextwidth/2+Main.defaultFontSize/2 && event.getY() > frame.getHeight()*1/3+Draw.loadingFont.getSize()*3-Main.defaultFontSize/4 && event.getY() < frame.getHeight()*1/3+Draw.loadingFont.getSize()*4+Main.defaultFontSize/2) {
@@ -1020,18 +1207,12 @@ try {
 	bases.put("insT", "insT");	
 
 	chromDraw = new ChromDraw(drawWidth,chromHeight);	
+	
 	VariantCaller.main(argsit);
 	PeakCaller.main(argsit);
-    
-   // frame.setExtendedState(JFrame.MAXIMIZED_BOTH); 
-   
+	tablebrowser = new TableBrowser();
+	bedconverter = new BEDconvert();
   
-//	path = "C:/HY-Data/RKATAINE/FilterSomatic/";
-//	path = "W:/RikuRator-Samples/Thyroid/11-0176_Kilpi1_5_exome";
-//	path = "W:/RikuRator-Samples/Myomas/Tumors/";
-//	path = "V:/cg8/projects/CRC/c9_5119_N_LP6005134-DNA_A01/wgspipeline/align";
-//	path = "V:/cg8/projects/joint-calling/";
-//	    drawCanvas.loading("note");
 	try {
 		
 		File annodir;
@@ -1297,21 +1478,32 @@ void setMenuBar() {
 	menubar = new JMenuBar();
 	//help.addMouseListener(this);
 	exit = new JMenuItem("Exit");
+	manual = new JButton("Online manual");
+	manual.addActionListener(new ActionListener() {
+
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			Main.gotoURL("https://baseplayer.fi/BPmanual");			
+		}
+		
+	});
 //	opensamples = new JMenuItem("Add samples");
 	zoomout = new JButton("Zoom out");
 	back = new JButton("<<");
 	forward = new JButton(">>");
 	manage = new JButton("Variant Manager");
-	opensamples = new JMenuItem("Add samples", open);
+	openvcfs = new JMenuItem("Add VCFs", open);
+	openbams = new JMenuItem("Add BAMs", open);
 	average = new JMenuItem("Coverage calculator");
 	update = new JMenuItem("Update");
 	update.setVisible(false);
 	errorlog = new JMenuItem("View log");
-	helpLabel = new JLabel("This is pre-release version of BasePlayer\nContact: help@baseplayer.fi\n\nUniversity of Helsinki");
+	//helpLabel = new JLabel("This is pre-release version of BasePlayer\nContact: help@baseplayer.fi\n\nUniversity of Helsinki");
 	
 	addURL = new JMenu("Add from URL");
 	urlField = new JTextField("Enter URL");
 	addtracks = new JMenuItem("Add tracks");
+	fromURL = new JMenuItem("Add track from URL");
 	addcontrols = new JMenuItem("Add controls");
 	pleiadesButton = new JMenuItem("PLEIADES");
 	saveProject = new JMenuItem("Save project");
@@ -1320,13 +1512,17 @@ void setMenuBar() {
 	clear = new JMenuItem("Clear data");
 	clearMemory = new JMenuItem("Clean memory");
 //	welcome = new JMenuItem("Welcome screen");
-	filemenu.add(opensamples);
+	filemenu.add(openvcfs);
+	filemenu.add(openbams);
 	variantCaller = new JMenuItem("Variant Caller");
+	tbrowser = new JMenuItem("Table Browser");
+	bconvert = new JMenuItem("BED converter");
 	peakCaller = new JMenuItem("Peak Caller");
 	addtracks = new JMenuItem("Add tracks", open);
 	filemenu.add(addtracks);
-	addcontrols = new JMenuItem("Add Controls", open);
+	addcontrols = new JMenuItem("Add controls", open);
 	filemenu.add(addcontrols);
+	filemenu.add(fromURL);
 	if(pleiades) {
 		pleiadesButton.setPreferredSize(buttonDimension);
 		pleiadesButton.addActionListener(this);
@@ -1355,8 +1551,159 @@ void setMenuBar() {
 	average.addActionListener(this);
 	average.setEnabled(false);
 	average.setToolTipText("No bam/cram files opened");
+	tbrowser.addActionListener(this);
+	bconvert.addActionListener(this);
+	toolmenu.add(tbrowser);
 	toolmenu.add(average);
 	toolmenu.add(variantCaller);
+	toolmenu.add(bconvert);
+	fromURL.addMouseListener(this);
+	fromURL.addActionListener(new ActionListener() {
+
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			
+			final JPopupMenu menu = new JPopupMenu();
+			final JTextField area = new JTextField();
+			JButton add = new JButton("Fetch");
+			JLabel label = new JLabel("Paste track URL below");
+			JScrollPane menuscroll = new JScrollPane();
+			add.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					try {
+	        			  String urltext = area.getText().trim();
+	        			  Boolean size = true;
+	        			  if(urltext.contains("pleiades")) {
+	        				  openPleiades(urltext);
+	        				  return;
+	        			  }
+	        			 if(!FileRead.isTrackFile(urltext)) {
+	        				showError("The file format is not supported.\n"
+	        				+"Supported formats: bed, bigwig, bigbed, gff, bedgraph", "Error");
+	        				 return;
+        				  
+						}
+	        			if(!urltext.toLowerCase().endsWith(".bw") && !urltext.toLowerCase().endsWith(".bigwig") && !urltext.toLowerCase().endsWith(".bb") && !urltext.toLowerCase().endsWith(".bigbed")) {
+	        				URL url = null;
+	        				try {
+	        					url = new URL(urltext);	
+	        				}
+	        				catch(Exception ex) {
+	        					menu.setVisible(false);
+	        					Main.showError("Please paste whole url (protocol included)", "Error");
+	        					return;
+	        				}
+	        			  URL testurl = url;
+	        			  HttpURLConnection huc = (HttpURLConnection) testurl.openConnection();
+	        			  huc.setRequestMethod("HEAD");
+	        			  int responseCode = huc.getResponseCode();
+
+	        			  if (responseCode != 404) {
+	        				  
+	        				  SeekableStream stream = SeekableStreamFactory.getInstance().getStreamFor(url);
+		      		      	  TabixReader tabixReader  = null;
+		      		      	  String index = null;
+		      		      	  
+		      		      	  try {
+		      		      		 if(stream.length()/(double)1048576 >= Settings.settings.get("bigFile")) {
+		      		      			 size = false;
+		      		      		 }
+		      		      		  tabixReader = new TabixReader(urltext, urltext +".tbi", stream);
+		      		      		 
+		      		      		  index = urltext +".tbi";
+			      		      	  testurl = new URL(index);	
+			        			  huc = (HttpURLConnection) testurl.openConnection();
+			        			  huc.setRequestMethod("HEAD");
+			        			  responseCode = huc.getResponseCode();
+	
+			        			  if (responseCode == 404) {
+			        				  menu.setVisible(false);
+			        				  Main.showError("Index file (.tbi) not found in the URL.", "Error");
+			        				 
+			        				  return;
+			        			  }
+			        			
+		      		      	  }
+		      		      	  catch(Exception ex) {
+		      		      		  try {
+		      		      			  tabixReader = new TabixReader(urltext,urltext.substring(0,urltext.indexOf(".gz")) +".tbi", stream);   
+		      		      			index = urltext.substring(0,urltext.indexOf(".gz")) +".tbi";
+		      		      		  }
+		      		      		  catch(Exception exc) {
+		      		      			menu.setVisible(false);
+		      		      			Main.showError("Could not read tabix file.", "Error");
+		      		      		  }
+		      		      	  }
+		        			  if(tabixReader != null && index != null) {
+		        				  stream.close();
+		        				  tabixReader.close();
+		        				  menu.setVisible(false);
+		        				  FileRead filereader = new FileRead();
+		        				  filereader.readBED(urltext, index, size);
+		        				 
+		        				  
+		        			  }
+	        			  
+	        			  } else {
+	        				  menu.setVisible(false);
+	        			 	Main.showError("Not a valid URL", "Error");
+	        			  }
+	      		      	 
+	        			}
+	        			else {
+	        				URL url = null;
+	        				try {
+	        					url = new URL(urltext);	
+	        				}
+	        				catch(Exception ex) {
+	        					Main.showError("Please paste whole url (protocol included)", "Error");
+	        					return;
+	        				}
+	        				final URL testurl = url;
+		        			  HttpURLConnection huc = (HttpURLConnection) testurl.openConnection();
+		        			  huc.setRequestMethod("HEAD");
+		        			  int responseCode = huc.getResponseCode();
+
+		        			  if (responseCode != 404) {
+		        				  menu.setVisible(false);
+		        				  FileRead filereader = new FileRead();
+			        			  
+		        				  filereader.readBED(urltext, "nan", true);
+		        			  
+		        			  } else {
+		        				  menu.setVisible(false);
+		        				  Main.showError("Not a valid URL", "Error");
+		        			  }
+	        				
+	        			}
+					}
+					catch(Exception ex) {
+						ex.printStackTrace();
+					}
+					
+	        		  
+				}
+				
+			});
+			area.setFont(Main.menuFont);
+			//area.setText("https://baseplayer.fi/tracks/Mappability_1000Genomes_pilot_mask.bed.gz");
+			menu.add(label);
+			menu.add(menuscroll);	
+			menu.add(add);
+			area.setPreferredSize(new Dimension(300,Main.defaultFontSize+8));
+			
+			area.setCaretPosition(0);
+			area.revalidate();
+			menuscroll.getViewport().add(area);
+			area.requestFocus();
+			menu.pack();
+			
+			menu.show(frame,mouseX +20,fromURL.getY());
+		}
+		
+	});
 	//toolmenu.add(peakCaller);
 	variantCaller.setToolTipText("No bam/cram files opened");
 	variantCaller.addActionListener(this);
@@ -1374,10 +1721,10 @@ void setMenuBar() {
 	menubar.add(manage);
 	area = new JEditorPane();
 
-	String infotext = "<html><h2>BasePlayer</h2>This is a pre-release version of BasePlayer (<a href=https://baseplayer.fi>https://baseplayer.fi</a>)<br/> Author: Riku Katainen <br/> University of Helsinki<br/>"
+	String infotext = "<html><h2>BasePlayer</h2>This is a version " +version +" of BasePlayer (<a href=https://baseplayer.fi>https://baseplayer.fi</a>)<br/> Author: Riku Katainen <br/> University of Helsinki<br/>"
 					+"Tumor Genomics Group (<a href=http://research.med.helsinki.fi/gsb/aaltonen/>http://research.med.helsinki.fi/gsb/aaltonen/</a>) <br/> " 
-					+"Contact: help@baseplayer.fi <br/>"
-					+"See the BasePlayer manuscript draft at <a href=https://doi.org/10.1101/126482>bioRxiv</a> <br/><br/>"
+					+"Contact: help@baseplayer.fi <br/> <br/>"
+					
 					+"Supported filetype for variants is VCF and VCF.gz (index file will be created if missing)<br/> "
 					+"Supported filetypes for reads are BAM and CRAM. Index files required (.bai or .crai). <br/> "
 					+"Supported filetypes for additional tracks are BED(.gz), GFF.gz, BedGraph, BigWig, BigBed.<br/> (tabix index required for bgzipped files). <br/><br/> "
@@ -1410,6 +1757,7 @@ void setMenuBar() {
 	about.add(area);
 	about.addMouseListener(this);
 	help.add(about);
+	help.add(manual);
 	menubar.add(help);
 	JLabel emptylab = new JLabel("  ");
 	emptylab.setEnabled(false);		
@@ -1437,15 +1785,13 @@ void setMenuBar() {
     JLabel empty3 = new JLabel("  ");
 	empty3.setEnabled(false);
 	empty3.setOpaque(false);
-	menubar.add(empty3);
-	
+	menubar.add(empty3);	
 	menubar.add(back);
 	menubar.add(searchField);
-	searchField.setForeground(Color.gray);
-	
+	searchField.setForeground(Color.gray);	
 	searchField.setBorder(BorderFactory.createCompoundBorder(
-			searchField.getBorder(), 
-	        BorderFactory.createEmptyBorder(0, 0, 0, 0)));
+	searchField.getBorder(), 
+    BorderFactory.createEmptyBorder(0, 0, 0, 0)));
 	
 	searchField.addMouseListener(this);
     menubar.add(back);
@@ -1645,59 +1991,13 @@ void setButtons() {
     drawScroll.setBorder(BorderFactory.createEmptyBorder());
     bedScroll.setBorder(BorderFactory.createLoweredBevelBorder());
     controlScroll.setBorder(BorderFactory.createLoweredBevelBorder());
-   
-//	    controlScroll.setBorder(BorderFactory.createEmptyBorder());
-    
-   /* chromScroll.getVerticalScrollBar().setUI(new BasicScrollBarUI()  {   
-    @Override
-    protected void configureScrollBarColors(){
-        this.thumbColor = Color.black;
-    }
 
-    });
-    
-    drawScroll.getVerticalScrollBar().setUI(new BasicScrollBarUI()  {   
-        @Override
-        protected void configureScrollBarColors(){
-            this.thumbColor = Color.black;
-        }
-
-	    });
-	    */
     addSplit(chromosomeDropdown.getItemAt(0));
-    
-    //drawCanvas.splits.add(new SplitClass());
-    //drawCanvas.splits.get(0).chrom = Main.chromosomeDropdown.getSelectedItem().toString();
-    //drawCanvas.splits.get(0).transcripts = chromDraw.transcripts;
-    
-//    addSplit("10");
- //   addSplit("20");
-   
-  //  drawCanvas.splits.get(1).cytoImage;
-    
-/*    drawCanvas.splits.add(new SplitClass());	
-    drawCanvas.splits.get(2).chrom ="20";
-    drawCanvas.splits.get(2).transcripts = fileReader.getExons(drawCanvas.splits.get(2).chrom);
-    drawCanvas.splits.get(2).chromEnd = chromIndex.get(drawCanvas.splits.get(2).chrom)[1].intValue();
-    drawCanvas.splits.get(2).start = 1;
-    drawCanvas.splits.get(2).end =  drawCanvas.splits.get(2).chromEnd;
-    drawCanvas.splits.get(2).viewLength = drawCanvas.splits.get(2).end-drawCanvas.splits.get(2).start;
-  */ // drawCanvas.splits.get(2).cytoImage = chromDraw.cytoImage;
-    
-   // drawCanvas.resizeCanvas(drawWidth,drawHeight);
-    
-//    drawCanvas.splits.get(1).pixel = (drawCanvas.getDrawWidth())/(double)(drawCanvas.splits.get(1).viewLength);
- //   drawCanvas.splits.get(2).pixel = (drawCanvas.getDrawWidth())/(double)(drawCanvas.splits.get(2).viewLength);
-    
-   // chromDraw.setPreferredSize(chromDimensions);	
- //   chromScroll.addMouseListener(this);
-  //  chromDraw.addMouseListener(this);
-   
+     
    
     chromScroll.getViewport().add(chromDraw);	    
     drawScroll.getViewport().add(drawCanvas);	
     drawScroll.addMouseListener(this);
-//	    drawCanvas.addMouseListener(this);
     bedCanvas = new BedCanvas(drawWidth, 200);
    
     bedScroll.getViewport().add(bedCanvas);
@@ -1707,7 +2007,6 @@ void setButtons() {
 	c.weightx = 1.0;
 	c.weighty = 1.0;
 	c.fill = GridBagConstraints.BOTH;
-//		c.gridy = 5;
 	
 	trackPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, bedScroll, controlScroll);
 	trackPane.setUI(new BasicSplitPaneUI() {
@@ -1735,27 +2034,7 @@ void setButtons() {
 	trackPane.setResizeWeight(0.0);
 	trackPane.setContinuousLayout(true);
 	trackPane.setVisible(false);
-/*	varmaster = new VarMaster((int)bedDimensions.getWidth(),(int)bedDimensions.getHeight());
-	drawpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, varmaster, drawScroll);
-	drawpane.setDividerSize(2);
-	drawpane.setUI(new BasicSplitPaneUI() {
-        public BasicSplitPaneDivider createDefaultDivider() {
-        return new BasicSplitPaneDivider(this) {
-           
-			private static final long serialVersionUID = 1L;
 
-			public void setBorder(Border b) {
-            }
-
-            @Override
-                public void paint(Graphics g) {
-                g.setColor(Color.black);
-                g.fillRect(0, 0, getSize().width, getSize().height);
-                    super.paint(g);
-                }
-        };
-        }
-    });*/
 	varpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, trackPane, drawScroll);
 	varpane.setUI(new BasicSplitPaneUI() {
         public BasicSplitPaneDivider createDefaultDivider() {
@@ -1781,18 +2060,11 @@ void setButtons() {
 	varpane.setPreferredSize(drawDimensions);
 	varpane.setResizeWeight(0.0);
 	varpane.setContinuousLayout(true);
-//	varpane.addMouseListener(this);
-	bedScroll.setVisible(false);
-	
-//	trackPane.addMouseListener(this);
-	
-	
+	bedScroll.setVisible(false);	
+
 	controlScroll.setVisible(false);
 	
-	//pan.setPreferredSize(new Dimension(Main.sidebarWidth, Main.chromDimensions.height));
-//	upPanel.setPreferredSize(new Dimension(Main.chromDimensions.width +Main.sidebarWidth, Main.chromDimensions.height));
-//	upPanel.add(pan);
-//	upPanel.add(chromScroll);
+
 	chrompan = new JPanel() {
 		private static final long serialVersionUID = 1L;
 		
@@ -1886,10 +2158,7 @@ void setButtons() {
                 }
         };
         }
-    });
-	
-	
-	
+    });	
 	
 	splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, upPanel, varpane);
 	
@@ -1912,9 +2181,7 @@ void setButtons() {
         };
         }
     });
-   // splitPane.setBorder(null);
-	//splitPane.setResizeWeight(0.5);
-	
+  	
     BasicSplitPaneUI basicSplitPaneUI = (BasicSplitPaneUI) splitPane.getUI();
     splitPaneDivider = basicSplitPaneUI.getDivider();
 //    splitPaneDivider.addMouseListener(this);
@@ -1924,20 +2191,16 @@ void setButtons() {
     BasicSplitPaneUI splitPaneUI = (BasicSplitPaneUI) varpane.getUI();
     varPaneDivider = splitPaneUI.getDivider();
  //   varPaneDivider.addMouseListener(this);
-	splitPane.setDividerSize(3);
-	
-/*	BasicSplitPaneDivider divider = (BasicSplitPaneDivider) splitPane.getComponent(2);
-	divider.setBackground(Color.black);
-	*/
-	splitPane.setPreferredSize(drawDimensions);
-	
-	
+	splitPane.setDividerSize(3);	
+
+	splitPane.setPreferredSize(drawDimensions);	
 	splitPane.setContinuousLayout(true);
 
     panel.add(splitPane, c);
     add(panel, c);
    
-    opensamples.addActionListener(this);
+    openvcfs.addActionListener(this);
+    openbams.addActionListener(this);
     addtracks.addActionListener(this);
     addcontrols.addActionListener(this);
    
@@ -2001,35 +2264,15 @@ void setButtons() {
 		}   
     	
     });
-   /* chromScroll.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
-    	
-    	@Override
-		public void adjustmentValueChanged(AdjustmentEvent event) {
-			
-				if(!drawCanvas.scrolldrag) {
-					System.out.println("jou");
-				}
-			
-		}    	
-    	
-    });
-  */
+ 
     zoomout.addActionListener(this);
      
     FileRead.head = new VarNode(0,  (byte)0,"N", (short)0, (short)0, false,(float)0,(float)0,null,null, new Sample("",(short)1,null), null, null);     
     drawCanvas.current = FileRead.head;
- //   upPanel.addPropertyChangeListener(this);
-  //  splitPane.addPropertyChangeListener(this);
-   // trackPane.addPropertyChangeListener(this);
-   // varpane.addPropertyChangeListener(this);	
-    
+ 
     frame.addComponentListener(this);
     frame.addMouseListener(this);	    	   
     frame.setGlassPane(glassPane);
-    /*if(chromosomeDropdown.getItemCount() > 0) {
-    	chromosomeDropdown.setSelectedIndex(0);
-    	drawCanvas.chrom = chromosomeDropdown.getItemAt(0);
-    }*/
     glassPane.setOpaque(false);
     glassPane.setVisible(false);
    
@@ -2151,8 +2394,25 @@ static class MyFilterVCF extends javax.swing.filechooser.FileFilter {
 				return false;
 			}	
 	} 
+		
 	
 	public String getDescription() { return "*.bam, *.cram"; }
+}
+	static class MyFilterLINK extends javax.swing.filechooser.FileFilter {
+		public boolean accept(File file) { 
+			if (file.isDirectory()) {
+				return true;
+		    }	
+			if (file.getName().endsWith(".link")) {
+				return true;
+			}				
+			else {
+				return false;
+			}	
+	} 
+		
+	
+	public String getDescription() { return "*.link"; }
 }
 	static class MyFilterBED extends javax.swing.filechooser.FileFilter {
 		public boolean accept(File file) { 
@@ -2178,6 +2438,9 @@ static class MyFilterVCF extends javax.swing.filechooser.FileFilter {
 				return true;
 			}
 			if(file.getName().toLowerCase().endsWith(".tsv.gz") ) {
+				return true;
+			}
+			if(file.getName().toLowerCase().endsWith(".tsv.bgz") ) {
 				return true;
 			}
 			else {
@@ -2251,13 +2514,15 @@ public static void zoomout() {
 	}	
 	
 	if(Main.bedCanvas.bedTrack.size() > 0) {
-		for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {			
+		/*for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {			
 			if(Main.bedCanvas.bedTrack.get(i).graph) {		
 				Main.bedCanvas.bedTrack.get(i).setCurrent(Main.bedCanvas.bedTrack.get(i).getHead());
 				Main.bedCanvas.calcScale(Main.bedCanvas.bedTrack.get(i));				
 			}
 			Main.bedCanvas.getMoreBeds(Main.bedCanvas.bedTrack.get(i));			
-		}		
+		}	*/
+		bedFeatureFetcher fetch = Main.bedCanvas.new bedFeatureFetcher();
+		fetch.execute();
 	}
 	bedCanvas.repaint();
 	Main.chromDraw.updateExons = true;
@@ -2298,6 +2563,18 @@ public void actionPerformed(ActionEvent e) {
 		Draw.updatevars = true;
 		drawCanvas.repaint();
 		
+	}
+	else if(e.getSource() == tbrowser) {
+		tablebrowser.frame.setLocation(frame.getLocationOnScreen().x+frame.getWidth()/2 - VariantCaller.frame.getWidth()/2, frame.getLocationOnScreen().y+frame.getHeight()/6);			
+		tablebrowser.frame.setState(JFrame.NORMAL);
+		
+		tablebrowser.frame.setVisible(true);
+	}
+	else if(e.getSource() == bconvert) {
+		bedconverter.frame.setLocation(frame.getLocationOnScreen().x+frame.getWidth()/2 - VariantCaller.frame.getWidth()/2, frame.getLocationOnScreen().y+frame.getHeight()/6);			
+		bedconverter.frame.setState(JFrame.NORMAL);
+		
+		bedconverter.frame.setVisible(true);
 	}
 	else if(e.getSource() == peakCaller) {
 		if(PeakCaller.frame == null) { 
@@ -2407,22 +2684,107 @@ public void actionPerformed(ActionEvent e) {
 		
 		System.exit(0);
 	}	
-	else if (e.getSource() == opensamples) {
+	else if (e.getSource() == openbams) {
+		try {			
+			 if(!checkGenome()) return;
+			 if(VariantHandler.frame != null) {
+			  VariantHandler.frame.setState(Frame.ICONIFIED);
+			 }
+			
+			 FileDialog fc = new FileDialog(frame, "Choose BAM file(s)", FileDialog.LOAD);
+	  		  fc.setDirectory(path);
+	  		  fc.setFile("*.bam;*.cram;*.link");
+	  		 fc.setFilenameFilter(new FilenameFilter() {
+		  			public boolean accept(File dir, String name) {
+				        return name.toLowerCase().endsWith(".bam") || name.toLowerCase().endsWith(".cram")|| name.toLowerCase().endsWith(".link");
+				     }
+				 });
+	  		  fc.setMultipleMode(true);
+	  		  fc.setVisible(true);
+	  		  File[] openfiles = fc.getFiles();			
+	        
+	         if (openfiles != null && openfiles.length > 0) {
+	        	
+	        	 path = openfiles[0].getParent();
+	        	  writeToConfig("DefaultDir=" +path);
+	        	  FileRead filereader = new FileRead(openfiles);        	 
+	        		 
+       		  filereader.start = (int)drawCanvas.selectedSplit.start;
+       		  filereader.end = (int)drawCanvas.selectedSplit.end;
+       		  filereader.readBAM = true;
+       		  filereader.execute();
+	        	
+	         }
+	         else {
+	        	 //Main.showError("File(s) does not exist.", "Error");
+	         }
+			 
+		}
+		catch(Exception ex) {
+			Main.showError(ex.getMessage(), "Error");
+		}
+	}
+	else if (e.getSource() == openvcfs) {
 		 try {			
 			 if(!checkGenome()) return;
 			 if(VariantHandler.frame != null) {
 			  VariantHandler.frame.setState(Frame.ICONIFIED);
 			 }
+			
+			 FileDialog fc = new FileDialog(frame, "Choose VCF file(s)", FileDialog.LOAD);
+	  		  fc.setDirectory(path);
+	  		  fc.setFile("*.vcf");
+	  		  fc.setFilenameFilter(new FilenameFilter() {
+	  			public boolean accept(File dir, String name) {
+			        return name.toLowerCase().endsWith(".vcf") || name.toLowerCase().endsWith(".vcf.gz");
+			     }
+			 });
+	  		
+	  		 
+	  		  fc.setMultipleMode(true);
+	  		  fc.setVisible(true);
+	  		  File[] openfiles = fc.getFiles();			
+	        
+	         if (openfiles != null && openfiles.length > 0) {
+	        	
+	        	 path = openfiles[0].getParent();
+	        	  writeToConfig("DefaultDir=" +path);
+	        	  FileRead filereader = new FileRead(openfiles);        	 
+	        		 
+        		  filereader.start = (int)drawCanvas.selectedSplit.start;
+        		  filereader.end = (int)drawCanvas.selectedSplit.end;
+        		  filereader.readVCF = true;
+        		  filereader.execute();
+	        	
+	         }
+	         else {
+	        	 //Main.showError("File(s) does not exist.", "Error");
+	         }
+			 
+			 
+			 
+			 if(1==1) {
+				 return;
+			 }
 			 
 			  JFileChooser chooser = new JFileChooser(path);	 
 			  getText(chooser.getComponents());
 	    	  chooser.setMultiSelectionEnabled(true);
-	    	  chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-	    	  chooser.setAcceptAllFileFilterUsed(false);
-	    	  MyFilterBAM bamFilter = new MyFilterBAM();
-	    	  MyFilterVCF vcfFilter = new MyFilterVCF();
+	    	  //chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+	    	  chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+	    	  chooser.setAcceptAllFileFilterUsed(false);	    	  
 	    	  chooser.addChoosableFileFilter(vcfFilter); 	
 	    	  chooser.addChoosableFileFilter(bamFilter); 
+	    	  chooser.addChoosableFileFilter(linkFilter);
+	    	  if(defaultSelectType == "vcf") {
+	    		  chooser.setFileFilter(vcfFilter);
+	    	  }
+	    	  else if (defaultSelectType == "bam") {
+	    		  chooser.setFileFilter(bamFilter);
+	    	  }
+	    	  else {
+	    		  chooser.setFileFilter(linkFilter);
+	    	  }
 	    	  chooser.setDialogTitle("Add samples");
 	    	  chooser.setPreferredSize(new Dimension((int)screenSize.getWidth()/3, (int)screenSize.getHeight()/3));
 	          int returnVal = chooser.showOpenDialog((Component)this.getParent());	         
@@ -2430,8 +2792,8 @@ public void actionPerformed(ActionEvent e) {
 	         if (returnVal == JFileChooser.APPROVE_OPTION) {
 	    
 	        	  File vcffiles[] = chooser.getSelectedFiles(); 
-	        	  if(!vcffiles[0].exists()) {
-	        		 
+	        	  if(vcffiles.length == 1 && !vcffiles[0].exists() && pleiades) {
+	        		
 	        		  if(Main.chooserText.contains("`")) {
 	        			  Main.chooserText.replace("`", "?");		        			  
 	        		  }
@@ -2441,40 +2803,14 @@ public void actionPerformed(ActionEvent e) {
 	        		  if(Main.chooserText.contains("pleiades")) {
 	        			 try {
 	        			  URL url = new URL(Main.chooserText);
-	        			  System.out.println(Main.chooserText);
+	        			  //System.out.println(Main.chooserText);
 	        			  HttpURLConnection httpConn = (HttpURLConnection)url.openConnection();
 	        			  httpConn.connect();
-	        			  
-	        	//		  String fileURL = url.getPath();
-	        			 
+	        
 	        				int responseCode = httpConn.getResponseCode();
-	        		//		int BUFFER_SIZE = 4096;
-	        				// always check HTTP response code first
-	        				
-	        				if (responseCode == HttpsURLConnection.HTTP_OK) {
-	        				
-	        		//			String fileName = "";
-	        					
-	        				//	String disposition = httpConn.getHeaderField("Content-Disposition");
-	        			//		String contentType = httpConn.getContentType();
-	        			//		int contentLength = httpConn.getContentLength();
-	        					/*
-	        					if (disposition != null) {
-	        						// extracts file name from header field
-	        						int index = disposition.indexOf("filename=");
-	        						if (index > 0) {
-	        							fileName = disposition.substring(index + 10,
-	        									disposition.length() - 1);
-	        						}
-	        					} else {
-	        						// extracts file name from URL
-	        						fileName = fileURL.substring(fileURL.lastIndexOf("/") + 1,
-	        						fileURL.length());
-	        					}
-	        					*/
-	        			/*		long downloaded = 0;
-				      			int bytesRead = -1, counter=0;
-				      		*/	
+	        	
+	        				if (responseCode == HttpsURLConnection.HTTP_OK) {	        				
+	        	
 				      			
 				      			String loading = drawCanvas.loadingtext;
 				      			InputStream inputStream = httpConn.getInputStream();
@@ -2490,14 +2826,14 @@ public void actionPerformed(ActionEvent e) {
 				      			inputStream.close();
 				      			reader.close();
 				      			String split2;
-				      			String[] split = buffer.toString().split("request");
+				      			String[] split = buffer.toString().split("dataUnit");
 				      			String location;
 				      			ArrayList<File> array = new ArrayList<File>();
 				      			File[] paths;
 				    			FileSystemView fsv = FileSystemView.getFileSystemView();
 				    			paths = File.listRoots();
 				    			String loc = "/mnt";
-				    			
+				    			boolean missingfiles = false;
 				    			for(File path:paths){
 				    				if(fsv.getSystemDisplayName(path).contains("merit")) {
 				    					loc = path.getCanonicalPath();
@@ -2513,17 +2849,41 @@ public void actionPerformed(ActionEvent e) {
 				      				
 				      				split2 = split[i].split("\"lastLocation\":\"")[1];
 				      				location = split2.substring(0,split2.indexOf("\"}"));
-				      				String filename = location.substring(location.lastIndexOf("/"))+".snps_indels.vcf.gz";
+				      				String filename = "";
+				      				String testloc = location.replace("/mnt", loc) +"/wgspipeline/";
+				      				File testDir = new File(testloc);
+				      				if(testDir.exists() && testDir.isDirectory()) {
+				      					if(chooser.getFileFilter().equals(chooser.getChoosableFileFilters()[1])) {
+				      						File[] addDir = testDir.listFiles(new FilenameFilter() {
+					      		  	    	     public boolean accept(File dir, String name) {
+					      		  	    	        return name.toLowerCase().endsWith(".bam") || name.toLowerCase().endsWith(".cram");
+					      		  	    	     }
+					      		  	    	});
+					      					if(addDir.length > 0) {
+					      						filename = addDir[0].getName();
+					      					}
+				      					}
+				      					else {
+					      					File[] addDir = testDir.listFiles(new FilenameFilter() {
+					      		  	    	     public boolean accept(File dir, String name) {
+					      		  	    	        return name.toLowerCase().endsWith(".vcf.gz");
+					      		  	    	     }
+					      		  	    	});
+					      					if(addDir.length > 0) {
+					      						filename = addDir[0].getName();
+					      					}
+				      					}
+				      				}
 				      				
-				      				location = location.replace("/mnt", loc) +"/wgspipeline/align/" +filename;
+				      				location = testloc +"/" +filename;
 				      				
-				      				if(!new File(location).exists()) {
+				      				
+				      				if(!new File(location).exists()) {				      					
 				      					
-				      					location = split2.substring(0,split2.indexOf("\"}"));
-					      				filename = location.substring(location.lastIndexOf("/"))+".snps_indels.hc.vcf.gz";
-				      					location = location.replace("/mnt", loc) +"/wgspipeline/" +filename;
 				      					if(!new File(location).exists()) {
-					      					System.out.println(location);
+				      						missingfiles = true;				      						
+				      			   			ErrorLog.addError("No sample files found in " +testloc);
+					      					
 					      				}
 				      					else {
 				      						array.add(new File(location));
@@ -2543,8 +2903,17 @@ public void actionPerformed(ActionEvent e) {
 				      			 FileRead filereader = new FileRead(files);
 				      			 filereader.start = (int)drawCanvas.selectedSplit.start;
 				        		 filereader.end = (int)drawCanvas.selectedSplit.end;
-				        		 filereader.readVCF = true;
-				        		 filereader.execute();        			
+				        		 if(chooser.getFileFilter().equals(chooser.getChoosableFileFilters()[1])) {
+				        			 filereader.readBAM = true;
+				        		 }
+				        		 else {
+				        			 filereader.readVCF = true;
+				        		 }
+				        		 filereader.execute();
+				        		 if(missingfiles) {
+				        			 JOptionPane.showMessageDialog(Main.drawScroll, "Missing files. Check Tools->View log", "Note", JOptionPane.INFORMATION_MESSAGE);
+				        		 }
+				        		 
 	        				}
 		        		  }
 		        		  catch(Exception ex) {
@@ -2554,19 +2923,34 @@ public void actionPerformed(ActionEvent e) {
 	        		  	
 	        		  return;
 	        	  }
-	        	  path = vcffiles[0].getParent();
-	        	  writeToConfig("DefaultDir=" +path);
-	        	  FileRead filereader = new FileRead(vcffiles);
 	        	 
-	        	  if(chooser.getFileFilter().equals(chooser.getChoosableFileFilters()[0])) {
-	        		  filereader.start = (int)drawCanvas.selectedSplit.start;
-	        		  filereader.end = (int)drawCanvas.selectedSplit.end;
-	        		  filereader.readVCF = true;
-	        		  filereader.execute();
+	        	  if(vcffiles.length > 0) {
+		        	  path = vcffiles[0].getParent();
+		        	  writeToConfig("DefaultDir=" +path);
+		        	  FileRead filereader = new FileRead(vcffiles);
+		        	 
+		        	  if(chooser.getFileFilter().equals(chooser.getChoosableFileFilters()[0])) {
+		        		  defaultSelectType = "vcf";
+		        		  filereader.start = (int)drawCanvas.selectedSplit.start;
+		        		  filereader.end = (int)drawCanvas.selectedSplit.end;
+		        		  filereader.readVCF = true;
+		        		  filereader.execute();
+		        	  }
+		        	  else if(chooser.getFileFilter().equals(chooser.getChoosableFileFilters()[1])){
+		        		  defaultSelectType = "bam";
+		        		  filereader.readBAM = true;
+		        		  filereader.execute();
+		        	  }
+		        	  else if(chooser.getFileFilter().equals(chooser.getChoosableFileFilters()[2])){
+		        		  
+		        		  defaultSelectType = "link";
+		        		  filereader.readBAM = true;
+		        		  filereader.execute();
+		        	  }
 	        	  }
-	        	  else if(chooser.getFileFilter().equals(chooser.getChoosableFileFilters()[1])){
-	        		  filereader.readBAM = true;
-	        		  filereader.execute();
+	        	  else {
+	        		  
+	        		  JOptionPane.showMessageDialog(Main.drawScroll, "The file does not exist. The file link may be broken.\nThe problem may also be the Java run time version in Linux.", "Note", JOptionPane.INFORMATION_MESSAGE);	      
 	        	  }
 	          }
 		 }
@@ -2580,6 +2964,28 @@ public void actionPerformed(ActionEvent e) {
 		if(VariantHandler.frame != null) {
 		 VariantHandler.frame.setState(Frame.ICONIFIED);
 		}
+		 FileDialog fc = new FileDialog(frame, "Choose control file(s)", FileDialog.LOAD);
+ 		  fc.setDirectory(Main.controlDir);
+ 		  fc.setFile("*.vcf.gz");
+ 		 fc.setFilenameFilter(new FilenameFilter() {
+	  			public boolean accept(File dir, String name) {
+			        return name.toLowerCase().endsWith(".vcf.gz");
+			     }
+			 });
+ 		  fc.setMultipleMode(true);
+ 		  fc.setVisible(true);
+ 		  File[] openfiles = fc.getFiles();			
+       
+        if (openfiles != null && openfiles.length > 0) {
+       	
+       	  controlDir = openfiles[0].getParent();	 	
+  		  writeToConfig("DefaultControlDir=" +controlDir);       	  	
+       	  
+       	  Control.addFiles(openfiles);
+        }
+        if(1==1) {
+        	return;
+        }
 		 JFileChooser chooser = new JFileChooser(controlDir);	 
  //   	  JFileChooser chooser = new JFileChooser(path);	    	  
     	  chooser.setMultiSelectionEnabled(true);	    	  
@@ -2604,6 +3010,45 @@ public void actionPerformed(ActionEvent e) {
 	}		
 	else if (e.getSource() == addtracks) {
 		if(!checkGenome()) return;
+		try {			
+			 if(!checkGenome()) return;
+			 if(VariantHandler.frame != null) {
+			  VariantHandler.frame.setState(Frame.ICONIFIED);
+			 }
+			
+			 FileDialog fc = new FileDialog(frame, "Choose track file(s)", FileDialog.LOAD);
+	  		  fc.setDirectory(Main.trackDir);
+	  		  fc.setFile("*.bed;*.bedgraph.gz;*.gff.gz;*.bigwig;*.bw;*.bigbed;*.bb;*.tsv.gz;*.tsv.bgz;*.txt");
+	  		 fc.setFilenameFilter(new FilenameFilter() {
+		  			public boolean accept(File dir, String name) {
+				        return name.toLowerCase().endsWith(".bed") || name.toLowerCase().endsWith(".bed.gz") || name.toLowerCase().endsWith(".bedgraph.gz")|| name.toLowerCase().endsWith(".bedgraph.gz")|| name.toLowerCase().endsWith(".bedgraph.gz")
+				        		|| name.toLowerCase().endsWith(".gff.gz")|| name.toLowerCase().endsWith(".bigwig")|| name.toLowerCase().endsWith(".bw")|| name.toLowerCase().endsWith(".bigbed")
+				        		|| name.toLowerCase().endsWith(".bb")|| name.toLowerCase().endsWith(".tsv.gz")|| name.toLowerCase().endsWith(".tsv.bgz")|| name.toLowerCase().endsWith(".txt");
+				     }
+				 });
+	  		  fc.setMultipleMode(true);
+	  		  fc.setVisible(true);
+	  		  File[] openfiles = fc.getFiles();			
+	        
+	         if (openfiles != null && openfiles.length > 0) {
+	        	
+	        	  trackDir = openfiles[0].getParent();	 	
+       		  	  writeToConfig("DefaultTrackDir=" +trackDir);
+	        	  FileRead filereader = new FileRead(openfiles);		        	
+	        	  filereader.readBED(openfiles);
+	        	
+	         }
+	         else {
+	        	 //Main.showError("File(s) does not exist.", "Error");
+	         }
+			 
+		}
+		catch(Exception ex) {
+			Main.showError(ex.getMessage(), "Error");
+		}
+		if(1==1) {
+			return;
+		}
 		if(VariantHandler.frame != null) {
 		 VariantHandler.frame.setState(Frame.ICONIFIED);
 		}
@@ -2621,50 +3066,7 @@ public void actionPerformed(ActionEvent e) {
          
           try {
         
-       /*  if(chooser.getSelectedFile() != null && chooser.getSelectedFile().getCanonicalPath().contains("http")) {
-        	 try {
-        		 URL url = new URL("ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/HG00096/alignment/HG00096.chrom11.ILLUMINA.bwa.GBR.low_coverage.20120522.bam");
-        	//	 FileRead.samFileReader = SamReaderFactory.makeDefault().open(url);
-        		 htsjdk.samtools.SamInputResource resource = htsjdk.samtools.SamInputResource.of(url);
-        		 URL indexurl = new URL("ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/HG00096/alignment/HG00096.chrom11.ILLUMINA.bwa.GBR.low_coverage.20120522.bam.bai");
-        		 resource.index(indexurl);
-        		 htsjdk.samtools.SamReader reader = SamReaderFactory.make().open(resource);
-        		 
-        		 Iterator<SAMRecord> bamIterator = reader.queryOverlapping("11", 5000000, 6000000);	
-        		
-        		 reader.close();
-        	//	 SamReaderFactory.make().
-        	//	 htsjdk.samtools.SamInputResource.of(url)
-	 //       	 URL url = new URL("http://dx2-tutoh-1.ltdk.helsinki.fi/SELEX_Ensembl_2015/hits/SELEX_Ensembl_dom_set_2015_humanGRCh37_9_or_max1M.gff.gz");
-	       
-	        	
-	   //    	 SeekableStream stream = SeekableStreamFactory.getInstance().getStreamFor(url);
-	    //   	 System.out.println(url.getHost() +url.getPath());
-	    //    TabixReader tabixReader = new TabixReader(url.getHost() +url.getPath(), "http://dx2-tutoh-1.ltdk.helsinki.fi/SELEX_Ensembl_2015/hits/SELEX_Ensembl_dom_set_2015_humanGRCh37_9_or_max1M.gff.gz.tbi", stream);   	
-	 			
-	      
-	        	 
-	 		//	TabixReader.Iterator bedIterator = null;
-	 			  try {
-	 				 
-	 			//	 bedIterator = tabixReader.query(Main.chromosomeDropdown.getSelectedItem().toString() +":" +5000000 +"-" +6000000);
-	 			  }
-	 			  catch(Exception ex) {
-	 				  ex.printStackTrace();
-	 			  }
-	
-        	 }
-        	 catch(Exception ex) {
-        		 ex.printStackTrace();
-        	 }
-        	 // File vcffiles[] = chooser.getSelectedFiles(); 
-        	 
-        	//  FileRead filereader = new FileRead(vcffiles);	        	 
-        	//filereader.readBED(vcffiles);
-        	     
-          }
-    	 
-         else */
+    
         	  if (returnVal == JFileChooser.APPROVE_OPTION) {
         	
         	  File bedfiles[] = chooser.getSelectedFiles(); 
@@ -2704,7 +3106,7 @@ public void actionPerformed(ActionEvent e) {
 	        			  if(tabixReader != null && index != null) {
 	        				  
 	        				  FileRead filereader = new FileRead(bedfiles);
-	        				  filereader.readBED(Main.chooserText, index);
+	        				  filereader.readBED(Main.chooserText, index,false);
 	        				  
 	        				  tabixReader.close();
 	        			  }
@@ -2713,11 +3115,7 @@ public void actionPerformed(ActionEvent e) {
         		  else {
         			  if(Main.chooserText.contains("://")) {
 		        			
-	        	//		  URL url = new URL(Main.chooserText);	
-	        			
-	      		      //	  SeekableStream stream = SeekableStreamFactory.getInstance().getStreamFor(url);
-	      		      	  
-	      		      //	  BBFileReader bbreader = null;
+	        	
 	      		      	
 	      		      	  try {
 	      		      //		  bbreader = new BBFileReader(Main.chooserText, stream);
@@ -2730,9 +3128,9 @@ public void actionPerformed(ActionEvent e) {
 	      		      	 
 	      		      
 	        			//  if(bbreader != null) {
-	        				  
+	      		      	  
 	        				  FileRead filereader = new FileRead(bedfiles);
-	        				  filereader.readBED(Main.chooserText, "nan");
+	        				  filereader.readBED(Main.chooserText, "nan",false);
 	        				  
 	        				  
 	        				
@@ -2760,7 +3158,45 @@ public void actionPerformed(ActionEvent e) {
 		 VariantHandler.frame.setState(Frame.ICONIFIED);
 		}
 		try {	  	    
-	    		   
+			File savefile = null;
+			FileDialog fs = new FileDialog(frame, "Save project as...", FileDialog.SAVE);
+	  		  fs.setDirectory(projectDir);
+	  		  fs.setFile("*.ses");
+	  		 fs.setFilenameFilter(new FilenameFilter() {
+		  			public boolean accept(File dir, String name) {
+				        return name.toLowerCase().endsWith(".ses");
+				     }
+				 });
+	  		  fs.setVisible(true);	         
+	        	 
+	        	 
+	        	 while(true) {
+	        		String filename = fs.getFile();
+		        
+				    if(filename != null) {   		    	  
+			    	   savefile = new File(fs.getDirectory() +"/" +filename);
+			    	   projectDir = fs.getDirectory();
+			    	   writeToConfig("DefaultProjectDir=" +projectDir);     	 
+				       if(!Files.isWritable(Paths.get(savefile.getParent()))) {
+				    	  Main.showError("No permission to write.", "Error");
+				    	  continue;
+				       }
+				  
+				       if(!savefile.getAbsolutePath().endsWith(".ses")) {
+				    	   savefile = new File(savefile.getAbsolutePath() +".ses");
+				       }
+				       
+				       Serializer ser = new Serializer();
+					   ser.serialize(savefile);
+					   break;
+				      }
+			    	 else {					    	 
+			    		 break;					    	 
+			    	 }		        	 
+	         }
+	      if(1==1) {
+	    	  return;
+	      }
     	  JFileChooser chooser = new JFileChooser();
     	  chooser.setAcceptAllFileFilterUsed(false);
     	  MyFilterSES sesFilter = new MyFilterSES();	    	  
@@ -2840,7 +3276,7 @@ public void actionPerformed(ActionEvent e) {
 static void clearData() {
 	try {
 	FileRead.checkSamples();
-	Main.drawCanvas.bam = false;
+	FileRead.asked = false;
 	undoList.clear();	
 	undoPointer = 0;
 	bedCanvas.bedOn = false;
@@ -2849,6 +3285,7 @@ static void clearData() {
 	if(drawCanvas.clusterNodes != null) {
 		drawCanvas.clusterNodes.clear();
 	}
+	Main.drawCanvas.annotationOn = false;
 	Main.variantCaller.setEnabled(false);
 	Main.average.setEnabled(false);
 	Average.outVector.clear();
@@ -3171,7 +3608,7 @@ public void componentResized(ComponentEvent e) {
 
 	static void cancel() {
 	  cancel = true;
-	  
+	 
 	  if(Draw.variantcalculator) {
 		  FileRead.cancelvarcount = true;
 		  Main.drawCanvas.ready("all");
@@ -3215,7 +3652,7 @@ public void componentResized(ComponentEvent e) {
 				    while (it.hasNext()) {
 				    	pair = (Map.Entry<SplitClass, Reads>)it.next();
 				        reads = pair.getValue();
-				        reads.loading = false;
+				        //reads.loading = false;
 				        reads.setLastRead(null);
 				    }						  
 			   }
@@ -3259,7 +3696,7 @@ public void componentResized(ComponentEvent e) {
 		   Main.drawCanvas.ready("Annotating variants");
 		   Main.drawCanvas.ready("Loading variants...");
 		   */
-		   
+		/*   
 		   FileRead.cancelvarcount = true;
 		   drawCanvas.current = null;
 		   drawCanvas.currentDraw = null;
@@ -3270,7 +3707,7 @@ public void componentResized(ComponentEvent e) {
 		   FileRead.head.putNext(null);
 		   Draw.updatevars = true;
 		   FileRead.cancelvarcount = true;
-		   FileRead.cancelfileread = true;
+		   FileRead.cancelfileread = true;*/
 		   Main.drawCanvas.ready("all");
 	  }
 	  else {
@@ -3295,21 +3732,21 @@ static void cancel(int nro) {
 		  
 	   }
 	   
-	   Iterator<Map.Entry<SplitClass, Reads>> it;
-		 Map.Entry<SplitClass, Reads> pair;
-		 Reads reads;
-	   for(int i = 0; i<drawCanvas.sampleList.size(); i++) {
+	//   Iterator<Map.Entry<SplitClass, Reads>> it;
+	//	 Map.Entry<SplitClass, Reads> pair;
+		// Reads reads;
+	 /*  for(int i = 0; i<drawCanvas.sampleList.size(); i++) {
 		   if(drawCanvas.sampleList.get(i).getreadHash() != null) {				
 				it = drawCanvas.sampleList.get(i).getreadHash().entrySet().iterator();
 			    while (it.hasNext()) {
 			    	pair = (Map.Entry<SplitClass, Reads>)it.next();
-			        reads = pair.getValue();
-			        reads.loading = false;
+			   //     reads = pair.getValue();
+			        //reads.loading = false;
 			    }
 				  
 		   }
 	   }
-	   
+	   */
 		   for(int i = 0 ; i<Main.bedCanvas.bedTrack.size(); i++) {
 			   Main.bedCanvas.removeBeds(Main.bedCanvas.bedTrack.get(i));
 		   }
@@ -3428,7 +3865,9 @@ static void removeAnnotationFile(String genomeName, String annotationFile) {
 	
 	
 	try {
-	
+	if(genomehash.get(genomeName) == null) {
+		return;
+	}
 	for(int i = 1 ; i<genome.getItemCount(); i++) {			
 		if(genome.getItem(i).getName().equals(genomeName)) {				
 			JMenu addMenu = (JMenu)genome.getItem(i);	
@@ -3517,6 +3956,40 @@ public static void putMessage(String message) {
 		widthLabel.setText(MethodLibrary.formatNumber(drawCanvas.splits.get(0).chromEnd) +"bp");
 	}
 }
+public static String setProxyVariables() {
+
+	
+	if(ProxySettings.proxytypes.getSelectedItem().toString().contains("HTTP")) {
+		type = Proxy.Type.HTTP;
+	}
+	else if(ProxySettings.proxytypes.getSelectedItem().toString().contains("SOCKS")) {
+		type = Proxy.Type.SOCKS;
+	}
+	else {
+		type = Proxy.Type.DIRECT;
+	}
+	
+	if(ProxySettings.hostField.getText().trim().equals("Proxy host") || ProxySettings.hostField.getText().trim().equals("")) {
+		return "Set proxy host in settings";
+	}
+	else {
+		address = ProxySettings.hostField.getText().trim();
+	}
+	
+	if(ProxySettings.portField.getText().trim().equals("Port") || ProxySettings.portField.getText().trim().equals("")) {
+		return "Set proxy port in settings";
+	}
+	else {		    		
+		String porttest = ProxySettings.portField.getText().trim();
+		try {
+			port = Integer.parseInt(porttest);
+		}
+		catch(Exception e) {
+			return "Set proxy port in settings (number)";
+		}
+	}
+	return "";
+}
 public class CheckUpdates extends SwingWorker<String, Object> {
 	private class DefaultTrustManager implements X509TrustManager {
 
@@ -3531,21 +4004,50 @@ public class CheckUpdates extends SwingWorker<String, Object> {
             return null;
         }
 	}
-
+	
 	protected String doInBackground() {
-		try {/*
-			if(!new File(userDir+"/genomes/ensembl.txt").exists()) {
-				
-				Main.downloadFile(new URL("https://www.cs.helsinki.fi/u/rkataine/BasePlayer/update/ensembl.txt"), userDir+"/genomes/", 0);
-			
-		    }*/
+		try {
+			 
 			SSLContext ctx = SSLContext.getInstance("TLS");
 	        ctx.init(new KeyManager[0], new TrustManager[] {new DefaultTrustManager()}, new SecureRandom());
 	        SSLContext.setDefault(ctx);
 		    URL file = new URL("https://baseplayer.fi/update/BasePlayer.jar");
-			
-		    HttpsURLConnection httpCon = (HttpsURLConnection) file.openConnection();	 
-		    //HttpURLConnection httpCon = (HttpURLConnection) file.openConnection();	 
+		    HttpsURLConnection httpCon = null;
+		    Proxy proxy = null;
+		   
+		    if(ProxySettings.useProxy.isSelected()) {
+		    	
+		    	String res = setProxyVariables();
+		    	
+		    	if(res.equals("")) {
+				    InetSocketAddress proxyInet = new InetSocketAddress(address,port);
+				    proxy = new Proxy(type, proxyInet);				  
+				    httpCon = (HttpsURLConnection) file.openConnection(proxy);				   
+		    	}
+		    }
+		    else {
+		    	httpCon = (HttpsURLConnection) file.openConnection();
+		    }	   
+		    try {		    	
+		    	httpCon.connect();
+		    }
+		    catch(Exception e) {
+		    	
+		    	if(ProxySettings.useProxy.isSelected()) {
+		    		Main.showError("Could not connect to internet to check updates.\n"
+		    		+ "Proxy settings are not correct. Go to Tools -> Settings -> Proxy.\n"
+		    		+ "You can download updates manually from https://baseplayer.fi/update/\n"
+		    		+ "Download BasePlayer.jar to your BasePlayer directory and overwrite the old one.", "Error");
+		    		return "";
+		    	}
+		    	else {
+		    		Main.showError("Could not connect to internet to check updates.\n"
+		    		+ "If you are behind proxy server, Go to Tools -> Settings -> Proxy.\n"
+		    		+ "You can download updates manually from https://baseplayer.fi/update/\n"
+		    		+ "Download BasePlayer.jar to your BasePlayer directory and overwrite the old one.", "Error");
+		    		return "";
+		    	}
+		    }
 		    httpCon.setHostnameVerifier(new HostnameVerifier() {
 	            @Override
 	            public boolean verify(String arg0, SSLSession arg1) {
@@ -3553,8 +4055,6 @@ public class CheckUpdates extends SwingWorker<String, Object> {
 	            }
 	        });
 		    File homefile = new File(userDir +"/BasePlayer.jar");
-		   
-		    httpCon.connect();
 		   
 		    if(httpCon.getLastModified() != homefile.lastModified()) {
 		    	//putMessage("Updates available. Please click File->Update to get the most recent version.");
@@ -3571,7 +4071,13 @@ public class CheckUpdates extends SwingWorker<String, Object> {
 		    httpCon.disconnect();
 		    file = new URL("https://baseplayer.fi/update/Launcher.jar");
 		    homefile = new File(userDir +"/Launcher.jar");
-		    httpCon = (HttpsURLConnection) file.openConnection();
+		    if(ProxySettings.useProxy.isSelected() && proxy != null) {
+		    	 httpCon = (HttpsURLConnection) file.openConnection(proxy);
+		    }
+		    else {
+		    	 httpCon = (HttpsURLConnection) file.openConnection();
+		    }
+		   
 		    httpCon.setHostnameVerifier(new HostnameVerifier() {
 	            @Override
 	            public boolean verify(String arg0, SSLSession arg1) {
@@ -3679,7 +4185,9 @@ public class CheckUpdates extends SwingWorker<String, Object> {
 	}
 }
 static void showError(String error, String dialogtype) {
-	VariantHandler.frame.setAlwaysOnTop(false);
+	if(VariantHandler.frame != null) {
+		VariantHandler.frame.setAlwaysOnTop(false);
+	}
 	if(dialogtype.equals("Error")) {
 	
 		JOptionPane.showMessageDialog(Main.drawScroll, error, dialogtype, JOptionPane.ERROR_MESSAGE);
@@ -3688,10 +4196,30 @@ static void showError(String error, String dialogtype) {
 	else {
 		JOptionPane.showMessageDialog(Main.drawScroll, error, dialogtype, JOptionPane.INFORMATION_MESSAGE);
 	}
-	VariantHandler.frame.setAlwaysOnTop(true);
+	/*if(VariantHandler.frame != null) {
+		VariantHandler.frame.setAlwaysOnTop(true);
+	}*/
+	
+}
+static void showError(String error, String dialogtype, Component component) {
+	if(VariantHandler.frame != null) {
+		VariantHandler.frame.setAlwaysOnTop(false);
+	}
+	if(dialogtype.equals("Error")) {
+	
+		JOptionPane.showMessageDialog(component, error, dialogtype, JOptionPane.ERROR_MESSAGE);
+	}
+	
+	else {
+		JOptionPane.showMessageDialog(component, error, dialogtype, JOptionPane.INFORMATION_MESSAGE);
+	}
+	/*if(VariantHandler.frame != null) {
+		VariantHandler.frame.setAlwaysOnTop(true);
+	}*/
 	
 }
 public static void gotoURL(String url) {
+	
 	 if( !java.awt.Desktop.isDesktopSupported() ) {
 
          System.err.println( "Desktop is not supported" );
@@ -3712,8 +4240,8 @@ public static void gotoURL(String url) {
              desktop.browse( uri );
          }
          catch ( Exception ex ) {
-
-             System.err.println( ex.getMessage() );
+        	 Main.showError("Can not open URL.", "Error");
+             //System.err.println( ex.getMessage() );
              ex.printStackTrace();
          }	  
 }
@@ -3721,15 +4249,39 @@ public static void gotoURL(String url) {
 
 
 public static String checkFile(URL url, ArrayList<String> others) throws IOException {
-	
-		URLConnection httpConn = (URLConnection) url.openConnection();
+		
+		URLConnection httpCon = null;
 		String fileURL = url.getPath();		
 		
-		// always check HTTP response code first
-		httpConn.connect();
+		Proxy proxy = null;
+		if(ProxySettings.useProxy.isSelected()) {
+	    	String res = setProxyVariables();
+	    	if(res.equals("")) {
+			    InetSocketAddress proxyInet = new InetSocketAddress(address,port);
+			    proxy = new Proxy(type, proxyInet);
+			    httpCon = (URLConnection) url.openConnection(proxy);			   
+	    	}
+	    }
+	    else {
+	    	httpCon = (URLConnection) url.openConnection();
+	    }
+		 try {
+		    	httpCon.connect();
+		    }
+		    catch(Exception e) {	    	
+		    	if(ProxySettings.useProxy.isSelected()) {
+		    		Main.showError("Could not connect to internet to download genomes.\n"
+		    		+ "Proxy settings are not correct. Go to Tools -> Settings -> Proxy.", "Error");	    		
+		    	}
+		    	else {
+		    		Main.showError("Could not connect to internet to download genomes.\n"
+		    		+ "If you are behind proxy server, Go to Tools -> Settings -> Proxy.", "Error");	    		
+		    	}
+		    	return null;
+		    }	 	
 		String fileName = "";
 		
-		String disposition = httpConn.getHeaderField("Content-Disposition");
+		String disposition = httpCon.getHeaderField("Content-Disposition");
 		
 		if (disposition != null) {
 			// extracts file name from header field
@@ -3746,7 +4298,7 @@ public static String checkFile(URL url, ArrayList<String> others) throws IOExcep
 		
 		// opens input stream from the HTTP connection
 		try {
-			inputStream = httpConn.getInputStream();
+			inputStream = httpCon.getInputStream();
 			
 		}
 		catch(Exception e) {
@@ -3780,19 +4332,45 @@ public static String checkFile(URL url, ArrayList<String> others) throws IOExcep
 }
 
 public static String downloadFile(URL url, String saveDir, int size) throws IOException {
+	 URLConnection httpCon = null;
+	 Proxy proxy = null;
+	 if(ProxySettings.useProxy.isSelected()) {
+	    	String res = setProxyVariables();	    	
+	    	if(res.equals("")) {
+			    InetSocketAddress proxyInet = new InetSocketAddress(address,port);
+			    proxy = new Proxy(type, proxyInet);				  
+			    httpCon = (URLConnection) url.openConnection(proxy);			   
+	    	}
+	    }
+	    else {
+	    	httpCon = (URLConnection) url.openConnection();
+	    }
 	
-	URLConnection httpConn = (URLConnection) url.openConnection();
-	String fileURL = url.getPath();
-	
+	    try {
+	    	httpCon.connect();
+	    }
+	    catch(Exception e) {	    	
+	    	if(ProxySettings.useProxy.isSelected()) {
+	    		Main.showError("Could not connect to internet to download genomes.\n"
+	    		+ "Proxy settings are not correct. Go to Tools -> Settings -> Proxy.\n"
+	    		+ "You can download genome files manually from Ensembl by selecting the genome and pressing \"Get file links.\" button below.\n"
+	    		+ "Download files with web browser and add them manually. See online manual for more instructions.", "Error");	    		
+	    	}
+	    	else {
+	    		Main.showError("Could not connect to internet to download genomes.\n"
+	    		+ "If you are behind proxy server, Go to Tools -> Settings -> Proxy.\n"
+	    		+ "You can download genome files manually from Ensembl by selecting the genome and pressing \"Get file links.\" button below.\n"
+	    		+ "Download files with web browser and add them manually. See online manual for more instructions.", "Error");	    		
+	    	}
+	    	return null;
+	    }	 	
+	 	
+		String fileURL = url.getPath();	
 	
 		int BUFFER_SIZE = 4096;
-	// always check HTTP response code first
-	httpConn.connect();
-		String fileName = "";
-		
-		String disposition = httpConn.getHeaderField("Content-Disposition");
-		
-		
+	// always check HTTP response code first		
+		String fileName = "";		
+		String disposition = httpCon.getHeaderField("Content-Disposition");		
 		
 		if (disposition != null) {
 			// extracts file name from header field
@@ -3811,15 +4389,15 @@ public static String downloadFile(URL url, String saveDir, int size) throws IOEx
 		
 		// opens input stream from the HTTP connection
 		try {
-			inputStream = httpConn.getInputStream();
+			inputStream = httpCon.getInputStream();
 		}
 		catch(Exception e) {
 			if(fileName.endsWith(".gff3.gz")) {
 				String urldir = fileURL.substring(0,fileURL.lastIndexOf("/")+1);				
 				fileName = getNewFile(url.getHost(), urldir, fileName);
 				url = new URL(url.getProtocol()+"://" +url.getHost() +"/" +urldir +"/" +fileName);
-				httpConn = (URLConnection) url.openConnection();
-				inputStream = httpConn.getInputStream();
+				httpCon = (URLConnection) url.openConnection();
+				inputStream = httpCon.getInputStream();
 				
 			}
 		}
@@ -3937,23 +4515,55 @@ public class Updater extends SwingWorker<String, Object> {
 		SSLContext ctx = SSLContext.getInstance("TLS");
         ctx.init(new KeyManager[0], new TrustManager[] {new DefaultTrustManager()}, new SecureRandom());
         SSLContext.setDefault(ctx);
-		HttpsURLConnection httpConn = (HttpsURLConnection) url.openConnection();
-		httpConn.setHostnameVerifier(new HostnameVerifier() {
+		HttpsURLConnection httpCon = null;
+		Proxy proxy = null;
+		if(ProxySettings.useProxy.isSelected()) {
+	    	String res = setProxyVariables();
+	    	if(res.equals("")) {
+			    InetSocketAddress proxyInet = new InetSocketAddress(address,port);
+			    proxy = new Proxy(type, proxyInet);
+			    httpCon = (HttpsURLConnection) url.openConnection(proxy);			   
+	    	}
+	    }
+	    else {
+	    	httpCon = (HttpsURLConnection) url.openConnection();
+	    }
+		httpCon.setHostnameVerifier(new HostnameVerifier() {
             @Override
             public boolean verify(String arg0, SSLSession arg1) {
                 return true;
             }
         });
-		httpConn.connect();
-		int responseCode = httpConn.getResponseCode();
+		try {
+			httpCon.connect();
+	    }
+	    catch(Exception e) {
+	    	
+	    	if(ProxySettings.useProxy.isSelected()) {
+	    		Main.showError("Could not connect to internet to download updates.\n"
+	    		+ "Proxy settings are not correct. Go to Tools -> Settings -> Proxy.\n"
+	    		+ "You can download updates manually from https://baseplayer.fi/update/\n"
+	    		+ "Download BasePlayer.jar to your BasePlayer directory and overwrite the old one.", "Error");
+	    		
+	    	}
+	    	else {
+	    		Main.showError("Could not connect to internet to download updates.\n"
+	    		+ "If you are behind proxy server, Go to Tools -> Settings -> Proxy.\n"
+	    		+ "You can download updates manually from https://baseplayer.fi/update/\n"
+	    		+ "Download BasePlayer.jar to your BasePlayer directory and overwrite the old one.", "Error");
+	    		
+	    	}
+	    	return;
+	    }
+		int responseCode = httpCon.getResponseCode();
 		int BUFFER_SIZE = 4096;
 		System.out.println("Ready.");
 		// always check HTTP response code first
 		if (responseCode == HttpsURLConnection.HTTP_OK) {
 			String fileName = "";
-			String disposition = httpConn.getHeaderField("Content-Disposition");
+			String disposition = httpCon.getHeaderField("Content-Disposition");
 		//	String contentType = httpConn.getContentType();
-			int contentLength = httpConn.getContentLength();
+			int contentLength = httpCon.getContentLength();
 
 			if (disposition != null) {
 				// extracts file name from header field
@@ -3969,7 +4579,7 @@ public class Updater extends SwingWorker<String, Object> {
 			}
 
 			// opens input stream from the HTTP connection
-			InputStream inputStream = httpConn.getInputStream();
+			InputStream inputStream = httpCon.getInputStream();
 			String saveFilePath = saveDir + File.separator + fileName +"_temp";
 			File testFile = new File(saveDir + File.separator +"_test");
 			// opens an output stream to save into file
@@ -4011,7 +4621,7 @@ public class Updater extends SwingWorker<String, Object> {
 					  out.close();
 					 
 										  
-				newfile.setLastModified(httpConn.getLastModified());
+				newfile.setLastModified(httpCon.getLastModified());
 				tempfile.delete();
 				if(!fileName.contains("Launcher")) {
 					Main.showError("BasePlayer updated. Please restart program to apply changes.", "Note");
@@ -4027,7 +4637,7 @@ public class Updater extends SwingWorker<String, Object> {
 			System.out.println("No file to download. Server replied HTTP code: " + responseCode);
 			ErrorLog.addError("No file to download. Server replied HTTP code: " + responseCode);
 		}
-			httpConn.disconnect();
+			httpCon.disconnect();
 		}
 		catch(Exception ex) {
 			ex.printStackTrace();
@@ -4155,6 +4765,8 @@ public void mousePressed(MouseEvent event) {
 //	frame.requestFocus();
 //	}
 //	Logo.frame.setVisible(false);
+mouseX = event.getX();
+		
 if(event.getSource() == refDropdown) {
 	switch(event.getModifiers()) {	
 		case InputEvent.BUTTON1_MASK: {	
@@ -4306,7 +4918,7 @@ else if(event.getComponent().getName() != null) {
 	    	 changeAnnotation(annotation);
 	   
 	     }
-			 drawCanvas.chrom = chromosomeDropdown.getItemAt(0);
+			 //drawCanvas.chrom = chromosomeDropdown.getItemAt(0);
 			 chromosomeDropdown.setSelectedIndex(0);
 		}
 		}
@@ -4359,7 +4971,7 @@ public void changeRef(String dir) {
 		   }
 	   changeAnnotation(0);
 	   chromosomeDropdown.setSelectedIndex(0);
-	   drawCanvas.chrom = chromosomeDropdown.getItemAt(0);
+	   //drawCanvas.chrom = chromosomeDropdown.getItemAt(0);
   }
 	
 	
@@ -4574,7 +5186,8 @@ static void setFonts() {
 	buttonHeight = (int)(Main.defaultFontSize*1.5);
 	buttonWidth = Main.defaultFontSize*6;
 	//searchField.setMargin(new Insets(0,Main.defaultFontSize+8, 0, 0));
-	searchField.setBorder(BorderFactory.createCompoundBorder(searchField.getBorder(), BorderFactory.createEmptyBorder(0,Main.defaultFontSize+8, 0, 0)));
+	searchField.setBorder(null);
+	searchField.setBorder(BorderFactory.createCompoundBorder(searchField.getBorder(), BorderFactory.createEmptyBorder(0,Main.defaultFontSize+12, 0, 0)));
 	buttonDimension = new Dimension(buttonWidth, buttonHeight);		
 	
 	ChromDraw.seqFont= ChromDraw.seqFont.deriveFont((float)(Main.defaultFontSize+2));
@@ -4600,6 +5213,7 @@ static void setFonts() {
 		}
 	}
 	Average.setFonts(menuFont);
+	SampleDialog.setFonts(menuFont);
 	menubar.setMargin(new Insets(0,2,0,2));
     filemenu.setMinimumSize(filemenu.getPreferredSize());
     toolmenu.setMinimumSize(toolmenu.getPreferredSize());
@@ -4918,12 +5532,12 @@ public static class OpenProject extends SwingWorker<String, Object> {
 		
 		try {
 			FileInputStream fin = new FileInputStream(projectfile);
-			ObjectInputStream ois = new ObjectInputStream(fin) {
+			ObjectInputStream ois = new ObjectInputStream(fin) {   			  
 				
-										 
 				protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
 				    ObjectStreamClass read = super.readClassDescriptor();
-				    
+				   
+				   
 				    if (read.getName() != null && !read.getName().contains("[") && !read.getName().contains(".")) {
 				    	 try {
 					    	Field f = read.getClass().getDeclaredField("name");
@@ -4937,81 +5551,31 @@ public static class OpenProject extends SwingWorker<String, Object> {
 				    	 }
 				    }
 				    return read;
-				}
-			
-				
+				}				
 			};
 			
 			try {
 					drawCanvas.sampleList = (ArrayList<Sample>)ois.readObject();			
-					drawCanvas.splits = (ArrayList<SplitClass>) ois.readObject();
+					drawCanvas.splits = (ArrayList<SplitClass>)ois.readObject();
 					
 					for(int i = 0; i<drawCanvas.splits.size(); i++) {
 						drawCanvas.splits.get(i).resetSplits();
 					}
 				
-					Main.samples = (short)drawCanvas.sampleList.size();
-					drawCanvas.drawVariables = (DrawVariables)ois.readObject();		
-					
-				for(int i = 0 ; i<drawCanvas.sampleList.size(); i++) {
-					
-					drawCanvas.sampleList.get(i).resetreadHash();
-					if(drawCanvas.sampleList.get(i).getTabixFile() != null) {		
-						if(!new File(drawCanvas.sampleList.get(i).getTabixFile()).exists()) {
-							
-							ErrorLog.addError(drawCanvas.sampleList.get(i).getTabixFile() +" not found.");
-							missing = true;
-							drawCanvas.removeSample(drawCanvas.sampleList.get(i));									
-							i--;
-							continue;
-						}								
+					Main.samples = drawCanvas.sampleList.size();
+					try {
+						drawCanvas.drawVariables = (DrawVariables)ois.readObject();		
+					}
+					catch(Exception e) {
 						
-						if(drawCanvas.sampleList.get(i).vcfchr == null) {
-							drawCanvas.sampleList.get(i).vcfchr = "";
-						}
-						//if(!drawCanvas.sampleList.get(i).multipart) {
-							if(drawCanvas.sampleList.get(i).getVCFInput() == null) {
-								drawCanvas.sampleList.get(i).setInputStream();
-							}
-							FileRead.checkMulti(drawCanvas.sampleList.get(i));
-							if(!drawCanvas.sampleList.get(i).multipart && !drawCanvas.sampleList.get(i).multiVCF) {
-								Main.varsamples++;
-							}
-						/*}							
-						else {
-							
-						}*/
-					//	Main.varsamples++;
-						
+						e.printStackTrace();
 					}
-					else if(drawCanvas.sampleList.get(i).calledvariants) {
-						Main.varsamples++;
-					}
-					
-					if(drawCanvas.sampleList.get(i).samFile != null) {
-						readsamples++;
-						if(drawCanvas.sampleList.get(i).samFile.getName().endsWith("cram")) {
-							drawCanvas.sampleList.get(i).readString = "CRAM";
-						}
-						else {
-							drawCanvas.sampleList.get(i).readString = "BAM";
-						}
-					}
-					else {
-						drawCanvas.sampleList.get(i).readString = "No BAM/CRAM";
-					}
-					if(drawCanvas.sampleList.get(i).longestRead == null) {
-						
-						drawCanvas.sampleList.get(i).longestRead = 0;
-					}
-				}
-				for(int i = 0; i<drawCanvas.splits.size(); i++) {
-					drawCanvas.splits.get(i).setDivider(4.0);
-				}									
 				
 				try {
 					readingControls = true;
+					try {
 					Control.controlData = (ControlData)ois.readObject();
+					
 					if(Control.controlData.fileArray.size() > 0) {
 						
 						if(Control.controlData.fileArray.get(0) instanceof ControlFile) {
@@ -5044,10 +5608,13 @@ public static class OpenProject extends SwingWorker<String, Object> {
 						 
 					}
 				}
-					
+					}
+					catch(Exception e) {
+						e.printStackTrace();
+					}
 					readingControls = false;		
-		
-		//		if(ois.available() > 0) {
+					
+				
 					readingbeds = true;
 				try {
 					
@@ -5055,32 +5622,94 @@ public static class OpenProject extends SwingWorker<String, Object> {
 					
 				}
 				catch(EOFException excep) {
-					
+					excep.printStackTrace();
 				}
 				try {
 					Settings.settings = (HashMap<String,Integer>)ois.readObject();
 					Settings.setValues();
 				}
 				catch(Exception excep) {
-					
+					excep.printStackTrace();
 				}
 				try {
 					VariantHandler.variantSettings = (HashMap<String,Integer>)ois.readObject();
 					
-					VariantHandler.setValues();
+					
 				}
 				catch(Exception excep) {
 					
 				}
 				
 				ois.close();
-			//	}
+				for(int i = 0 ; i<drawCanvas.sampleList.size(); i++) {					
+					drawCanvas.sampleList.get(i).resetreadHash();
+					
+					if(drawCanvas.sampleList.get(i).getTabixFile() != null) {		
+						if(!new File(drawCanvas.sampleList.get(i).getTabixFile()).exists()) {
+							
+							ErrorLog.addError(drawCanvas.sampleList.get(i).getTabixFile() +" not found.");
+							missing = true;
+							drawCanvas.removeSample(drawCanvas.sampleList.get(i));									
+							i--;
+							continue;
+						}								
+						
+						if(drawCanvas.sampleList.get(i).vcfchr == null) {
+							drawCanvas.sampleList.get(i).vcfchr = "";
+						}
+						//if(!drawCanvas.sampleList.get(i).multipart) {
+							if(drawCanvas.sampleList.get(i).getVCFInput() == null) {
+								drawCanvas.sampleList.get(i).setInputStream();
+							}
+							FileRead.checkMulti(drawCanvas.sampleList.get(i));
+							if(!drawCanvas.sampleList.get(i).multipart && !drawCanvas.sampleList.get(i).multiVCF && !drawCanvas.sampleList.get(i).annotation) {
+								Main.varsamples++;
+							}
+							if(drawCanvas.sampleList.get(i).annotation) {
+								Main.drawCanvas.annotationOn = true;
+								if(drawCanvas.sampleList.get(i).intersect) {
+									Main.drawCanvas.intersect = true;
+								}
+							}
+						/*}							
+						else {
+							
+						}*/
+					//	Main.varsamples++;
+						
+					}
+					else if(drawCanvas.sampleList.get(i).calledvariants) {
+						Main.varsamples++;
+					}
+					
+					if(drawCanvas.sampleList.get(i).samFile != null) {
+						readsamples++;
+						if(drawCanvas.sampleList.get(i).samFile.getName().endsWith("cram")) {
+							drawCanvas.sampleList.get(i).readString = "CRAM";
+						}
+						else {
+							drawCanvas.sampleList.get(i).readString = "BAM";
+						}
+					}
+					else {
+						drawCanvas.sampleList.get(i).readString = "No BAM/CRAM";
+					}
+					if(drawCanvas.sampleList.get(i).longestRead == null) {
+						
+						drawCanvas.sampleList.get(i).longestRead = 0;
+					}
+				}
+				
+				for(int i = 0; i<drawCanvas.splits.size(); i++) {
+					drawCanvas.splits.get(i).setDivider(4.0);
+				}									
+				
 				if(bedCanvas.bedTrack != null && bedCanvas.bedTrack.size() > 0) {					
 					  
 					boolean first = true;
 					for(int i = 0 ; i< bedCanvas.bedTrack.size(); i++) {
 					
-						if(!bedCanvas.bedTrack.get(i).file.exists()) {
+						if(bedCanvas.bedTrack.get(i).file != null &&!bedCanvas.bedTrack.get(i).file.exists()) {
 							bedCanvas.bedTrack.remove(i);							
 							i--;
 							continue;
@@ -5116,7 +5745,8 @@ public static class OpenProject extends SwingWorker<String, Object> {
 							//bedCanvas.bedTrack.get(i).setBBfileReader(new BBFileReader(bedCanvas.bedTrack.get(i).url.toString(), stream, bedCanvas.bedTrack.get(i)));
 						}
 						else if(bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith("bigwig") || bedCanvas.bedTrack.get(i).file.getName().toLowerCase().endsWith("bw")) {									
-							bedCanvas.bedTrack.get(i).setZoomlevel(1);									
+							bedCanvas.bedTrack.get(i).bigWig = true;
+							bedCanvas.bedTrack.get(i).setZoomlevel(6);									
 							bedCanvas.bedTrack.get(i).setBBfileReader(new BBFileReader(bedCanvas.bedTrack.get(i).file.getCanonicalPath(), bedCanvas.bedTrack.get(i)));
 							bedCanvas.bedTrack.get(i).getSelectorButton().setVisible(false);
 						}
@@ -5129,8 +5759,8 @@ public static class OpenProject extends SwingWorker<String, Object> {
 							 bedCanvas.bedTrack.get(i).setSelector();
 							 bedCanvas.bedTrack.get(i).getSelectorButton().setVisible(true);
 						}
-						if((bedCanvas.bedTrack.get(i).file != null &&bedCanvas.bedTrack.get(i).file.length() / 1048576 < Settings.settings.get("bigFile")) || bedCanvas.bedTrack.get(i).getZoomlevel() != null) {
-							 bedCanvas.bedTrack.get(i).small = true;					    	  	    	 
+						if((bedCanvas.bedTrack.get(i).file != null && bedCanvas.bedTrack.get(i).file.length() / 1048576 < Settings.settings.get("bigFile")) || bedCanvas.bedTrack.get(i).getZoomlevel() != null) {
+							 bedCanvas.bedTrack.get(i).small = true;							 
 					    }	
 					    else {
 					    	 bedCanvas.bedTrack.get(i).small = false;	
@@ -5162,8 +5792,8 @@ public static class OpenProject extends SwingWorker<String, Object> {
 			
 	    	frame.setTitle("BasePlayer - Project: " +drawCanvas.drawVariables.projectName);
 	    	FileRead.checkSamples();
-	    	
-			Main.drawCanvas.drawVariables.visiblesamples = Main.samples;
+	    	VariantHandler.setValues();
+			Main.drawCanvas.drawVariables.visiblesamples = (short)Main.samples;
 			Main.drawCanvas.checkSampleZoom();
 			drawCanvas.resizeCanvas(Main.drawCanvas.getWidth(), Main.drawCanvas.getHeight());
 			
@@ -5202,7 +5832,7 @@ public static class OpenProject extends SwingWorker<String, Object> {
 }
 void openProject() {
 	
-	 JFileChooser chooser = new JFileChooser(Main.projectDir);	
+	 /*JFileChooser chooser = new JFileChooser(Main.projectDir);	
 	
 	 chooser.setAcceptAllFileFilterUsed(false);
   	 MyFilterSES sesFilter = new MyFilterSES();	    	  
@@ -5210,19 +5840,43 @@ void openProject() {
   	 chooser.setDialogTitle("Open project");
   	 chooser.setPreferredSize(new Dimension((int)screenSize.getWidth()/3, (int)screenSize.getHeight()/3));
      int returnVal = chooser.showOpenDialog((Component)this.getParent());	         	         
+     */
+	FileRead.asked = false;
+	
+     FileDialog fc = new FileDialog(frame, "Choose project file", FileDialog.LOAD);
+	  fc.setDirectory(Main.projectDir);
+	  fc.setFile("*.ses");
+	  fc.setFilenameFilter(new FilenameFilter() {
+			public boolean accept(File dir, String name) {
+		        return name.toLowerCase().endsWith(".ses");
+		     }
+		 });
+	  fc.setMultipleMode(false);
+	  fc.setVisible(true);
+	  String openfile = fc.getFile();			
   
-     if (returnVal == JFileChooser.APPROVE_OPTION) {
-    	 	clearData();
+   if (openfile != null) {
+	   File addfile = new File(fc.getDirectory() +"/" +openfile);
+	   projectDir = fc.getDirectory();	
+	   writeToConfig("DefaultProjectDir=" +projectDir);     	 
+  	   clearData();
+  	   OpenProject opener = new OpenProject(addfile);
+  	   opener.execute();
+   }
+    /* if (returnVal == JFileChooser.APPROVE_OPTION) {
+    	 	
     	 	projectDir = chooser.getSelectedFile().getParent();	 	
 			writeToConfig("DefaultProjectDir=" +projectDir);
 			OpenProject opener = new OpenProject(chooser.getSelectedFile());
 			opener.execute();
-     }
+     }*/
 }
 
 
 static void getBands() {
+	
 	try {
+		
 		File bandfile = new File(genomeDir.getCanonicalPath() +"/" +selectedGenome +"/bands.txt");
 		
 		if(bandfile.exists()) {
@@ -5492,7 +6146,7 @@ public class Seqfetcher extends SwingWorker<String, Object> {
 				if(readsample.getreadHash().get(split) == null) {
 					readsample.resetreadHash();
 				}
-				readreader.getReads(chrom, centerpos-100, centerpos+100, readsample.getreadHash().get(split));
+				readreader.getReads(chrom, centerpos-100, centerpos+100, readsample.getreadHash().get(split), split);
 			
 				if(readsample.getreadHash().get(split) == null) {
 					readsample.resetreadHash();
@@ -5749,7 +6403,7 @@ public void keyPressed(KeyEvent e) {
 		}
 		if(keyCode == KeyEvent.VK_W) {
 			
-			System.out.println("\n----\n");
+		//	System.out.println("\n----\n");
 			
 			/*
 				int[][] array = new int[Main.varsamples][VariantHandler.callSlider.getUpperValue()+1];
@@ -5780,7 +6434,7 @@ public void keyPressed(KeyEvent e) {
 				
 						node = node.getNext();
 					}*/
-				int width = Main.drawCanvas.getWidth()-Main.sidebarWidth;
+			/*	int width = Main.drawCanvas.getWidth()-Main.sidebarWidth;
 			
 				JPopupMenu menu = new JPopupMenu();
 			Plotter plotter = new Plotter(width);			
@@ -5788,6 +6442,7 @@ public void keyPressed(KeyEvent e) {
 			menu.add(plotter);
 			menu.pack();
 			menu.show(Main.drawCanvas,Main.sidebarWidth, drawScroll.getVerticalScrollBar().getValue());
+		*/
 		}
 		if(keyCode == KeyEvent.VK_PLUS || keyCode == 107) {
 			
@@ -5923,7 +6578,7 @@ public void keyPressed(KeyEvent e) {
 		}
 		else {
 			try {	  	    
-	    		   
+	    		   /*
 		    	  JFileChooser chooser = new JFileChooser(file.getPath());
 		    	  chooser.setAcceptAllFileFilterUsed(true);			    	  	  
 		    	  
@@ -5946,7 +6601,7 @@ public void keyPressed(KeyEvent e) {
 					   Seqfetcher fetcher = new Seqfetcher(file, outfile);
 					   fetcher.execute();
 				       
-			      }
+			      }*/
 				}
 				catch(Exception ex) {
 					ex.printStackTrace();
@@ -5958,128 +6613,7 @@ public void keyPressed(KeyEvent e) {
 	else if(keyCode == KeyEvent.VK_ENTER) {
 		
 		if(e.getSource() == searchField) {
-			if(searchField.getText().equals("tati") || searchField.getText().equals("third")) {
-				ReadNode read;
-				HashMap<String, String[]> chrs = new HashMap<String, String[]>();
-				HashMap<String, Integer> temp = new HashMap<String, Integer>();
-				for(int j = 0; j<drawCanvas.sampleList.get(0).getreadHash().get(drawCanvas.splits.get(0)).getReads().size();j++) {
-					read = drawCanvas.sampleList.get(0).getreadHash().get(drawCanvas.splits.get(0)).getReads().get(j);
-					
-					while(read != null) {	
-						
-						if (read.SA != null) {
-							String[] SAs = read.SA.split(";");
-							temp.clear();
-							for(int i = 0; i<SAs.length; i++) {
-								String[] sa = SAs[i].split(",");
-								if(temp.containsKey(sa[0])) {
-									continue;
-								}
-								else {
-									temp.put(sa[0], 1);
-								}
-								if(!chrs.containsKey(sa[0])) {
-									String[] add = {"1", sa[1]};
-									chrs.put(sa[0], add);
-								}
-								else {
-									String[] add = chrs.get(sa[0]);
-									String[] newString = {""+(Integer.parseInt(add[0])+1), add[1] };
-									chrs.put(sa[0], newString); 
-								}									
-							}								
-						}
-						read = read.getNext();						
-					}												
-				}
-				Iterator<Map.Entry<String, String[]>> it = chrs.entrySet().iterator();
-				String result = "Results for splitted reads:\n\n";
-			    while (it.hasNext()) {
-			        Map.Entry<String, String[]> pair = it.next();
-			       
-			        result += "chr" +pair.getKey() + ":" +MethodLibrary.formatNumber(Integer.parseInt(pair.getValue()[1]))  +" = " + pair.getValue()[0] +"\n";
-			        it.remove(); // avoids a ConcurrentModificationException
-			    }
-			    ErrorLog.addError(result);
-			    ErrorLog.frame.setLocation(frame.getLocationOnScreen().x+10, frame.getLocationOnScreen().y+10);
-				
-				ErrorLog.frame.setState(JFrame.NORMAL);
-				ErrorLog.frame.setVisible(true);
-			 //   JOptionPane.showMessageDialog(Main.chromDraw, result, "Tati's results", JOptionPane.INFORMATION_MESSAGE);
-				read = null;
-				return;
-			}
-			drawCanvas.scrollbar = false;
-		//	searchString = searchField.getText();
-				if(searchField.getText().toUpperCase().startsWith("S ") && searchField.getText().length() > 2) {
-					
-					for(int i = 0; i<Main.drawCanvas.sampleList.size(); i++) {
-						
-						if(Main.drawCanvas.sampleList.get(i).getName().toUpperCase().contains(searchField.getText().toUpperCase().substring(2))) {
-							drawCanvas.drawVariables.visiblestart = (short)i;
-							drawCanvas.drawVariables.visiblesamples = (short)1;
-							
-							drawCanvas.resizeCanvas(this.getWidth(), (int)(Main.samples*drawCanvas.drawVariables.sampleHeight));
-							Draw.setScrollbar((int)(i*drawCanvas.drawVariables.sampleHeight));								
-							break;
-						}
-					}
-					return;
-				}
-			//	drawCanvas.clearReads();
-				if(searchField.getText().contains(";")) {
-					searchList = searchField.getText().split(";");
-					
-					for(int i = 0 ; i<searchList.length; i++) {
-						
-						returnlist = parseSearch(searchList[i]);
-						
-						
-						if(returnlist != null) {
-							
-							if(i == 0) {
-								FileRead.search = true;
-								drawCanvas.gotoPos(returnlist[0], Integer.parseInt(returnlist[1]), Integer.parseInt(returnlist[2]));
-								FileRead.search = false;
-							}
-							else {
-								
-								drawCanvas.addSplit(returnlist[0], Integer.parseInt(returnlist[1]), Integer.parseInt(returnlist[2]));
-							}
-						}
-					}
-				}
-				else {
-					try {
-					returnlist = parseSearch(searchField.getText());
-					if(returnlist != null) {
-						if(undoPointer < undoList.size()-1) {
-							undoList.add(undoPointer+1,searchField.getText());
-							if(undoPointer < undoList.size()-1) {
-								for(int i = undoPointer+2 ; i< undoList.size(); i++) {
-									undoList.remove(i);
-									i--;
-								}
-							}
-						}
-						else {
-							undoList.add(searchField.getText());
-						}
-						undoPointer = undoList.size()-1;
-						
-							forward.setEnabled(false);
-							
-						if(undoPointer > 0) {
-							back.setEnabled(true);
-						}
-						FileRead.search = true;
-						drawCanvas.gotoPos(returnlist[0], Integer.parseInt(returnlist[1]), Integer.parseInt(returnlist[2]));
-					}
-					}
-					catch(Exception ex) {
-						ex.printStackTrace();
-					}
-				}
+				search(searchField.getText());
 				
 				
 			}
@@ -6087,58 +6621,139 @@ public void keyPressed(KeyEvent e) {
 	}
 	
 }
+static void search(String pos) {
+	if(pos.equals("tati") || pos.equals("third")) {
+		ReadNode read;
+		HashMap<String, String[]> chrs = new HashMap<String, String[]>();
+		HashMap<String, Integer> temp = new HashMap<String, Integer>();
+		for(int j = 0; j<drawCanvas.sampleList.get(0).getreadHash().get(drawCanvas.splits.get(0)).getReads().size();j++) {
+			read = drawCanvas.sampleList.get(0).getreadHash().get(drawCanvas.splits.get(0)).getReads().get(j);
+			
+			while(read != null) {	
+				
+				if (read.SA != null) {
+					String[] SAs = read.SA.split(";");
+					temp.clear();
+					for(int i = 0; i<SAs.length; i++) {
+						String[] sa = SAs[i].split(",");
+						if(temp.containsKey(sa[0])) {
+							continue;
+						}
+						else {
+							temp.put(sa[0], 1);
+						}
+						if(!chrs.containsKey(sa[0])) {
+							String[] add = {"1", sa[1]};
+							chrs.put(sa[0], add);
+						}
+						else {
+							String[] add = chrs.get(sa[0]);
+							String[] newString = {""+(Integer.parseInt(add[0])+1), add[1] };
+							chrs.put(sa[0], newString); 
+						}									
+					}								
+				}
+				read = read.getNext();						
+			}												
+		}
+		Iterator<Map.Entry<String, String[]>> it = chrs.entrySet().iterator();
+		String result = "Results for splitted reads:\n\n";
+	    while (it.hasNext()) {
+	        Map.Entry<String, String[]> pair = it.next();
+	       
+	        result += "chr" +pair.getKey() + ":" +MethodLibrary.formatNumber(Integer.parseInt(pair.getValue()[1]))  +" = " + pair.getValue()[0] +"\n";
+	        it.remove(); // avoids a ConcurrentModificationException
+	    }
+	    ErrorLog.addError(result);
+	    ErrorLog.frame.setLocation(frame.getLocationOnScreen().x+10, frame.getLocationOnScreen().y+10);
+		
+		ErrorLog.frame.setState(JFrame.NORMAL);
+		ErrorLog.frame.setVisible(true);
+	 //   JOptionPane.showMessageDialog(Main.chromDraw, result, "Tati's results", JOptionPane.INFORMATION_MESSAGE);
+		read = null;
+		return;
+	}
+	drawCanvas.scrollbar = false;
+//	searchString = searchField.getText();
+		if(pos.toUpperCase().startsWith("S ") && pos.length() > 2) {
+			
+			for(int i = 0; i<Main.drawCanvas.sampleList.size(); i++) {
+				
+				if(Main.drawCanvas.sampleList.get(i).getName().toUpperCase().contains(pos.toUpperCase().substring(2))) {
+					
+					drawCanvas.drawVariables.visiblestart = (short)i;
+					drawCanvas.drawVariables.visiblesamples = (short)1;
+					
+					drawCanvas.resizeCanvas(Main.frame.getWidth(), (int)(Main.samples*drawCanvas.drawVariables.sampleHeight));
+					Draw.setScrollbar((int)(i*drawCanvas.drawVariables.sampleHeight));								
+					break;
+				}
+			}
+			return;
+		}
+	//	drawCanvas.clearReads();
+		if(pos.contains(";")) {
+			searchList = pos.split(";");
+			
+			for(int i = 0 ; i<searchList.length; i++) {
+				
+				returnlist = parseSearch(searchList[i]);
+				
+				
+				if(returnlist != null) {
+					
+					if(i == 0) {
+						FileRead.search = true;
+						drawCanvas.gotoPos(returnlist[0], Integer.parseInt(returnlist[1]), Integer.parseInt(returnlist[2]));
+						FileRead.search = false;
+					}
+					else {
+						
+						drawCanvas.addSplit(returnlist[0], Integer.parseInt(returnlist[1]), Integer.parseInt(returnlist[2]));
+					}
+				}
+			}
+		}
+		else {
+			try {
+			returnlist = parseSearch(pos);
+			if(returnlist != null) {
+				if(undoPointer < undoList.size()-1) {
+					undoList.add(undoPointer+1,searchField.getText());
+					if(undoPointer < undoList.size()-1) {
+						for(int i = undoPointer+2 ; i< undoList.size(); i++) {
+							undoList.remove(i);
+							i--;
+						}
+					}
+				}
+				else {
+					undoList.add(searchField.getText());
+				}
+				undoPointer = undoList.size()-1;
+				
+					forward.setEnabled(false);
+					
+				if(undoPointer > 0) {
+					back.setEnabled(true);
+				}
+				FileRead.search = true;
+				drawCanvas.gotoPos(returnlist[0], Integer.parseInt(returnlist[1]), Integer.parseInt(returnlist[2]));
+			}
+			}
+			catch(Exception ex) {
+				ex.printStackTrace();
+			}
+		}
+}
 @Override
 public void keyReleased(KeyEvent e) {
 	Main.drawCanvas.ctrlpressed = 5;
 	Main.shift = false;
 	
 }
-static Double calcAffiniyChange(VarNode node, String alt, BedNode bednode) {
-			if(alt == null || alt.length() > 1) {
-				return 0.0;
-			}			
-			if(bednode.getTrack().selex) {
-				
-				int index = node.getPosition()-bednode.getPosition();
-				
-				if(index < 0) {
-					
-					return 0.0;
-				}
-				int[][] matrix=null;
-				if(bednode.forward) {
-					matrix = Main.SELEXhash.get(bednode.id);
-				}
-				else {
-					matrix = MethodLibrary.reverseMatrix(Main.SELEXhash.get(bednode.id));
-				}					
-				
-				double sum;										
-				Double value;					
-				double mutatedvalue;
-				sum = matrix[0][index] + matrix[1][index] + matrix[2][index] + matrix[3][index];
-			//	System.out.println(matrix[0][index] +" " +matrix[1][index] +" " +matrix[2][index] +" " +matrix[3][index]);
-				value = matrix[baseMap.get(node.getRefBase())-1][index]/(double)sum;
-				
-				mutatedvalue = matrix[baseMap.get((byte)alt.charAt(0))-1][index]/(double)sum;
-				
-				value = value*Math.log(value/background.get(node.getRefBase()));
-				if(mutatedvalue != 0) {
-					mutatedvalue = mutatedvalue*Math.log(mutatedvalue/background.get((byte)alt.charAt(0)));
-				}
-				
-				
-				
-				return mutatedvalue-value;
-				//System.out.println(mutatedvalue-value);
-									
-				}
-				else {
-					return 0.0;
-				}
-		
-		}
-String[] parseSearch(String searchstring) {
+
+static String[] parseSearch(String searchstring) {
 		if(searchstring.replace(" ", "").toUpperCase().matches("CHR.{1,2}(?!:)")) {
 		
 		 if(Main.chromnamevector.contains(searchstring.replace(" ", "").toUpperCase().substring(3))) {
