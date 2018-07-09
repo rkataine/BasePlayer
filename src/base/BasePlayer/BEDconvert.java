@@ -23,7 +23,7 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import base.BasePlayer.ExternalSort.ExternalSort;
+import base.BasePlayer.ExternalSort;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.BufferedReader;

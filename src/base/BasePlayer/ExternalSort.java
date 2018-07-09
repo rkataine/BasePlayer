@@ -1,4 +1,4 @@
-package base.BasePlayer.ExternalSort;
+package base.BasePlayer;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
