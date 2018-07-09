@@ -1493,7 +1493,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 		else if(event.getSource() == checkUpdates) {
 			URL testfile = null;
 			try {
-			// kattoo onko päivityksiä annotaatioon
+			// kattoo onko paivityksia annotaatioon
 				String ref = selectedNode.toString();
 				if(AddGenome.genomeHash.get(ref) != null) {
 					ArrayList<String> testfiles = new ArrayList<String>();
