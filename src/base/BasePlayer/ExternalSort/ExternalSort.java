@@ -776,11 +776,21 @@ public class ExternalSort {
                                         				
                                         			}  
                                         			else {
-                                        				parsedLine.append(split[columns.get(i)]);
+                                        				try {
+                                        					parsedLine.append(split[columns.get(i)]);
+                                        				}
+                                        				catch(Exception e) {
+                                        					parsedLine.append("-");
+                                        				}
                                         			}
                                         		}
-                                        		else {                                        		
-                                        			parsedLine.append(split[columns.get(i)]);
+                                        		else {       
+                                        			try {
+                                        				parsedLine.append(split[columns.get(i)]);
+                                        			}
+                                        			catch(Exception e) {
+                                    					parsedLine.append("-");
+                                    				}
                                         		}
                                         	}
                                         }

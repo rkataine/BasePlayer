@@ -741,7 +741,9 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 					split = line.split("\t");				
 					name = split[0].substring(split[0].lastIndexOf("/")+1, split[0].indexOf(".dna."));
 					organisms.add(name);
-					
+					if(split[0].contains("GRCh38")) {
+						split[0] = split[0].replace("toplevel", "primary_assembly");
+					}
 					if(split.length == 5) {
 						URL[] urls = {new URL(split[0]),new URL(split[2]),new URL(split[4])};
 						genomeHash.put(name, urls);
@@ -769,7 +771,9 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 					split = line.split("\t");				
 					name = split[0].substring(split[0].lastIndexOf("/")+1, split[0].indexOf(".dna."));
 					organisms.add(name);
-					
+					if(split[0].contains("GRCh38")) {
+						split[0] = split[0].replace("toplevel", "primary_assembly");
+					}
 					if(split.length == 5) {
 						URL[] urls = {new URL(split[0]),new URL(split[2]),new URL(split[4])};
 						genomeHash.put(name, urls);
@@ -1921,6 +1925,7 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 	}
 	static void downloadGenome(String urls) {
 		try {		
+			
 			URL fastafile= AddGenome.genomeHash.get(urls)[0];
 			String targetDir = "";
 			//boolean writable = true;
@@ -1932,7 +1937,21 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 			//File f = new File(Main.genomeDir.getCanonicalPath());			
 			
 			if(test.mkdir()) {
+				 /*if(fastafile.getFile().contains("GRCh38")) {
+					
+		    		   if((test.getFreeSpace()/1048576) < (60000000000L/1048576)) {
+			    		   Main.showError("Sorry, you need more than 60GB of disk space to install GRCh38.\nGRCh38 FASTA file size is ~50GB uncompressed.\nThis drive has " +test.getFreeSpace()/1048576/1000 +"GB.", "Note");
+			    		   test.delete();
+			    		   return;
+			    	   }						    	   					    	  
+		    	   }
+		    else*/ if((test.getFreeSpace()/1048576) < (5000000000L/1048576)) {
+		    		   Main.showError("Sorry, you need more than 5GB of disk space.\nThis drive has " +test.getFreeSpace()/1048576/1000 +"GB.", "Note");
+		    		   test.delete();
+		    		   return;
+		    	   }			
 				test.delete();
+				
 				targetDir = Main.genomeDir.getCanonicalPath() +"/" +urls +"/";
 				File fasta = new File(targetDir +FilenameUtils.getName(fastafile.getFile()));				
 				URL gfffile= AddGenome.genomeHash.get(urls)[1];
@@ -1958,7 +1977,14 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 						       outfile = chooser.getSelectedFile();
 						       File genomedir = new File(outfile.getCanonicalPath() +"/genomes");
 						       if(new File(outfile.getCanonicalPath() +"/genomes").mkdir()) {
-						    	   if((outfile.getFreeSpace()/1048576) < (5000000000L/1048576)) {
+						    	   if(fastafile.getFile().contains("GRCh38")) {
+						    		   if((outfile.getFreeSpace()/1048576) < (200000000000L/1048576)) {
+							    		   Main.showError("Please, select local drive with more than 60GB of disk space.\nGRCh38 FASTA file is ~50GB uncompressed.\nThis drive has " +outfile.getFreeSpace()/1048576/1000 +"GB.", "Note");
+							    		   genomedir.delete();
+							    		   continue;
+							    	   }						    	   					    	  
+						    	   }
+						    	   else if((outfile.getFreeSpace()/1048576) < (5000000000L/1048576)) {
 						    		   Main.showError("Please, select local drive with more than 5GB of disk space.\nThis drive has " +outfile.getFreeSpace()/1048576/1000 +"GB.", "Note");
 						    		   genomedir.delete();
 						    		   continue;

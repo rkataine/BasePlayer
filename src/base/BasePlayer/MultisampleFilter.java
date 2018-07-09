@@ -1,8 +1,10 @@
 package base.BasePlayer;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
-import htsjdk.samtools.SAMFileReader;
+//import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -255,8 +257,8 @@ public class MultisampleFilter {
 		
 			boolean indelfound = false, flankfound=false, first = true;
 			String chrom = chromString;
-			
-			SAMFileReader inputSam = new SAMFileReader(bamfile);
+			SamReader inputSam = SamReaderFactory.make().open(bamfile);
+			//SAMFileReader inputSam = new SAMFileReader(bamfile);
 			samRecord = new SAMRecord(inputSam.getFileHeader());	 
 			int start = pos-200, end = pos +200;
 			Iterator<SAMRecord> ite;
@@ -270,7 +272,8 @@ public class MultisampleFilter {
 			else if(chrom.contains("M")) {
 				chrom = "25";
 			}
-			ite = inputSam.iterator(inputSam.getIndex().getSpanOverlapping(Integer.parseInt(chrom)-1, start, end));	
+			ite = inputSam.queryOverlapping(chrom, start, end);
+			//ite = inputSam.iterator(inputSam.getIndex().getSpanOverlapping(Integer.parseInt(chrom)-1, start, end));	
 			int poscount = 0;
 			int readPos = 0, position = 0;
 			String base = variation;

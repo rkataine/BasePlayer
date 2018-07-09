@@ -21,7 +21,9 @@ import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FileDialog;
 import java.awt.Font;
+import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -45,6 +47,8 @@ import java.awt.event.MouseWheelListener;
 import java.awt.geom.QuadCurve2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,12 +71,12 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	String readString ="";
 	boolean annotationOn = false;
 	QuadCurve2D curve = new QuadCurve2D.Double(0,0,40,40,0,0);
-	ArrayList<SplitClass> splits = new ArrayList<SplitClass>();
+	public ArrayList<SplitClass> splits = new ArrayList<SplitClass>();
 	MethodLibrary.mateListSorter mateSorter = new MethodLibrary.mateListSorter();
 	static boolean calculateVars = true;
 	int variantsStart =0, variantsEnd = 0;
 	String varloadString = "Click here to load variants";
-	String varloadhint = "Note: variant annotation is still possible through variant manager";
+	String varloadhint = "Note: variant annotation is still possible through variant manager.";
 	Rectangle varStartRect = new Rectangle(), varEndRect = new Rectangle();
 	int varStringLen = 0;
 	int clusterId = 1;
@@ -260,7 +264,9 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	private int bottomYpos;
 	private boolean sampleInfo;
 	private int samePosCount = 1;
-	public boolean intersect = false;	
+	public boolean intersect = false;
+	private boolean bamHover;
+	private boolean coverageregion;	
 	static int clickedAdd = 0;
 	static boolean updateCoverages = false;
 	
@@ -820,7 +826,7 @@ public void drawVars(int offset) {
 	if(updatevars || splits.get(0).pixel > 3) {
 		
 	//	Long start = System.currentTimeMillis();
-		if(!lineZoomer && !mouseDrag && !loading && !scrolldrag) {	
+		if(!lineZoomer && !mouseDrag && (!loading || Main.drawCanvas.loadingtext.contains("Calling")) && !scrolldrag) {	
 			if(splits.get(0).pixel > 3) {
 				
 			}
@@ -2079,15 +2085,16 @@ void drawSidebar() {
 			sidebuf.drawString("Selected: " +(selectedSample.getIndex()+1) +". " +selectedSample.getName(), 10, Main.defaultFontSize*3);
 		}
 		if(sidebar && selectedIndex > -1  && removeSample == null) {
-			if(selectedSample == null) {
+			/*if(selectedSample == null) {
 				sidebuf.drawString((selectedIndex+1) +". " +sampleList.get(selectedIndex).getName(), 10, Main.defaultFontSize*5);
 			}
-			else {
+			else {*/
 				sidebuf.drawString((selectedIndex+1) +". " +sampleList.get(selectedIndex).getName(), 10, Main.defaultFontSize*5);
-			}
+			//}
 		}
 	}
 	sampleInfo = false;
+	bamHover = false;
 	removeSample = null;
 	for(int i = drawVariables.visiblestart; i<drawVariables.visiblestart+drawVariables.visiblesamples+2+removesamples; i++) {
 		if(i > sampleList.size()-1) {
@@ -2189,7 +2196,7 @@ void drawSidebar() {
 				}
 			}
 	//	}
-		if(sidebarSample.getTabixFile() == null && drawVariables.sampleHeight > Main.defaultFontSize*2) {
+		if(sidebarSample.getTabixFile() == null && !sidebarSample.calledvariants && !sidebarSample.multipart && drawVariables.sampleHeight > Main.defaultFontSize*2) {
 			if(sidebarSample.samFile != null) {
 				
 				sidebuf.setColor(ChromDraw.exonBarColor);
@@ -2247,7 +2254,23 @@ void drawSidebar() {
 							else {
 								sidebuf.setColor(Color.red);								
 								if(!FileRead.searchingBams && sidebarSample.readString != null) {
+									if(sidebar) {
+										if(moveY >= sampleYpos+Main.defaultFontSize*6 && moveY <= sampleYpos+Main.defaultFontSize*6+ Main.defaultFontSize+2) {
+											if(moveX >= Main.defaultFontSize*4) {												
+											
+												sidebuf.setFont(Main.menuFontBold);
+												setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+												bamHover = true;
+											}
+										}
+									}
 									sidebuf.drawString(sidebarSample.readString, Main.defaultFontSize*4, sampleYpos+Main.defaultFontSize*7);
+									if(sidebar) {
+										if(bamHover) {
+											sidebuf.setFont(defaultFont);
+											
+										}
+									}
 								}
 								else {
 									sidebuf.drawString("Searching reads...", Main.defaultFontSize*4, sampleYpos+Main.defaultFontSize*7);
@@ -2267,7 +2290,7 @@ void drawSidebar() {
 	}
 	
 	if(sidebar) {
-		if(!sampleInfo) {			
+		if(!sampleInfo && !bamHover) {			
 			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));			
 		}
 	}
@@ -3660,8 +3683,7 @@ void drawReads(SplitClass split) {
 		if((split.viewLength > Settings.readDrawDistance+20000 || drawVariables.sampleHeight <= 100)) {				
 			updateReads = false;			
 			clearReads(split);
-		}
-	
+		}	
 		
 		if(split.viewLength >= Settings.readDrawDistance || drawVariables.sampleHeight <= 100) {			
 			updateReads = false;			
@@ -3856,6 +3878,7 @@ void drawReads(SplitClass split) {
 				try {
 					
 					read = readsample.getreadHash().get(split).getReads().get(j);
+					
 					while(read.getPrev() != null && read.getPosition() > split.start-split.viewLength) {							
 						read = read.getPrev();
 					}
@@ -4295,8 +4318,10 @@ void drawSelect(SplitClass split) {
 		split.getSelectbuf().setComposite(split.getBackups());			
 		
 		if((readsidebar && (moveX > this.getDrawWidth()-(Main.defaultFontSize+8)+split.offset ) )|| moveY < selectedIndex*drawVariables.sampleHeight + drawVariables.sampleHeight/split.getDivider()) {		
+			coverageregion = true;
 			return;
 		}
+		coverageregion = false;
 		if(mouseWheel || sidebar) {		
 			return;			
 		}
@@ -5096,6 +5121,72 @@ void showsampleMenu(final Sample sample) {
 	sampleMenu.show(this, moveX+(int)selectedSplit.pixel, moveY);
 	*/
 }
+
+void addBam(int sampleindex) {
+	try {			
+		
+		 if(VariantHandler.frame != null) {
+		  VariantHandler.frame.setState(Frame.ICONIFIED);
+		 }
+		 boolean cram = false;
+		 FileDialog fc = new FileDialog(Main.frame, "Choose BAM file", FileDialog.LOAD);
+ 		  fc.setDirectory(Main.path);
+ 		  fc.setFile("*.bam;*.cram;");
+ 		 fc.setFilenameFilter(new FilenameFilter() {
+	  			public boolean accept(File dir, String name) {
+			        return name.toLowerCase().endsWith(".bam") || name.toLowerCase().endsWith(".cram");
+			     }
+			 });
+ 		  fc.setMultipleMode(false);
+ 		  fc.setVisible(true);
+ 		  String openfile = fc.getFile();			
+       
+        if (openfile != null) {
+         File file = new File(fc.getDirectory() +openfile);
+         if(!file.exists()) {
+        	 Main.showError("File does not exist.", "Error");
+	  		  return;
+         }
+       	  Main.path = fc.getDirectory();
+       	  Main.writeToConfig("DefaultDir=" +Main.path);
+       	 
+       	Main.drawCanvas.bam = true;
+  	 	Main.readsamples++;
+  	 	Main.drawCanvas.sampleList.get(sampleindex).samFile = file;	 
+  	 	Main.drawCanvas.sampleList.get(sampleindex).resetreadHash();
+  	 	
+  	 	
+  	 	if(Main.readsamples==1) {
+  	 		FileRead.checkSamples();
+  	 	}
+  	 
+	  	  if(file.getName().endsWith(".cram")){			  			
+	  			cram = true;		  		
+	  	  }
+	  	  else if(!file.getName().endsWith(".bam")) {
+	  		  Main.showError("Open BAM or CRAM file.", "Error");
+	  		  return;
+	  	  }
+	  	 
+	  	Main.drawCanvas.sampleList.get(sampleindex).CRAM = cram;
+	  	if(cram) {
+	  		Main.drawCanvas.sampleList.get(sampleindex).readString = "CRAM";
+	  	}
+	  	else {
+	  		Main.drawCanvas.sampleList.get(sampleindex).readString = "BAM";
+	  	}
+       	
+        }
+        else {
+       	 Main.showError("File does not exist.", "Error");
+        }
+		 
+	}
+	catch(Exception ex) {
+		Main.showError(ex.getMessage(), "Error");
+	}
+}
+
 @Override
 public void mouseClicked(MouseEvent event) {
 	
@@ -5147,8 +5238,7 @@ public void mouseClicked(MouseEvent event) {
 					setScrollbar(0);
 					drawVariables.visiblestart = 0;
 					drawVariables.visiblesamples = (short)(Main.samples);
-					checkSampleZoom();
-					
+					checkSampleZoom();					
 					this.resizeCanvas(this.getWidth(), (int)(Main.samples*drawVariables.sampleHeight));
 				}
 				else {
@@ -5160,6 +5250,12 @@ public void mouseClicked(MouseEvent event) {
 				break;
 			}
 			else if(event.getClickCount() == 2) {
+				if(!FileRead.cancelreadread && coverageregion && selectedSplit.viewLength < Settings.readDrawDistance) {
+					Reads readclass = sampleList.get(selectedIndex).getreadHash().get(selectedSplit);		
+					groupMismatchReads(Main.chromDraw.getPosition(event.getX()-Main.sidebarWidth, selectedSplit), selectedSplit,sampleList.get(selectedIndex), readclass);
+					//System.out.println(Main.chromDraw.getPosition(event.getX()-Main.sidebarWidth, selectedSplit));
+					return;
+				}
 				if(drawVariables.visiblestart > this.selectedIndex) {
 					drawVariables.visiblestart = (short)this.selectedIndex;
 				}
@@ -5173,87 +5269,26 @@ public void mouseClicked(MouseEvent event) {
 				else if (bam && zoomNote && drawVariables.sampleHeight < 100) {
 						
 				}
-				else {
+				else {					
 					if(FileRead.cancelreadread) {
 						FileRead.cancelreadread = false;
 						Main.putMessage(null);
 					}
 				}
 			}
+			if(coverageregion && !splitremove) {
+				
+				return;
+			}
+			
+			if(sidebar && bamHover) {
+				addBam(selectedIndex);
+				break;
+			}
 			if(varOverLap != null) {	
 				MethodLibrary.showVariantMenu(this, varOverLap, sampleOverLap, moveX+(int)selectedSplit.pixel, moveY, "");
 				break;
-				/*String line = FileRead.getVCFLine(Main.chromosomeDropdown.getSelectedItem().toString(), varOverLap.getPosition(), varOverLap.getPosition()+1, sampleOverLap.getSample());
-				if(line.length() > 1) {
-					
-					JPopupMenu menu = new JPopupMenu();
-					JTextArea area = new JTextArea();
-					JScrollPane menuscroll = new JScrollPane();
-					JButton hg19 = new JButton("Show variant in VarSome (hg19)");
-					
-					area.setFont(Main.menuFont);
-					menu.add(hg19);
-					menu.add(menuscroll);		
-					menu.setPreferredSize(new Dimension(300, 300));
-					area.setMaximumSize(new Dimension(300, 600));
-					area.setLineWrap(true);
-					area.setWrapStyleWord(true);
-					final String[] split = line.split("\t");
-					hg19.addActionListener(new ActionListener() {
-
-						@Override
-						public void actionPerformed(ActionEvent arg0) {	
-							Main.gotoURL("https://varsome.com/variant/hg19/" +split[0] +"-" +split[1] +"-" +split[3] +"-" +split[4]);
-							
-						}
-						
-					});
-					boolean first = true;
-					if(varOverLap.getBedHits() != null) {
-						
-						for(int i = 0; i<varOverLap.getBedHits().size(); i++) {
-							if(varOverLap.getBedHits().get(i).getTrack().selex) {
-								if(varOverLap.getBedHits().get(i).getTrack().getAffinityBox().isSelected()) {
-									if(first) {
-										area.append("Affinity Changes:\n");
-										first = false;
-									}
-									
-									Double value = MethodLibrary.calcAffiniyChange(varOverLap,baseHover,varOverLap.getBedHits().get(i));
-									area.append(MethodLibrary.shortName(varOverLap.getBedHits().get(i).name, 7) +"=" +MethodLibrary.round(varOverLap.getBedHits().get(i).value,3) +" (" +MethodLibrary.round(value,3) +")\n");
-								}
-							}
-						}
-					}
-					if(!first) {
-						area.append("\n");
-					}
-					try {
-						
-						area.append("VCF info: " +sampleOverLap.getSample().getName() +"\n\n");
-						area.append("POS: " +split[0] +":" +split[1]+"\nID: "+split[2]+"\n");
-						area.append("ALT: " +split[3] +" > " +split[4] +"\n");
-						area.append("QUAL: " +split[5] +"\n");
-						area.append("FILTER: " +split[6] +"\n");
-						area.append("INFO: " +split[7] +"\n");
-						area.append("FORMAT: " +split[8] +"\n");
-					if(split.length > 9) {
-						for(int i = 9 ; i<split.length; i++) {
-							area.append(split[i] +"\n");
-						}		
-					}
-					}
-					catch(Exception e) {
-						
-					}
-					area.setCaretPosition(0);
-					area.revalidate();
-					menuscroll.getViewport().add(area);
-					menu.pack();
-					menu.show(this, moveX+(int)selectedSplit.pixel, moveY);
-					
-					break;
-				}*/
+				
 			}
 			if(splits.size() > 1 && splitremove) {
 				removeSplit(selectedSplit);
@@ -5564,7 +5599,7 @@ public void mouseClicked(MouseEvent event) {
 			}
 			
 			else if(selectedRead !=null) {
-			
+				saReads = null;
 				splitList.clear();
 				clickedRead = selectedRead;
 				clickedReadSample = sampleList.get(selectedIndex);
@@ -5602,7 +5637,14 @@ public void mouseClicked(MouseEvent event) {
 			break;
 		}
 		case InputEvent.BUTTON3_MASK: {
-			
+			if(coverageregion) {
+				
+				return;
+			}
+			if(clickedRead != null && mouseRect.intersects(clickedRead.getRect())) {
+				//moveReadToBottom(clickedRead, selectedSplit, sampleList.get(selectedIndex), readLevel);
+				return;
+			}
 			if(hoverMate != null && (mouseRect.intersects(hoverMate.getRect()) || (mouseRect.intersects(hoverRect)))) {				
 				
 				SAMRecord read = Main.fileReader.getRead(hoverMate.split.chrom, hoverMate.getPosition()-hoverMate.getStartOffset(), hoverMate.getPosition()+hoverMate.getWidth(),hoverMate.getName(), clickedReadSample.getreadHash().get(hoverMate.split));
@@ -5639,7 +5681,207 @@ public void mouseClicked(MouseEvent event) {
 	}
 	
 }
+void groupMismatchReads(int position, SplitClass split, Sample readsample, Reads readClass) {
+	int addlevel = 0;
+	ArrayList<ReadNode> removedReads = new ArrayList<ReadNode>();
+	for(int j = 0; j<readClass.getReads().size();j++) {
+			
+			try {
+				
+			read = readClass.getReads().get(j);
+			boolean moved = false;
+			while(read != null) {			
+				
+				if(read.getPosition()+read.getWidth() < position) {
+					read = read.getNext();
+					continue;
+				}
+				if(read.getPosition() > position) {
+					break;
+				}
+				if(read.getMismatches() == null) {
+					read = read.getNext();
+					continue;
+				}
+				
+				for(int i = 0 ; i<read.getMismatches().size(); i++) {
+					
+					if(read.getPosition() +read.getMismatches().get(i).getKey() == position) {
+						
+						moveReadToBottom(read, split, readsample, j, addlevel, readClass, removedReads);
+						
+						addlevel++;
+						moved = true;
+						break;
+					}
+				}
+				if (moved) {
+					break;
+				}
+				read = read.getNext();
+			}
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
+	}
+	
 
+	for(int i = 0 ; i< removedReads.size(); i++) {
+		//System.out.println(removedReads.get(i).getPosition());
+		moveReadUp(removedReads.get(i), split, readsample, addlevel,readClass);
+	}
+	//System.out.println(removedReads.size());
+	removedReads = null;
+	Draw.updateReads = true;
+	repaint();
+}
+void removeRead(ReadNode removeread) {
+	if(removeread.getPrev() != null) {
+		if(removeread.getNext() != null) {
+			removeread.getPrev().setNext(removeread.getNext());
+		}
+		else {
+			removeread.getPrev().setNext(null);
+		}
+	}
+	if(removeread.getNext() != null) {
+		if(removeread.getPrev() != null) {
+			removeread.getNext().setPrev(removeread.getPrev());
+		}
+		else {
+			removeread.getNext().setPrev(null);
+		}
+	}
+	removeread.setNext(null);
+	removeread.setPrev(null);
+}
+void moveReadUp(ReadNode moveread, SplitClass split, Sample readsample, int startrow, Reads readClass) {
+	boolean found = false;
+	
+	
+	for(int j = startrow; j<readClass.getReads().size();j++) {
+		
+		try {
+			
+			read = readClass.getReads().get(j);
+		
+		while(read != null) {
+			
+			if(read.getNext() != null) {
+				if(read.getPosition()+read.getWidth() < moveread.getPosition() && read.getNext().getPosition() > moveread.getPosition()+moveread.getWidth()) {
+					read.getNext().setPrev(moveread);
+					moveread.setNext(read.getNext());
+					read.setNext(moveread);
+					
+					moveread.setPrev(read);
+					
+					
+					//System.out.println(j +" " +moveread.getName() +":" +moveread.getPosition() +" " +read.getName()+":" +read.getPosition());
+					found = true;
+					break;
+				}
+			}
+			if(read.getPosition() > moveread.getPosition()+moveread.getWidth()) {
+				break;
+			}
+			
+			read = read.getNext();
+					
+		}
+		if(found) {
+			break;
+		}
+		
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	/*if(!found) {
+	
+		readClass.getReads().add(moveread);
+		ReadNode[] addList = new ReadNode[2];
+		addList[FileRead.headnode] = moveread;
+		addList[FileRead.tailnode] = moveread;
+		moveread.setPrev(null);
+		moveread.setNext(null);
+		readClass.getHeadAndTail().add(addList);
+	}*/
+}
+void moveReadToBottom(ReadNode moveread, SplitClass split, Sample readsample, int readlevel, int addlevel, Reads readClass, ArrayList<ReadNode> removed) {
+	clickedRead = null;
+	selectedRead = null;
+	
+	if(readlevel == addlevel) {
+		return;
+	}
+	removeRead(moveread);
+	
+	
+	ReadNode read, nextRead;
+	
+	//boolean moved = false;
+	
+	try {	
+	//for(int j = addlevel; j<readClass.getReads().size();j++) {		
+		//if(j == readlevel) {
+			//break;
+	//	}
+		
+		read = readClass.getReads().get(addlevel);
+		//moved = false;
+		while(read != null) {			
+			
+			if(read.getPosition()+read.getWidth() < moveread.getPosition()) {
+				read = read.getNext();
+				continue;
+			}
+			if(read.getPosition() > moveread.getPosition()+moveread.getWidth()) {
+				break;
+			}
+			
+			
+			//moveread.moved = true;
+			if(read.equals(readClass.getReads().get(addlevel))) {
+				readClass.getReads().set(addlevel,readClass.getHeadAndTail().get(addlevel)[0]);
+				
+			}
+			nextRead = read.getNext();
+			if(nextRead == null) {
+				System.out.println(addlevel);
+			}
+			removed.add(read);
+			
+			removeRead(read);
+			//moveReadUp(read, split, readsample, addlevel,readClass);
+			read = nextRead;
+			
+			
+		}		
+		//if(moved) {
+		//if(read != null) {	
+			if(read.getPrev() != null) {
+				read.getPrev().setNext(moveread);
+				moveread.setPrev(read.getPrev());
+			}
+			else {
+				moveread.setPrev(null);
+			}
+			read.setPrev(moveread);
+			moveread.setNext(read);
+		//}
+			//	read = null;
+		//	break;
+	//	}
+		
+//	}
+	}
+	catch(Exception e) {
+		e.printStackTrace();
+	}
+	
+}
 private class splitTuple {
 	String chr;
 	int pos;

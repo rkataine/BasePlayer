@@ -131,7 +131,7 @@ import javax.net.ssl.X509TrustManager;
 	//UI
     
     static ImageIcon save, open, settingsIcon;
-    static String version = "1.0.1";
+    static String version = "1.0.2";
     static int sidebarWidth = 200;
     static String[] argsit = {}, args;
     static int defaultFontSize;
@@ -376,6 +376,7 @@ import javax.net.ssl.X509TrustManager;
   			  drawCanvas.rbuf.setComposite(drawCanvas.backupr);		
     		  drawCanvas.clearReads();
     		  selectedChrom = chromosomeDropdown.getSelectedIndex();    
+    		
     		  if(chromosomeDropdown.getSelectedItem() == null) {
     			 // drawCanvas.chrom = "";
     			  drawCanvas.splits.get(0).chromEnd = 100;
@@ -413,15 +414,13 @@ import javax.net.ssl.X509TrustManager;
 	    		  catch(Exception ex) {
 	    			  Control.controlData.fileArray = Collections.synchronizedList(new ArrayList<ControlFile>());
 	    		  }
-	    		  if(nothread) {		  
-	    			 
+	    		  if(nothread) {    			 
 	    			  filereader.changeChrom(filereader.chrom);		    			 
 	    			  nothread = false;
 	    		  }
-	    		  else {
-	    			 
+	    		  else {	    			 
 	    			  filereader.changeChrom = true;
-	 	        	  filereader.execute();	 	        	
+	 	        	  filereader.execute();		 	        	        	
 	    		  }
     	  		}   	  
     		  } 			
@@ -800,6 +799,7 @@ try {
     UIManager.put("ToolTip.background", new Color(255, 255, 214)); 
     UIManager.put( "ToolTip.border", BorderFactory.createCompoundBorder( UIManager.getBorder( "ToolTip.border" ), BorderFactory.createEmptyBorder( 4, 4, 4, 4 ) ) ); 
     lineseparator = System.getProperty("line.separator");
+   
     proxysettings = new ProxySettings();
 	panel = new JPanel(new GridBagLayout());
 	//menuFont = menuFont.deriveFont(Font.PLAIN,12);
@@ -1375,6 +1375,7 @@ try {
 		drawCanvas.addKeyListener(this);
 		bedCanvas.addKeyListener(this);
 		setFonts();
+		 chromLabel.setText("Chromosome " +chromosomeDropdown.getSelectedItem().toString());
 		CheckUpdates check = new CheckUpdates();
 		check.execute();
 	//	Main.drawCanvas.loading("test");

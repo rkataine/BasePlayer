@@ -21,7 +21,7 @@ public class SplitClass implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
 	int chromEnd = 0, offset, chromOffset;
-	double pixel = 0.0, start=1, end=0, viewLength=0;
+	public double pixel = 0.0, start=1, end=0, viewLength=0;
 	String chrom;	
 	private transient int minReadStart = Integer.MAX_VALUE, maxReadEnd = 0;
 //	private transient ArrayList<Transcript> transcripts = new ArrayList<Transcript>();
@@ -41,12 +41,8 @@ public class SplitClass implements Serializable {
 		
 		splitDraw = new SplitDraw();		
 	}		
-	void resetSplits() {
-		
+	void resetSplits() {		
 		splitDraw = new SplitDraw();
-//		FileRead reader = new FileRead();
-	//	setTranscripts(reader.getExons(chrom));
-//		setGenes(reader.getExons(chrom));
 	}
 	
 	/*ArrayList<Transcript> getTranscripts() {

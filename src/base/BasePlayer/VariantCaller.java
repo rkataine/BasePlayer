@@ -46,7 +46,7 @@ public class VariantCaller extends JPanel implements ActionListener {
 	static JTextField minmappingq = new JTextField("10");
 	JLabel minmappingqlabel = new JLabel("Min. mapping quality");
 	static JCheckBox bothstrand = new JCheckBox("Require both strands");
-	static JCheckBox bothruns = new JCheckBox("Require multiple runs");
+	//static JCheckBox bothruns = new JCheckBox("Require multiple runs");
 	
 	JCheckBox onlySel = new JCheckBox("Calc only for selected");
 	static JCheckBox inanno = new JCheckBox("Before annotation");
@@ -71,13 +71,13 @@ public class VariantCaller extends JPanel implements ActionListener {
 			add(minbaseq);
 			add(minbaseqlabel);
 			add(bothstrand);
-			add(bothruns);
+		//	add(bothruns);
 			add(onlySel);
 			add(inanno);
 			//add(new JSeparator());
 			add(execute);			
 			bothstrand.setToolTipText("Variant call is discared if mismatches are present only in the other strand.");
-			bothruns.setToolTipText("If bam file is merged from multiple runs, variant call must be present in reads from at least two separate runs.");
+			//bothruns.setToolTipText("If bam file is merged from multiple runs, variant call must be present in reads from at least two separate runs.");
 			
 		}
 		catch(Exception e) {
@@ -247,10 +247,12 @@ public class VarCaller extends SwingWorker<String, Object> {
 						node = null;
 						Reads reads = null;
 						try {
-							reads = (Reads)sample.getreadHash().get(Main.drawCanvas.splits.get(0)).clone();
+							reads = (Reads)readClass.clone();
 							
 						}
 						catch(Exception e) {
+							sample.resetreadHash();
+							reads = (Reads)readClass.clone();
 							e.printStackTrace();
 						}
 						
@@ -264,7 +266,7 @@ public class VarCaller extends SwingWorker<String, Object> {
 						sample.calledvariants = true;
 						String[] coveragebases = { "", "A", "C", "G", "T", "N"};
 						double homlevel = 0.95;						
-						
+						boolean foundscan = false;
 						
 						int interval;
 						
@@ -315,6 +317,7 @@ public class VarCaller extends SwingWorker<String, Object> {
 						//}
 						
 						Main.drawCanvas.variantsStart = (int)start;
+						int scanpointer = 0;
 						while(start < endpos) {
 							
 							if(!Main.drawCanvas.loading) {
@@ -347,12 +350,38 @@ public class VarCaller extends SwingWorker<String, Object> {
 									}
 									
 									if(coverages[i][j].calls >= readlevel && coverages[i][0].calls >= mincoverage /*&& coverages[i][j].runs.size() > 1 && coverages[i][j].strands.size() > 1*/) {
+										
 										if(VariantCaller.bothstrand.isSelected() && coverages[i][j].strands.size() < 2) {
 											continue;
 										}
-										if(VariantCaller.bothruns.isSelected() && readClass.getRuns() > 1 && coverages[i][j].runs.size() < 2) {
+										/*if(VariantCaller.bothruns.isSelected() /*&& readClass.getRuns() > 1 && coverages[i][j].runs.size() < 2) {
+											continue;
+										}*/
+										
+										foundscan = false;
+										scanpointer = i-1;
+										while(scanpointer >= 0 && i-scanpointer < 10) {
+											if(coverages[scanpointer][j] != null) {
+												foundscan = true;
+												break;
+											}
+											scanpointer--;
+										}
+										if(foundscan) {
 											continue;
 										}
+										scanpointer = i+1;
+										while(scanpointer < coverages.length && scanpointer-i < 10) {
+											if(coverages[scanpointer][j] != null) {
+												foundscan = true;
+												break;
+											}
+											scanpointer++;
+										}
+										if(foundscan) {
+											continue;
+										}
+										
 										genotypes = new StringBuffer("");
 										calls = coverages[i][j].calls;
 										refs = coverages[i][0].calls;
@@ -371,7 +400,8 @@ public class VarCaller extends SwingWorker<String, Object> {
 										line[1] = ""+(reads.getCoverageStart() + i);							
 										line[3] = refbase;										
 										line[4] = coveragebases[j];
-										line[9] = genotypes.toString();										
+										line[9] = genotypes.toString();			
+										
 										reader.readLine(line, sample);
 										
 									}									
@@ -393,6 +423,7 @@ public class VarCaller extends SwingWorker<String, Object> {
 								end += interval;
 						//	}
 							Draw.updatevars = true;
+							Draw.calculateVars = true;
 							Main.drawCanvas.repaint();
 							
 						}

@@ -117,10 +117,11 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JMenu aminomenu;
 	static JMenu outputmenu;
 	static JMenuItem write;
-	
+	//static JButton hideVars;
 	static JTextField clusterBox;
 	static ButtonGroup outputgroup;
 	static JRadioButton tsv;
+	static JRadioButton geneTsv;
 	static JRadioButton compactTsv;
 	static JRadioButton vcf;
 	static JRadioButton oncodrive;
@@ -390,11 +391,13 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		 aminomenu = new JMenu("Options");
 		 outputmenu = new JMenu("Variant output");
 		 write = new JMenuItem("Save");
-		
+		 //hideVars = new JButton("Hide var types");
+		 //hideVars.addActionListener(this);
 		 clusterBox = new JTextField("0");
 		 outputgroup = new ButtonGroup();
 		  tsv = new JRadioButton("TSV");
 		  compactTsv = new JRadioButton("Compact TSV");
+		  geneTsv = new JRadioButton("Gene TSV");
 		  vcf = new JRadioButton("VCF");
 		  oncodrive = new JRadioButton("Oncodrive");
 		hidenoncoding = new JCheckBox("Hide non-coding variants");
@@ -747,9 +750,14 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		c.gridy++;
 		hidepanel.add(hideHomos,c);
 		c.gridy++;
+		//hidepanel.add(hideVars,c);
+		//c.gridx = 1;
 		freeze.setBackground(new Color(170,220,255));
 		hidepanel.add(freeze,c);
+		
 		freezeIndels(true);
+		
+		c.gridx = 0;
 		c.gridy++;
 		c.weightx = 1;
 		c.weighty = 1;
@@ -872,11 +880,13 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		tsv.setSelected(true);
 		outputgroup.add(tsv);
 		outputgroup.add(compactTsv);
+		outputgroup.add(geneTsv);
 		outputgroup.add(vcf);
 		outputgroup.add(oncodrive);
 		outputmenu.add(tsv);
 		outputmenu.add(compactTsv);
 		outputmenu.add(vcf);
+		outputmenu.add(geneTsv);
 		outputmenu.add(oncodrive);
 	//	outputmenu.add(forVEP);
 		write.setIcon(Main.save);
@@ -995,6 +1005,9 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		VariantHandler.tsv.setSelected(variantSettings.get("tsv") == 1);
 		VariantHandler.compactTsv.setSelected(variantSettings.get("compact") == 1);
 		VariantHandler.vcf.setSelected(variantSettings.get("vcf") == 1);
+		if(variantSettings.get("genetsv") != null) {
+			VariantHandler.geneTsv.setSelected(variantSettings.get("genetsv") == 1);
+		}
 		VariantHandler.oncodrive.setSelected(variantSettings.get("oncodrive") == 1);
 		
 	}
@@ -1042,6 +1055,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	
 		variantSettings.put("tsv", VariantHandler.tsv.isSelected() ? 1 : 0);
 		variantSettings.put("compact", VariantHandler.compactTsv.isSelected() ? 1 : 0);
+		variantSettings.put("genetsv", VariantHandler.geneTsv.isSelected() ? 1 : 0);
 		variantSettings.put("vcf", VariantHandler.vcf.isSelected() ? 1 : 0);
 		variantSettings.put("oncodrive", VariantHandler.oncodrive.isSelected() ? 1 : 0);
 		
@@ -1102,7 +1116,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	}
 	@Override
 	public void stateChanged(ChangeEvent event) {
-		if(Main.drawCanvas.varCalc < 1000000) {
+		if(Main.drawCanvas != null && Main.drawCanvas.varCalc < 1000000) {
 			Draw.calculateVars = true;
 			Draw.updatevars = true;
 		}
@@ -1321,6 +1335,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			aminomenu.add(tsv,aminomenu.getItemCount()-1);
 			aminomenu.add(compactTsv,aminomenu.getItemCount()-1);
 			aminomenu.add(vcf,aminomenu.getItemCount()-1);
+			aminomenu.add(geneTsv, aminomenu.getItemCount()-1);
 			aminomenu.add(oncodrive,aminomenu.getItemCount()-1);
 			aminomenu.getPopupMenu().pack();
 			//varcalc.setText("Annotate and write");
@@ -1332,6 +1347,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			writetofile.setBackground(Color.lightGray);
 			//tabs.setEnabled(true);	
 			outputmenu.add(oncodrive,0);
+			outputmenu.add(geneTsv,0);
 			outputmenu.add(vcf,0);
 			outputmenu.add(compactTsv,0);
 			outputmenu.add(tsv,0);
@@ -1385,7 +1401,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 					    		 Main.savedir = fs.getDirectory();
 					        	 Main.writeToConfig("DefaultSaveDir=" +Main.savedir);
 					        	 lastWrittenPos = 0;
-						    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected()) {
+						    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected() || geneTsv.isSelected()) {
 						    		   if(!outfname.getName().contains(".tsv")) {
 								    	   File outfile = new File(outfname.getCanonicalPath() +".tsv");						    	
 								    	   FileRead.outputName = outfname.getCanonicalPath() +".tsv";
@@ -1495,7 +1511,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			    		 Main.savedir = fs.getDirectory();
 			        	 Main.writeToConfig("DefaultSaveDir=" +Main.savedir);
 			        	 lastWrittenPos = 0;
-				    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected()) {
+				    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected() || geneTsv.isSelected()) {
 				    		 if(!outfname.contains(".tsv")) {
 						    	   File outfile = new File(outfname +".tsv");
 						       	   FileRead.outputName = outfname +".tsv";
@@ -1689,7 +1705,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	        	 Main.writeToConfig("DefaultSaveDir=" +Main.savedir);
 		     try {
 		    	 File outfile = null;
-		    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected()) {
+		    	 if(tsv.isSelected() || compactTsv.isSelected() || oncodrive.isSelected() || geneTsv.isSelected()) {
 		    		
 		    		 if(!outfname.contains(".tsv")) {
 				    	  outfile = new File(outfname +".tsv");
@@ -2357,6 +2373,22 @@ static void addMenuComponents(String line) {
 	   		if(oncodrive.isSelected()) {
 	   			headerstring.append("#CHROM\tPOS\tREF\tALT\tSAMPLE"+Main.lineseparator);
 	   		}
+	   		else if(geneTsv.isSelected()) {
+	   			headerstring.append("Gene\tMutationCount\tSampleCount\t");
+	   			if(VariantHandler.onlyselected.isSelected()) {
+	   				headerstring.append(Main.drawCanvas.selectedSample.getName());
+	   			}
+	   			else {
+	   		   	  for(int i = 0; i< Main.samples; i++) {
+	   		   		if(Main.drawCanvas.sampleList.get(i).calledvariants || (Main.drawCanvas.sampleList.get(i).getTabixFile() != null || Main.drawCanvas.sampleList.get(i).multipart) && !Main.drawCanvas.sampleList.get(i).removed) {
+	   					
+	   		   			headerstring.append(Main.drawCanvas.sampleList.get(i).getName() +"\t");
+	   		   		  }   		  
+	   		   	  }
+	   		   	 headerstring.deleteCharAt(headerstring.length()-1);
+	   			}
+	   			headerstring.append(Main.lineseparator);
+	   		}
 	   		else {
 	   			headerstring.append("#Sample\tGene\tMutationCount\tSampleCount\tENSG\tENST\tBioType\tPosition\tStrand\tRegion\tEffect\tBaseChange\tGenotype(calls/coverage)\tQuality\tGQ\trs-code\t" +clusters +controls +tracks+"Description"+Main.lineseparator);
 	   		}
@@ -2366,7 +2398,7 @@ static void addMenuComponents(String line) {
 	   			headerstring.append("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov\tSynonymous\tNonsynonymous\tMissense\tSplice-site\tNonsense\tFrameShift\tInframe"+Main.lineseparator);
 	   		//}
 	   		//else {
-	   //	 		headerstring.append("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov"+Main.lineseparator);
+	   //	 	headerstring.append("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov"+Main.lineseparator);
 	   	// 	}
 	     }
    	  return headerstring.toString();
@@ -3218,7 +3250,23 @@ static void	writeTranscriptToFile(Gene gene, BufferedWriter output) {
 	    						 }
 	    					 }	    			
 	    					 }
-	    				}	    		 
+	    				}	   
+	    			else if(geneTsv.isSelected()) {
+	    				output.write(gene.getName() +"\t" +gene.mutations +"\t" +gene.samples.size() +"\t");
+	    				for(int i = 0; i< Main.drawCanvas.sampleList.size(); i++) {
+	    	   		   		if(Main.drawCanvas.sampleList.get(i).calledvariants || (Main.drawCanvas.sampleList.get(i).getTabixFile() != null || Main.drawCanvas.sampleList.get(i).multipart) && !Main.drawCanvas.sampleList.get(i).removed) {
+	    	   					
+	    	   		   			if(gene.samples.contains(Main.drawCanvas.sampleList.get(i))) {
+	    	   		   				output.write("1\t");
+	    	   		   			}
+	    	   		   			else {
+	    	   		   				output.write("0\t");
+	    	   		   			}
+	    	   		   		  }   		  
+	    	   		   	  }
+	    				output.write(Main.lineseparator);
+	    				
+	    			}
 	    		}
 	    	 }					    	
 	    	 Main.drawCanvas.loadBarSample = (int)((gene.getStart()/(double)Main.drawCanvas.splits.get(0).chromEnd)*100);     

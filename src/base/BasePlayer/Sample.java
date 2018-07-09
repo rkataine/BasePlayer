@@ -41,7 +41,7 @@ public class Sample implements Serializable{
 	boolean annotation = false, annoTrack = false, intersect = false;
 	int parents = 0;
 	ArrayList<Sample> children;
-	
+	String oddchar = null;
 	Boolean female;
 	Boolean affected = false;
 	Color familyColor;

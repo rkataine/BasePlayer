@@ -31,6 +31,7 @@ public class ReadNode {
 		private final boolean primary;
 		private final boolean mateforward;
 		private String mateChrom;
+		//boolean moved = false;
 		SplitClass split;
 		ReadNode prev, next;
 		int yposition = 0;

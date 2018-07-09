@@ -283,7 +283,10 @@ public class BEDconvert extends JPanel implements ActionListener, MouseListener 
 				if(line.startsWith("!")) {
 					continue;
 				}
-				if(line.startsWith("#")) {
+				if(line.startsWith("#") || line.startsWith("track")) {
+					if(!line.startsWith("#")) {
+						line = "#" +line;
+					}
 					header.add(line);
 					continue;
 				}

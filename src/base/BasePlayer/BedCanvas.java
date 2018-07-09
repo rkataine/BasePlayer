@@ -747,9 +747,9 @@ void drawNodes() {
 						}
 						else {
 							try {
-							
-								bedheight = (int)((track.getDrawNode().value/(track.scale))*this.trackheight-10);
-							
+								if(track.getDrawNode().value != null) {
+									bedheight = (int)((track.getDrawNode().value/(track.scale))*this.trackheight-10);
+								}
 							}
 							catch(Exception e) {
 								e.printStackTrace();
@@ -1949,7 +1949,7 @@ void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 	    		break;
 	    	}
 	    	try {
-	    		if(line.startsWith("#") || line.length() < 10) {
+	    		if(line.startsWith("#") || line.length() < 10 || line.startsWith("track")) {
 	    			continue;
 	    		}
 	    		if(firstrow) {

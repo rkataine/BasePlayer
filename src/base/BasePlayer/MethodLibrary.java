@@ -42,7 +42,6 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -1196,7 +1195,7 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 		boolean cancelled = false;
 	    while((line = reader.readLine()) != null) {
 	    	
-	    	if(line.startsWith("#")) {
+	    	if(line.startsWith("#") || line.startsWith("\"") || line.length() < 10) {
 	    		filepointer += line.length()+addbyte;
 	    		continue;
 	    	}
@@ -1364,7 +1363,7 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 	    while((line = reader.readLine()) != null) {
 	    	try {
 	    	
-	    	if(line.startsWith("#")) {
+	    	if(line.startsWith("#") || line.startsWith("track")) {
 	    		filepointer +=  line.length()+addbyte;
 	    		continue;
 	    	}
@@ -1385,8 +1384,14 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 	    		}
 	    	}
 	    	else {
-	    		Feature bed = bedCodec.decode(line);
-	    		indexCreator.addFeature(bed, filepointer);
+	    		try {
+	    			Feature bed = bedCodec.decode(line);
+	    			indexCreator.addFeature(bed, filepointer);
+	    		}
+	    		catch(Exception e) {
+	    			filepointer +=  line.length()+addbyte;
+	    			continue;
+	    		}
 	    	}
 	    	
 	    	

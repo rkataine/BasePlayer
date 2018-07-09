@@ -11,10 +11,11 @@
  */
 package base.BasePlayer;
 
-import htsjdk.samtools.SAMFileReader;
+//import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
 //import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.tribble.readers.TabixReader;
 
 import java.awt.Component;
@@ -281,7 +282,7 @@ static void calcAverageRegions() {
 			  			  
 			  //inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
 			  //Iterator<SAMRecord> iterator = inputSam.queryOverlapping(Main.chromosomeDropdown.getItemAt(mergeVector.get(c)[0]), mergeVector.get(c)[1], mergeVector.get(c)[2]);
-			  iterator = reader.getBamIterator(readClass, readClass.sample.chr +Main.chromosomeDropdown.getItemAt(mergeVector.get(c)[0]), mergeVector.get(c)[1], mergeVector.get(c)[2]);
+			  iterator = reader.getBamIterator(readClass, Main.chromosomeDropdown.getItemAt(mergeVector.get(c)[0]), mergeVector.get(c)[1], mergeVector.get(c)[2]);
 			  SAMRecord samRecord = null;
 			  
 			  coverageArray = new int[mergeVector.get(c)[2]-mergeVector.get(c)[1]];
@@ -458,11 +459,12 @@ static void calcAverage() {
 		  //System.out.println(Main.chromosomeDropdown.getItemAt(startchrom) +" " +Average.startpos +" " +Average.endpos);
 		  if(startchrom == endchrom) {
 			  //iterator = inputSam.queryOverlapping(Main.chromosomeDropdown.getItemAt(startchrom), Average.startpos,  Average.endpos);
-			  iterator = reader.getBamIterator(readClass, readClass.sample.chr +Main.chromosomeDropdown.getItemAt(startchrom),  Average.startpos, Average.endpos);
+			  iterator = reader.getBamIterator(readClass, Main.chromosomeDropdown.getItemAt(startchrom),  Average.startpos, Average.endpos);
 				 
 		  }
 		  else {
-			  inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
+			  inputSam = SamReaderFactory.make().open(Main.drawCanvas.sampleList.get(s).samFile);
+			  //inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
 			  chrmap = MethodLibrary.mapChrnameToIndex(inputSam.getFileHeader());
 			  iterator = inputSam.iterator();
 		  }

@@ -1,9 +1,10 @@
 package base.BasePlayer;
 import htsjdk.samtools.CRAMFileReader;
 import htsjdk.samtools.QueryInterval;
-import htsjdk.samtools.SAMFileReader;
+//import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.ref.ReferenceSource;
 
@@ -115,7 +116,7 @@ public class CoveragePattern {
 				 if(indexFile == null) {
 					 indexFile = new File(readfile +".crai");
 				 }
-				 CRAMReader = new CRAMFileReader(readfile, indexFile,reference,referenceFile, ValidationStringency.SILENT);
+				 CRAMReader = new CRAMFileReader(readfile, indexFile,reference,ValidationStringency.SILENT);
 				 if(CRAMReader != null && !CRAMReader.hasIndex()) {			
 						
 						return null;
@@ -123,7 +124,7 @@ public class CoveragePattern {
 			}
 			else {
 				try {
-				samFileReader = new SAMFileReader(readfile);
+				samFileReader = SamReaderFactory.make().open(readfile); //new SAMFileReader(readfile);
 				if(samFileReader != null && !samFileReader.hasIndex()) {	
 					
 					return null;
@@ -147,7 +148,7 @@ public class CoveragePattern {
 				Iterator<SAMRecord> value = null;
 			
 				try {
-					SAMFileReader.setDefaultValidationStringency(ValidationStringency.SILENT);
+					//SAMFileReader.setDefaultValidationStringency(ValidationStringency.SILENT);
 					value = samFileReader.queryOverlapping(chrom, startpos, endpos);	
 				}
 				catch(htsjdk.samtools.SAMFormatException e) {

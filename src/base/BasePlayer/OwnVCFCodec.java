@@ -212,7 +212,13 @@ public class OwnVCFCodec extends AbstractVCFCodec {
 	        }
 	
 	        // get our alleles, filters, and setup an attribute map
-	        final List<Allele> alleles = parseAlleles(ref, alts, lineNo);
+	        List<Allele> alleles = null;
+	        try {
+	        	alleles = parseAlleles(ref, alts, lineNo);
+	        }
+	        catch(Exception e) {
+	        	alleles = parseAlleles(ref.replace("\"", ""), alts.replace("\"", ""), lineNo);
+	        }
 	        builder.alleles(alleles);
 	
 	        // do we have genotyping data

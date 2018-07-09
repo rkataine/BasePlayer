@@ -13,8 +13,10 @@ package base.BasePlayer;
 import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
-import htsjdk.samtools.SAMFileReader;
+//import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -69,7 +71,7 @@ public class InsertFetcher {
 			}
 			reader.close();
 			
-			SAMFileReader samFileReader = new SAMFileReader(new File(args[0]));
+			SamReader samFileReader  = SamReaderFactory.make().open(new File(args[0])); //= new SAMFileReader(new File(args[0]));
 		//	SAMFileReader samFileReader = new SAMFileReader(new File("V:/cg8/projects/CRC/c9_5119_N_LP6005134-DNA_A01/wgspipeline/align/c9_5119_N_LP6005134-DNA_A01_1.final.bam"));
 			InsertFetcher fetcher = new InsertFetcher();
 			
@@ -79,7 +81,7 @@ public class InsertFetcher {
 			e.printStackTrace();
 		}
 	}
-	void searchInsSites(SAMFileReader samFileReader, RandomAccessFile reference) {
+	void searchInsSites(SamReader samFileReader, RandomAccessFile reference) {
 		
 		Hashtable<Integer, Character> bases = new Hashtable<Integer,Character>();
 		bases.put(0, 'A');
@@ -615,7 +617,7 @@ public class InsertFetcher {
 		
 	}
 	
-void searchInsSites2(SAMFileReader samFileReader, RandomAccessFile reference) {		
+void searchInsSites2(SamReader samFileReader, RandomAccessFile reference) {		
 									
 			SAMRecord cur;			
 			String sequence = "";			
