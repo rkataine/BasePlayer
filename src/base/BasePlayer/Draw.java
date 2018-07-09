@@ -1273,7 +1273,7 @@ public void drawVars(int offset) {
 			buf.drawImage(varbuffer, offset, 0, this);
 		}
 		else {
-			//TODO venytä ruutua
+			//TODO venyta ruutua
 		}
 	}
 }

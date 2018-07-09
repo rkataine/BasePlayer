@@ -3405,7 +3405,7 @@ drawCanvas.drawVariables.visiblesamples = 1;
 drawCanvas.sidebar = false;
 drawCanvas.resizeCanvas(drawScroll.getViewport().getWidth(), drawScroll.getViewport().getHeight());
 drawCanvas.repaint();
-//	Control.controlData.data.clear();¨
+
 if(VariantHandler.table.geneheader.size() > VariantHandler.table.geneheaderlength) {
 	while(VariantHandler.table.geneheader.size() > VariantHandler.table.geneheaderlength) {
 		VariantHandler.table.geneheader.remove(VariantHandler.table.geneheader.size()-1);

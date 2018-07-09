@@ -198,7 +198,7 @@ public class MethodLibrary {
 				String annoline = FileRead.getVCFLine(varOverLap.getChrom(), varOverLap.getPosition(), varOverLap.getPosition()+1, Main.drawCanvas.sampleList.get(i));
 				
 				if(annoline != null) {
-					annolines.add(Main.drawCanvas.sampleList.get(i).getName() +"§" +annoline);
+					annolines.add(Main.drawCanvas.sampleList.get(i).getName() +"XX" +annoline);
 				}
 			}
 		}
@@ -270,7 +270,7 @@ public class MethodLibrary {
 			
 			if(annolines.size() != 0) {
 				for(int i = 0;i<annolines.size();i++) {
-					String[] temp = annolines.get(i).split("§");
+					String[] temp = annolines.get(i).split("XX");
 					String[] annosplit = temp[1].split("\t");
 					if(annosplit.length > 7) {
 						area.append("\n" +temp[0] +"\n");

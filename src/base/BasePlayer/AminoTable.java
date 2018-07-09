@@ -579,7 +579,7 @@ void drawScreen(Graphics g) {
 								}
 							}
 							else {
-								//TODO piirrä mustat boksit
+								//TODO piirra mustat boksit
 								buf.setColor(Color.black);
 								buf.fillRect((int)geneheader.get(5)[1]+10, (rowHeight*(i+s+listAdd+2))-tablescroll.getVerticalScrollBar().getValue()+4, this.getWidth(), rowHeight-1);	
 								

@@ -8295,7 +8295,7 @@ VarNode annotateVariant(VarNode vardraw) {
 		}		
 			
 	}
-	//TODO TÄHÄN 
+	//TODO TAHAN 
 		//	System.out.println(vardraw.getTranscripts().get(0).getGenename() +"..." +vardraw.getTranscripts().get(1).getGenename() );
 		}
 	

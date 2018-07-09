@@ -51,7 +51,7 @@ public class Loader extends SwingWorker<String, Object>  {
 						memory = false;
 						
 						if(loadtext.contains("Annotating")) {
-							JOptionPane.showMessageDialog(Main.chromDraw, "Memory allocation exceeded in " +loadtext +"\nTip1: Goto \"Tools > Settings > General\" and change “Processing window size (bp)” to 100,000.\nTip2: try to increase memory allocation for BasePlayer\n", "Information", JOptionPane.INFORMATION_MESSAGE);
+							JOptionPane.showMessageDialog(Main.chromDraw, "Memory allocation exceeded in " +loadtext +"\nTip1: Goto \"Tools > Settings > General\" and change 'Processing window size (bp)' to 100,000.\nTip2: try to increase memory allocation for BasePlayer\n", "Information", JOptionPane.INFORMATION_MESSAGE);
 							
 						}
 						else {

@@ -238,7 +238,7 @@ public class Transcript {
 	
 	
 	public void addExon(HashMap<String, String> gffHash, Transcript trans) {
-		//ADDAA exoneita arrayhyn... älä heti luo uuutta... kato jos overlappaa edellisten kanssa ja jos löytyy CDS
+		//ADDAA exoneita arrayhyn... ala heti luo uuutta... kato jos overlappaa edellisten kanssa ja jos loytyy CDS
 		if(trans.start > Integer.parseInt(gffHash.get("start"))) {
 			trans.start = Integer.parseInt(gffHash.get("start"));
 		}
