@@ -39,8 +39,8 @@ and add it to your environment path
 to your computer to any folder (in this example we use /BasePlayer/).
 
 3. Goto /BasePlayer/src directory and unpack all JAR files from /BasePlayer/jars to this folder:
-
-	<i>jar -xvf ../jars/commons-compress-1.17.jar
+<p>
+	<b>jar -xvf ../jars/commons-compress-1.17.jar
 
 	jar -xvf ../jars/commons-io-2.4.jar
 
@@ -48,22 +48,24 @@ to your computer to any folder (in this example we use /BasePlayer/).
 
 	jar -xvf ../jars/WigReader.jar
 
-	jar -xvf ../jars/commons-net-3.5.jar</i>
+	jar -xvf ../jars/commons-net-3.5.jar</b>
+</p>
 
 4. Stay in /BasePlayer/src folder and compile java-files and copy external JAR folders using the following commands (you can ignore possible warnings or notes):
-
-	<i>javac -cp ./base/BasePlayer/*.java -d ../build -classpath .
+<p>
+	<b>javac -cp ./base/BasePlayer/*.java -d ../build -classpath .
 	
  	cp -R ./base/BBfile/ ../build/base/
 	
-	mv htsjdk/ org/ ../build/</i>
+	mv htsjdk/ org/ ../build/</b>
+</p>
 
 5. Go back to /BasePlayer/ folder and copy resource folders to build folder:
-
-	<i>cp -R ./src/base/BasePlayer/SELEX/ ./src/base/BasePlayer/icons/ ./build/base/BasePlayer/</i>
-	
+<p>
+	<b>cp -R ./src/base/BasePlayer/SELEX/ ./src/base/BasePlayer/icons/ ./build/base/BasePlayer/</b>
+</p>	
 6. Create executable BasePlayer.jar by using following command in /BasePlayer/ folder:
-
-	<i>jar cvfm BasePlayer.jar ./build/META-INF/MANIFEST.MF -C ./build .</i>
-	
+<p>
+	<b>jar cvfm BasePlayer.jar ./build/META-INF/MANIFEST.MF -C ./build .</b>
+</p>	
 7. Double-click BasePlayer.jar to start the program or type java -jar BasePlayer.jar in the /baseplayer/ folder
