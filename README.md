@@ -39,10 +39,15 @@ and add it to your environment path
 to your computer to any folder (in this example we use /BasePlayer/).
 
 3. Goto /BasePlayer/src directory and unpack all JAR files from /BasePlayer/jars to this folder:
+
 	jar -xvf ../jars/commons-compress-1.17.jar
+
 	jar -xvf ../jars/commons-io-2.4.jar
+
 	jar -xvf ../jars/htsjdk.jar
+
 	jar -xvf ../jars/WigReader.jar
+
 	jar -xvf ../jars/commons-net-3.5.jar
 
 4. Stay in /BasePlayer/src folder and compile java-files and copy external JAR folders using the following commands (you can ignore possible warnings or notes):
