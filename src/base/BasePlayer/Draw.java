@@ -5250,7 +5250,7 @@ public void mouseClicked(MouseEvent event) {
 				break;
 			}
 			else if(event.getClickCount() == 2) {
-				if(!FileRead.cancelreadread && coverageregion && selectedSplit.viewLength < Settings.readDrawDistance) {
+				if(!FileRead.cancelreadread && coverageregion && selectedSplit.viewLength < Settings.readDrawDistance && Main.samples > 0) {
 					Reads readclass = sampleList.get(selectedIndex).getreadHash().get(selectedSplit);		
 					groupMismatchReads(Main.chromDraw.getPosition(event.getX()-Main.sidebarWidth, selectedSplit), selectedSplit,sampleList.get(selectedIndex), readclass);
 					//System.out.println(Main.chromDraw.getPosition(event.getX()-Main.sidebarWidth, selectedSplit));

@@ -3348,7 +3348,8 @@ static void annotate() {
 		try {			
 			if(readClass.sample.CRAM) {
 				if(!readClass.sample.chrSet) {
-					if(samFileReader.getFileHeader().getSequence(0).getSAMString().contains("chr")) {
+					
+					if(CRAMReader.getFileHeader().getSequence(0).getSAMString().contains("chr")) {
 						readClass.sample.chr = "chr";
 					}
 					readClass.sample.chrSet = true;
