@@ -4344,7 +4344,7 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 				mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,Byte>>();
 			}
 			
-			//testbranch
+			//testbranch merging
 			for(int i = 0; i<samRecord.getCigarLength(); i++) {
 				element = samRecord.getCigar().getCigarElement(i);
 				if(element.getOperator().compareTo(CigarOperator.MATCH_OR_MISMATCH)== 0) {
