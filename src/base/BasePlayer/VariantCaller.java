@@ -46,8 +46,8 @@ public class VariantCaller extends JPanel implements ActionListener {
 	static JTextField minmappingq = new JTextField("10");
 	JLabel minmappingqlabel = new JLabel("Min. mapping quality");
 	static JCheckBox bothstrand = new JCheckBox("Require both strands");
-	//static JCheckBox bothruns = new JCheckBox("Require multiple runs");
-	
+	static JCheckBox bothruns = new JCheckBox("Require multiple runs");
+	//static int qualities = 0, amount = 0;
 	JCheckBox onlySel = new JCheckBox("Calc only for selected");
 	static JCheckBox inanno = new JCheckBox("Before annotation");
 	JButton execute = new JButton("Execute");
@@ -71,7 +71,7 @@ public class VariantCaller extends JPanel implements ActionListener {
 			add(minbaseq);
 			add(minbaseqlabel);
 			add(bothstrand);
-		//	add(bothruns);
+			add(bothruns);
 			add(onlySel);
 			add(inanno);
 			//add(new JSeparator());
@@ -216,7 +216,8 @@ public class VarCaller extends SwingWorker<String, Object> {
 				Main.drawCanvas.loadingtext = "Calling variants";
 			}
 			
-			
+			//qualities = 0;
+			//amount = 0;
 			Main.bedCanvas.bedOn = false;
 				for(int s = 0; s<Main.samples;s++) {
 					
@@ -287,8 +288,7 @@ public class VarCaller extends SwingWorker<String, Object> {
 						Main.drawCanvas.repaint();
 						
 						String[] line = new String[10];
-						line[2] = ".";
-						line[5] = "99";
+						line[2] = ".";						
 						line[6] = "PASS";
 						line[7] = "INFO";
 						line[8] = "GT:AD:DP";
@@ -354,9 +354,9 @@ public class VarCaller extends SwingWorker<String, Object> {
 										if(VariantCaller.bothstrand.isSelected() && coverages[i][j].strands.size() < 2) {
 											continue;
 										}
-										/*if(VariantCaller.bothruns.isSelected() /*&& readClass.getRuns() > 1 && coverages[i][j].runs.size() < 2) {
+										if(VariantCaller.bothruns.isSelected() && readClass.getRuns() > 1 && coverages[i][j].runs.size() < 2) {
 											continue;
-										}*/
+										}
 										
 										foundscan = false;
 										scanpointer = i-1;
@@ -400,6 +400,7 @@ public class VarCaller extends SwingWorker<String, Object> {
 										line[1] = ""+(reads.getCoverageStart() + i);							
 										line[3] = refbase;										
 										line[4] = coveragebases[j];
+										line[5] = ""+MethodLibrary.round((coverages[i][j].qualities/(double)coverages[i][j].calls),2);
 										line[9] = genotypes.toString();			
 										
 										reader.readLine(line, sample);
@@ -490,7 +491,7 @@ public class VarCaller extends SwingWorker<String, Object> {
 			}
 			
 			Main.drawCanvas.ready("Calling variants");			
-					
+			//System.out.println(qualities/(double)amount +"\t" +amount);
 			Draw.updatevars = true;
 			Main.drawCanvas.repaint();
 			VariantCaller.loading = false;

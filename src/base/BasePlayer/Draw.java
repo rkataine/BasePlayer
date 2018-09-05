@@ -266,7 +266,9 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	private int samePosCount = 1;
 	public boolean intersect = false;
 	private boolean bamHover;
-	private boolean coverageregion;	
+	private boolean coverageregion;
+	private int clipLength;
+	
 	static int clickedAdd = 0;
 	static boolean updateCoverages = false;
 	
@@ -4108,6 +4110,7 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 		
 		readpos = read.getPosition();
 		insertion = 0;
+		clipLength = 0;
 		for(int c = 0; c<read.getCigar().numCigarElements(); c++) {
 			
 			element = read.getCigar().getCigarElement(c);
@@ -4190,10 +4193,12 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 					
 					read.split.getReadBuffer().setColor(tempColor);
 					readpos+=element.getLength();
+					
 				}
 				else {
 					read.split.getReadBuffer().setColor(Color.white);
 					if(c== 0) {
+						clipLength = element.getLength();
 						read.split.getReadBuffer().fillRect((int)((readpos+insertion-read.split.start)*read.split.pixel)-1, ypos-2,2,reads.readHeight+4); 
 					}
 					else {
@@ -4201,7 +4206,9 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 						
 					}
 					read.split.getReadBuffer().setColor(tempColor);
+					
 				}
+				
 				if(insertion > 0) {
 					insertion = 0;
 				}								
@@ -4259,7 +4266,7 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 			}
 			else {
 			
-				read.split.getReadBuffer().drawString(Main.getBase.get(entry.getValue()), (int)((((read.getPosition()+entry.getKey())-read.split.start)*read.split.pixel)+read.split.pixel/3),ypos+reads.readHeight);
+				read.split.getReadBuffer().drawString(Main.getBase.get(entry.getValue()), (int)((((read.getPosition()-clipLength+entry.getKey())-read.split.start)*read.split.pixel)+read.split.pixel/3),ypos+reads.readHeight);
 					
 										
 			}	

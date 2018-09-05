@@ -155,6 +155,7 @@ public class FileRead extends SwingWorker< String, Object >  {
 	public static String outputName = "";
 	public static long filepointer = 0;	
 	HashMap<String, Integer[]> contexts;
+	//HashMap<String, Float[]> contextQuals;
 	//static int[][] array;
 	public static BufferedWriter sigOutput;
 	
@@ -2409,7 +2410,7 @@ static void annotate() {
 				if(altbase.contains("*") || (altbase2!=null && altbase2.contains("*"))) {
 					continue;
 				}
-				
+				quality = null;
 				if(split[8].contains("Q")) {
 					if(infofield.containsKey("GQ") && !info[infofield.get("GQ")].equals(".")) {						
 						gq = (float)Double.parseDouble(info[split[8].indexOf("GQ")/3]);						
@@ -3537,8 +3538,8 @@ static void annotate() {
 					right = false;
 					left = false;		
 					
-					if(viewLength <= Settings.readDrawDistance && !chrom.contains("M")) {
-						searchwindow = viewLength;						
+					if(!chrom.contains("M")) {
+						searchwindow = viewLength +readClass.sample.longestRead;						
 					}
 					else {						
 						searchwindow = 0;
@@ -3596,8 +3597,8 @@ static void annotate() {
 				left = false;
 				right = false;
 				
-				if(viewLength <= Settings.readDrawDistance && !chrom.contains("M")) {
-					searchwindow = viewLength;
+				if(!chrom.contains("M")) {
+					searchwindow = viewLength +readClass.sample.longestRead;
 				}
 				else {
 					searchwindow = 0;
@@ -3607,7 +3608,7 @@ static void annotate() {
 			}
 			else if(readClass.getLastRead() != null && readClass.getReadEnd() < endpos) {
 				
-				if(viewLength <= Settings.readDrawDistance && !chrom.contains("M")) {
+				if(!chrom.contains("M")) {
 					searchwindow = viewLength;
 				}
 				else {
@@ -3674,8 +3675,8 @@ static void annotate() {
 				right = false;
 				
 				
-				if(viewLength <= Settings.readDrawDistance && !chrom.contains("M")) {
-					searchwindow = viewLength;
+				if(!chrom.contains("M")) {
+					searchwindow = viewLength+readClass.sample.longestRead;
 				}
 				else {
 					searchwindow = 0;
@@ -3797,7 +3798,7 @@ static void annotate() {
 					}
 				*/
 				if(samRecord.getUnclippedEnd() > readClass.getCoverageEnd()-1) {
-				/*	
+					
 					double[][] coverages = new double[(int)(readClass.getCoverages().length +(samRecord.getUnclippedEnd()-samRecord.getUnclippedStart() + (int)splitIndex.viewLength))][8];
 					
 					//pointer = coverages.length-1;
@@ -3817,7 +3818,7 @@ static void annotate() {
 					readClass.setCoverageEnd(readClass.getCoverageStart()+coverages.length);
 					readClass.setCoverages(coverages);
 					coverageArray = readClass.getCoverages();
-					*/
+					
 				}
 				else if(samRecord.getUnclippedStart() > 0 && samRecord.getUnclippedStart() < readClass.getCoverageStart() ) {
 					
@@ -4083,10 +4084,11 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 		/*if(samRecord.getReadName().contains("1104:8947:11927")) {
 			System.out.println(readClass.sample.MD +" " +MD +" " +samRecord.getCigarString().contains("S") +" " +Settings.softClips);
 		}*/
+		
 		if(!readClass.sample.MD) {
 			readClass.sample.MD = true;
 		}
-	
+		
 		java.util.ArrayList<java.util.Map.Entry<Integer,Integer>> insertions = null;
 		int softstart = 0;
 		if(samRecord.getCigarLength() > 1) {
@@ -4210,9 +4212,10 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 				String bases = samRecord.getReadString();
 				String qualities = samRecord.getBaseQualityString();
 				
-			/*	if(SA == null) {
+				if(SA == null) {
 					softstart = 0;
-				}*/
+				}
+				
 				int readpos = softstart;
 				int mispos = softstart;
 						
@@ -4404,6 +4407,7 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 				}
 				else if(element.getOperator().compareTo(CigarOperator.SOFT_CLIP)== 0 ) {
 						if(Settings.softClips == 1) {
+							
 							for(int r = readpos; r<readpos+element.getLength(); r++) {
 								if(((readstart+r)-split.getReadReference().getStartPos()-1) > split.getReadReference().getSeq().length-1) {
 									split.getReadReference().append(samRecord.getUnclippedEnd()+1000);
@@ -4434,9 +4438,11 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 							
 						}
 						else {
-							if(i == 0) {							
-								readstart = samRecord.getAlignmentStart();							
+							if(i == 0) {		
+									
+								readpos+=element.getLength();												
 								mispos+=element.getLength();
+								
 							}
 						}				
 														
@@ -6001,6 +6007,7 @@ void varCalc() {
 		VariantHandler.freeze.setSelected(true);	
 	}
 	contexts = null;
+	//contextQuals = null;
 	Draw.calculateVars = false;
 	Draw.variantcalculator = true;
 	
@@ -6386,6 +6393,13 @@ void varCalc() {
 		  		 	output.write(Main.lineseparator);
 		  		}
 				if(contexts != null) {
+					/*Iterator<Entry<String, Float[]>> iterQuals = contextQuals.entrySet().iterator();
+					while(iterQuals.hasNext()) {
+						Entry<String, Float[]> entry = iterQuals.next();			
+						Float[] values = entry.getValue();			
+						System.out.println(entry.getKey().substring(1)+">" +entry.getKey().charAt(1) +entry.getKey().charAt(0) +entry.getKey().charAt(3) +"\t" +(values[1]/values[0]) +"\t" +values[0]);						
+					}
+					*/
 					
 					Iterator<Entry<String, Integer[]>> iter = contexts.entrySet().iterator();
 					sigOutput.write("#mutType");
@@ -7863,6 +7877,7 @@ VarNode annotateVariant(VarNode vardraw) {
 							//boolean set = false;
 							if(contexts == null) {
 								contexts = new HashMap<String, Integer[]>();
+								//contextQuals =  new HashMap<String, Float[]>();
 							}
 							/*
 							if(base.equals("T")) {
@@ -7882,23 +7897,34 @@ VarNode annotateVariant(VarNode vardraw) {
 								if(contexts.containsKey(base+context)) {
 									if(contexts.get(base+context)[sample.getIndex()] == null) {
 										contexts.get(base+context)[sample.getIndex()] = 1; 
+										//contextQuals.get(base+context)[0]++;										
+									//	contextQuals.get(base+context)[1] += entry.getValue().get(m).getQuality();
 									}
 									else {
 										contexts.get(base+context)[sample.getIndex()]++;
+										//contextQuals.get(base+context)[0]++;										
+										//contextQuals.get(base+context)[1] += entry.getValue().get(m).getQuality();
 									}
 								}
 								else {
 									if(contexts.containsKey(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))) {
 										if(contexts.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[sample.getIndex()] == null) {
 											contexts.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[sample.getIndex()] = 1; 
+											//contextQuals.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[0] = 1F;										
+											//contextQuals.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[1] = entry.getValue().get(m).getQuality();
 										}
 										else {
 											contexts.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[sample.getIndex()]++;
+											//contextQuals.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[0]++;										
+											//contextQuals.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[1] += entry.getValue().get(m).getQuality();
 										}
 									}
 									else {
 										contexts.put(base+context, new Integer[Main.drawCanvas.sampleList.size()]);
 										contexts.get(base+context)[sample.getIndex()] = 1; 
+										//contextQuals.put(base+context, new Float[2]);
+										//contextQuals.get(base+context)[0] = 1F;										
+										//contextQuals.get(base+context)[1] = entry.getValue().get(m).getQuality();
 									}
 								}		
 						}
@@ -8679,7 +8705,9 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 				if(samRecord.getReadUnmappedFlag()) {					
 					continue;
 				}
-				
+				if(samRecord.getReadLength() == 0) {
+					continue;
+				}
 				//TODO jos on pienempi ku vika unclipped start		
 				
 				
@@ -8708,11 +8736,15 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 					
 					continue;
 				}
-			/*
-				run = samRecord.getReadName().split(":")[1];
+				if(samRecord.getReadName().contains(":")) {
+					run = samRecord.getReadName().split(":")[1];
+				}
+				else {
+					run = samRecord.getReadName();
+				}
 				if(!runs.containsKey(run)) {
 					runs.put(run, "");
-				}*/
+				}
 				if(samRecord.getAlignmentEnd() >= readClass.getCoverageEnd()) {
 					
 					coverages = coverageArrayAdd(readClass.sample.longestRead*2, coverages, readClass);
@@ -8736,74 +8768,82 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 								if(((readstart+r)-readClass.getCoverageStart()) < 0) {
 									continue;
 								}
-								
-								if(samRecord.getReadBases()[mispos] !=  reference.getSeq()[((readstart+r)-reference.getStartPos()-1)]) {
-									if((readstart+r)-readClass.getCoverageStart() < coverages.length-1 && (readstart+r)- readClass.getCoverageStart() > -1) {
-									readClass.sample.basequalsum+=(int)samRecord.getBaseQualityString().charAt(mispos)-readClass.sample.phred;
-									readClass.sample.basequals++;
-									if((int)samRecord.getBaseQualityString().charAt(mispos)-readClass.sample.phred >= minBaseQuality) {
-										
-										if(mispos > 5 && mispos < samRecord.getReadLength()-5) {
-											/*
-											if(r < scanWindow) {
-												scanner = 0;
-											}
-											else {
-												scanner = r-scanWindow;
-											}
-											if(r > samRecord.getReadLength()-scanWindow) {
-												scannerEnd = samRecord.getReadLength();
-											}
-											else {
-												scannerEnd = r+scanWindow;
-											}
-											for(int s = scanner ; s<scannerEnd;s++) {
-												if(s == r) {
-													continue;
-												}
-												if(samRecord.getReadBases()[s] != reference.getSeq()[((readstart+s)-reference.getStartPos()-1)]) {
-													scanFail = true;
-													
-													break;
-												}
-											}
-											*/
+								try {
+									if(samRecord.getReadBases()[mispos] !=  reference.getSeq()[((readstart+r)-reference.getStartPos()-1)]) {
+										if((readstart+r)-readClass.getCoverageStart() < coverages.length-1 && (readstart+r)- readClass.getCoverageStart() > -1) {
+										readClass.sample.basequalsum+=(int)samRecord.getBaseQualityString().charAt(mispos)-readClass.sample.phred;
+										readClass.sample.basequals++;
+										if((int)samRecord.getBaseQualityString().charAt(mispos)-readClass.sample.phred >= minBaseQuality) {
 											
-											if(!scanFail) {
-												if(coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])] == null) {
-													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])] = new VariantCall();
+											if(mispos > 5 && mispos < samRecord.getReadLength()-5) {
+												/*
+												if(r < scanWindow) {
+													scanner = 0;
+												}
+												else {
+													scanner = r-scanWindow;
+												}
+												if(r > samRecord.getReadLength()-scanWindow) {
+													scannerEnd = samRecord.getReadLength();
+												}
+												else {
+													scannerEnd = r+scanWindow;
+												}
+												for(int s = scanner ; s<scannerEnd;s++) {
+													if(s == r) {
+														continue;
+													}
+													if(samRecord.getReadBases()[s] != reference.getSeq()[((readstart+s)-reference.getStartPos()-1)]) {
+														scanFail = true;
+														
+														break;
+													}
+												}
+												*/
+												
+												if(!scanFail) {
+													if(coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])] == null) {
+														coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])] = new VariantCall();
+														
+													}
 													
+													
+													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].calls++;
+													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].qualities += (int)samRecord.getBaseQualityString().charAt(mispos)-readClass.sample.phred;
+													//if(readstart+mispos == 73789324) {
+													//	System.out.println(coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].calls);
+													//}
+													if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].runs.contains(run)) {
+														coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].runs.add(run);
+														
+													}
+													if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].strands.contains(strand)) {
+														coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].strands.add(strand);
+														
+													}
 												}
 												
-								
-												coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].calls++;
-												//if(readstart+mispos == 73789324) {
-												//	System.out.println(coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].calls);
-												//}
-												//if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].runs.contains(run)) {
-												//	coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].runs.add(run);
-													
-												//}
-												if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].strands.contains(strand)) {
-													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])].strands.add(strand);
-													
-												}
 											}
-											
+											else {
+												scanFail = true;
+											}
+										}										
+										else {
+											scanFail = true;
+										}
 										}
 										else {
 											scanFail = true;
 										}
-									}										
-									else {
-										scanFail = true;
-									}
-									}
-									else {
-										scanFail = true;
 									}
 								}
-								
+								catch(Exception e) {
+									System.out.println(samRecord.getSAMString());
+									System.out.println(samRecord.getReadLength() +" " +samRecord.getReadString().length());
+									e.printStackTrace();
+									return null;
+									
+								}
 								if(!scanFail) {
 									if(coverages[((readstart+r)-readClass.getCoverageStart())][0] == null) {
 										coverages[((readstart+r)-readClass.getCoverageStart())][0] = new VariantCall();
@@ -8829,7 +8869,11 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 						}
 						else if(element.getOperator().compareTo(CigarOperator.SOFT_CLIP)== 0 ) {
 							scanFail = true;
-									if(i == 0) {							
+									if(i == 0) {	
+										/*if(element.getLength() > 1000) {
+											System.out.println(samRecord.getReadLength() +" " +samRecord.getReadString().length() +"\n" +samRecord.getSAMString());
+											
+										}*/
 										readstart = samRecord.getAlignmentStart();							
 										mispos+=element.getLength();
 									}
@@ -8860,7 +8904,13 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 									readClass.sample.basequals++;
 									if((int)samRecord.getBaseQualityString().charAt(r)-readClass.sample.phred >= minBaseQuality) {
 										if(r > 5 && r < samRecord.getReadLength()-5) {
-											
+											/*if(samRecord.getReadString().charAt(r) == 'C' && samRecord.getReadString().charAt(r-1) == 'C' && samRecord.getReadString().charAt(r+1) == 'C') {
+												if(samRecord.getReadString().charAt(r-2) != 'C' && samRecord.getReadString().charAt(r+2) != 'C') {
+													VariantCaller.qualities += (int)samRecord.getBaseQualityString().charAt(r)-readClass.sample.phred;
+													VariantCaller.amount++;
+												}
+											}*/
+											/*
 											if(r < scanWindow) {
 												scanner = 0;
 											}
@@ -8882,16 +8932,18 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 													scanFail = true;													
 													break;
 												}
-											}
+											}*/
 											if(!scanFail) {
 												
 												if(coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])] == null) {
 													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])] = new VariantCall();
 												}
 												coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].calls++;	
-												/*if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].runs.contains(run)) {
+												coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].qualities += (int)samRecord.getBaseQualityString().charAt(r)-readClass.sample.phred;
+												
+												if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].runs.contains(run)) {
 													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].runs.add(run);
-												}*/
+												}
 												
 												if(!coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].strands.contains(strand)) {
 													coverages[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[r])].strands.add(strand);
