@@ -4343,7 +4343,7 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 			if(mismatches == null) {
 				mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,Byte>>();
 			}
-			
+			//test
 			
 			for(int i = 0; i<samRecord.getCigarLength(); i++) {
 				element = samRecord.getCigar().getCigarElement(i);
