@@ -3466,6 +3466,26 @@ static void annotate() {
 		return null;
 	}
 	
+	void setReadArrays(Reads readClass, int startpos, int endpos) {
+				
+		readClass.setCoverageStart(startpos);
+		readClass.startpos = startpos;
+		readClass.endpos = endpos;
+		readClass.setReadStart(startpos);
+		readClass.setReadEnd(endpos);
+		
+		if(splitIndex.getMinReadStart() > startpos) {
+			splitIndex.setMinReadStart(startpos);
+		}
+		if(splitIndex.getMaxReadEnd() < endpos) {
+			splitIndex.setMaxReadEnd(endpos);
+		}
+		double[][] coverages = new double[endpos-startpos][8];
+		readClass.setCoverageEnd(startpos + coverages.length);
+		readClass.setCoverages(coverages);
+		readClass.setMaxcoverage(1);
+	}
+	
 	public ArrayList<ReadNode> getReads(String chrom, int startpos, int endpos, Reads readClass, SplitClass split) {
 	//	ReadAdder readrunner = null;
 		try {
@@ -3528,7 +3548,7 @@ static void annotate() {
 				
 					return null;
 				}
-				
+				coverageArray = readClass.getCoverages();	
 			}
 			else {
 				firstCov = true;
@@ -3539,7 +3559,7 @@ static void annotate() {
 					left = false;		
 					
 					if(!chrom.contains("M")) {
-						searchwindow = viewLength +readClass.sample.longestRead;						
+						searchwindow = 0; //viewLength +readClass.sample.longestRead;						
 					}
 					else {						
 						searchwindow = 0;
@@ -3568,57 +3588,35 @@ static void annotate() {
 						}	*/					
 					}
 					
-					startpos = startpos - searchwindow;
-					endpos = endpos + searchwindow;
 					
-					if(startpos < 1) {
-						startpos = 1;
-					}
-					
-					readClass.setCoverageStart(startpos);
-					readClass.startpos = startpos;
-					readClass.endpos = endpos;
-					readClass.setReadStart(startpos);
-					readClass.setReadEnd(endpos);
-					
-					if(splitIndex.getMinReadStart() > startpos) {
-						splitIndex.setMinReadStart(startpos);
-					}
-					if(splitIndex.getMaxReadEnd() < endpos) {
-						splitIndex.setMaxReadEnd(endpos);
-					}
-					double[][] coverages = new double[endpos-startpos+searchwindow*2][8];
-					readClass.setCoverageEnd(startpos + coverages.length);
-					readClass.setCoverages(coverages);
-					readClass.setMaxcoverage(1);
 					
 			}
 			else if(!readClass.getReads().isEmpty() && readClass.getReadStart() /*(readClass.getFirstRead().getPosition()*/ < startpos && readClass.getReadEnd() /*readClass.getLastRead().getPosition()*/ > endpos){
 				left = false;
 				right = false;
 				
-				if(!chrom.contains("M")) {
+				/*if(!chrom.contains("M")) {
 					searchwindow = viewLength +readClass.sample.longestRead;
 				}
 				else {
 					searchwindow = 0;
-				}
+				}*/
 			
 				return readClass.getReads();
 			}
 			else if(readClass.getLastRead() != null && readClass.getReadEnd() < endpos) {
-				
+			/*	
 				if(!chrom.contains("M")) {
 					searchwindow = viewLength;
 				}
 				else {
 					searchwindow = 0;			
 				}				
-				
+				*/
 				right = true;
 				left = false;								
 				startpos = readClass.getReadEnd();				
-				endpos = endpos+searchwindow;
+				endpos = endpos+(int)splitIndex.end +readClass.sample.longestRead;
 				addlength = 1000;
 			//	readClass.reference.append( endpos+200);
 				/*if(firstSample) {	
@@ -3633,7 +3631,7 @@ static void annotate() {
 				
 				}*/	
 				bamIterator = getBamIterator(readClass,chrom,startpos,  endpos );
-				
+				/*
 				if(readClass.getCoverageEnd() < endpos) {
 					if(searchwindow < 1000) {
 						addlength = 2000;
@@ -3644,8 +3642,8 @@ static void annotate() {
 					else {
 						addlength = 200000;
 					}
-				}
-				double[][] coverages = new double[(int)(readClass.getCoverages().length +(addlength))][8];				
+				}*/
+				/*double[][] coverages = new double[(int)(readClass.getCoverages().length +(addlength))][8];				
 				
 				for(int i =0; i<readClass.getCoverages().length; i++) {
 			
@@ -3667,29 +3665,29 @@ static void annotate() {
 				readClass.setReadEnd(endpos);				
 				readClass.setCoverageEnd(readClass.getCoverageStart()+coverages.length);
 				readClass.setCoverages(coverages);
-			
+			*/
 			
 			}
 			else if(readClass.getFirstRead() != null && readClass.getFirstRead().getPosition() > startpos) {
 				left = true;
 				right = false;
 				
-				
+				/*
 				if(!chrom.contains("M")) {
 					searchwindow = viewLength+readClass.sample.longestRead;
 				}
 				else {
 					searchwindow = 0;
 				}					
-				
-				endpos = readClass.getReadStart();				
-				startpos = startpos-searchwindow;
+				*/
+				//endpos = readClass.getReadStart();				
+				//startpos = startpos-searchwindow;
 			/*	
 				if(firstSample) {			
 					splitIndex.getReadReference().appendToStart( startpos-1);
 				}*/
 				bamIterator = getBamIterator(readClass,chrom,startpos,  endpos+100 );
-				addlength = 0;
+				/*addlength = 0;
 				if(searchwindow < 1000) {
 					addlength = 2000;
 				}
@@ -3721,15 +3719,16 @@ static void annotate() {
 					splitIndex.setMinReadStart(startpos);
 				}
 				
-				readClass.setCoverages(coverages);				
+				readClass.setCoverages(coverages);			*/	
 			}
 			}
 			
-			coverageArray = readClass.getCoverages();			
-			if(readClass.getReadStart() == null) {
+					
+			/*if(readClass.getReadStart() == null) {
 				readClass.setReadStart(startpos);
 			}
-			
+			*/
+			boolean firstRead = true;
 			while(bamIterator != null && bamIterator.hasNext()) {	
 				
 				try {	
@@ -3759,19 +3758,19 @@ static void annotate() {
 				//TODO jos on pienempi ku vika unclipped start		
 				
 				
-				if(samRecord.getUnclippedEnd() < startpos) { //this.readSeqStart+1) {
+				/*if(samRecord.getUnclippedEnd() < startpos) { //this.readSeqStart+1) {
 					
 					continue;
-				}
+				}*/
 				
 				if(samRecord.getUnclippedStart() >= endpos){
 					Main.drawCanvas.loadBarSample = 0;  
 					Main.drawCanvas.loadbarAll  =0;
 					
 					break;
-				}		
+				}	
 				
-				if(readClass.sample.longestRead <samRecord.getCigar().getReferenceLength()) {
+				if(firstRead || readClass.sample.longestRead <samRecord.getCigar().getReferenceLength()) {
 					readClass.sample.longestRead = samRecord.getCigar().getReferenceLength();
 					
 				}
@@ -3785,6 +3784,19 @@ static void annotate() {
 				}
 				
 			if(viewLength < Settings.readDrawDistance) {
+				startpos = samRecord.getUnclippedStart();
+				if(samRecord.getUnclippedEnd() > splitIndex.end + readClass.sample.longestRead) {
+					endpos = samRecord.getUnclippedEnd();
+				}
+				else {
+					endpos = (int)splitIndex.end + readClass.sample.longestRead;
+				}
+				
+				if(firstRead) {					
+					setReadArrays(readClass, startpos, endpos);
+					coverageArray = readClass.getCoverages();	
+					firstRead = false;
+				}
 				/*
 					if(splitIndex.reference == null) {
 						splitIndex.reference = new ReferenceSeq(chrom, samRecord.getUnclippedStart()-2000, end+1000, Main.referenceFile);
@@ -3851,8 +3863,8 @@ static void annotate() {
 				}
 			}
 			
-			
-			 if(((viewLength < Settings.readDrawDistance && samRecord.getUnclippedStart() >= startpos) || (viewLength >= Settings.readDrawDistance && samRecord.getUnclippedEnd() >= startpos)) && samRecord.getUnclippedStart() <= endpos) {					
+		
+			 if(viewLength < Settings.readDrawDistance/* && samRecord.getUnclippedStart() >= startpos)*/ || viewLength >= Settings.readDrawDistance && samRecord.getUnclippedEnd() >= startpos && samRecord.getUnclippedStart() <= endpos) {					
 					java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> mismatches = null;
 					
 					if(samRecord.getMappingQuality() >= Settings.mappingQ) {
@@ -4343,7 +4355,6 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 			if(mismatches == null) {
 				mismatches = new java.util.ArrayList<java.util.Map.Entry<Integer,Byte>>();
 			}
-			//test
 			
 			for(int i = 0; i<samRecord.getCigarLength(); i++) {
 				element = samRecord.getCigar().getCigarElement(i);
@@ -8720,10 +8731,10 @@ public VariantCall[][] variantCaller(String chrom, int startpos, int endpos, Rea
 					break;
 				}		
 				
-				if(readClass.sample.longestRead <samRecord.getCigar().getReferenceLength()) {
+				/*if(readClass.sample.longestRead <samRecord.getCigar().getReferenceLength()) {
 					readClass.sample.longestRead = samRecord.getCigar().getReferenceLength();
 					
-				}
+				}*/
 				/*if(readClass.sample.getComplete() == null) {
 					if(samRecord.getReadName().startsWith("GS")) {
 						readClass.sample.setcomplete(true);

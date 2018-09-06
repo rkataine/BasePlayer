@@ -475,7 +475,7 @@ import javax.net.ssl.X509TrustManager;
 	    {
 	      
 		private static final long serialVersionUID = 1L;
-		private String updateAvail = "Update available (goto File -> Update)";	
+		//private String updateAvail = "Update available (goto File -> Update)";	
 		
 		
 		public void paintComponent(Graphics g) {
@@ -610,10 +610,10 @@ import javax.net.ssl.X509TrustManager;
 				 }
 				 else {*/
 				//	 g.drawString("Loading done.", drawScroll.getWidth()/2-g.getFontMetrics().stringWidth("Loading done.")/2, frame.getHeight()*2/3+70);
-					 if(Main.update.isEnabled()) {
+					/* if(Main.update.isEnabled()) {
 						 
 						 g.drawString(updateAvail , drawScroll.getWidth()/2-g.getFontMetrics().stringWidth(updateAvail)/2, frame.getHeight()*2/3+70+g.getFontMetrics(Draw.loadingFont).getHeight()*2);
-					 }
+					 }*/
 					
 				 //}
 			 }					 
