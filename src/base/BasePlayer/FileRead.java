@@ -2334,15 +2334,10 @@ static void annotate() {
 					if(info[gtindex].contains(".") || info[gtindex].length() < 3) {
 						continue;
 					}
-					if(info[gtindex].contains("|")) {
-						
-						firstallele = Short.parseShort(""+info[gtindex].split("|")[0]);
-						secondallele = Short.parseShort(""+info[gtindex].split("|")[2]);	
-					}
-					else {
-						firstallele = Short.parseShort(""+info[gtindex].split("/")[0]);
-						secondallele = Short.parseShort(""+info[gtindex].split("/")[1]);	
-					}
+				
+					firstallele = Short.parseShort(""+info[gtindex].split("/")[0]);
+					secondallele = Short.parseShort(""+info[gtindex].split("/")[1]);	
+					
 					genotype = firstallele == secondallele;
 					
 					if(genotype && firstallele == 0) {
