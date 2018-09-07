@@ -25,6 +25,7 @@ public class Reads implements Serializable, Cloneable {
 	private transient double[][] coverages; // = new int[(int)Main.screenSize.getWidth()];
 	private transient ArrayList<ReadNode> reads = new ArrayList<ReadNode>();
 	private transient ArrayList<ReadNode[]> headAndTail = new ArrayList<ReadNode[]>();
+	
 	private transient int runs = 1;
 	private transient ReadNode firstRead, lastRead;
 	private transient int maxReadSize = 0;
