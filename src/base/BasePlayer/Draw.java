@@ -268,6 +268,9 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	private boolean bamHover;
 	private boolean coverageregion;
 	private int clipLength;
+	private double sampleheight;
+	private int totalheight;
+	
 	
 	static int clickedAdd = 0;
 	static boolean updateCoverages = false;
@@ -3658,11 +3661,14 @@ void drawReads(SplitClass split) {
 		}
 		
 		if(bam && split.viewLength > Settings.coverageDrawDistance) {
-			zoomNote = true;
-			
+			if(!zoomNote) {
+				zoomNote = true;
+			}
 		}
 		else {
-			zoomNote = false;
+			if(zoomNote) {
+				zoomNote = false;
+			}
 		}
 		
 		if(scrollbar) {
@@ -3682,9 +3688,12 @@ void drawReads(SplitClass split) {
 			rbuf.fillRect(0,0, this.getWidth(),Main.drawScroll.getViewport().getHeight());	
 			rbuf.setComposite(backupr);		
 		}
-		if((split.viewLength > Settings.readDrawDistance+20000 || drawVariables.sampleHeight <= 100)) {				
-			updateReads = false;			
-			clearReads(split);
+		if(!lineZoomer && (split.viewLength > Settings.readDrawDistance || drawVariables.sampleHeight <= 100) ) {		
+			if(!split.clearedReads) {
+				updateReads = false;			
+				clearReads(split);
+				
+			}			
 		}	
 		
 		if(split.viewLength >= Settings.readDrawDistance || drawVariables.sampleHeight <= 100) {			
@@ -3732,7 +3741,7 @@ void drawReads(SplitClass split) {
 		
 		
 		boolean first = true;
-		
+	
 		if(split.viewLength <= Settings.readDrawDistance && split.viewLength > 10){
 			try {
 				
@@ -3788,9 +3797,8 @@ void drawReads(SplitClass split) {
 			}
 			else if(split.viewLength <= Settings.readDrawDistance) {
 				
-				
-				if(!lineZoomer && !mouseDrag && (readsample.getreadHash().get(split).getReadStart() > (int)split.start+1 || readsample.getreadHash().get(split).getReadEnd() < (int)split.end)) {
-					split.clearedReads = false;					
+				if(!lineZoomer && !mouseDrag && (split.getMaxReadEnd() < (int)split.end || split.getMinReadStart() > (int)split.start || split.clearedReads) ) {
+					
 					
 				if(!sampleZoomer && !loading && /*!readsample.getreadHash().get(split).loading && */!scrollbar) {
 					
@@ -3831,12 +3839,12 @@ void drawReads(SplitClass split) {
 			//		}
 					
 						if(split.getMaxReadEnd()-split.getMinReadStart() > Settings.readDrawDistance && (split.start - split.getMinReadStart() > split.viewLength*2 || split.getMaxReadEnd() - split.end > split.viewLength*2)) {
-						
+							
 							clearReads();						
-							//split.nullRef();
+							
 						}
 						if(first) {
-						
+							split.clearedReads = false;		
 							first = false;
 							FileRead reader = new FileRead();		
 							/*if(i == drawVariables.visiblestart) {
@@ -3863,7 +3871,7 @@ void drawReads(SplitClass split) {
 			if(i >= Main.samples) {
 				break;				
 			}			
-			
+		
 			readsample.getreadHash().get(split).setReadSize(readsample.getreadHash().get(split).getReads().size());
 		
 			for(int j = 0; j<readsample.getreadHash().get(split).getReads().size();j++) {
@@ -4003,8 +4011,8 @@ void drawReads(SplitClass split) {
 			
 			if(readsample.getreadHash().get(split).getReadSize()*(sampleList.get(i).getreadHash().get(split).readHeight+2) > this.drawVariables.sampleHeight-(this.drawVariables.sampleHeight/split.getDivider())) {
 				readsidebar = true;
-				double sampleheight = this.drawVariables.sampleHeight-(this.drawVariables.sampleHeight/split.getDivider());
-				double totalheight = readsample.getreadHash().get(split).getReadSize()*(readsample.getreadHash().get(split).readHeight+2);
+				sampleheight = this.drawVariables.sampleHeight-(this.drawVariables.sampleHeight/split.getDivider());
+				totalheight = readsample.getreadHash().get(split).getReadSize()*(readsample.getreadHash().get(split).readHeight+2);
 				
 				split.getReadBuffer().setColor(Color.lightGray);
 				yValue = (int)((readsample.getIndex()*this.drawVariables.sampleHeight)-Main.drawScroll.getVerticalScrollBar().getValue()+this.drawVariables.sampleHeight/split.getDivider());

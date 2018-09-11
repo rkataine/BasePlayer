@@ -3178,10 +3178,10 @@ public void actionPerformed(ActionEvent e) {
 			    	   savefile = new File(fs.getDirectory() +"/" +filename);
 			    	   projectDir = fs.getDirectory();
 			    	   writeToConfig("DefaultProjectDir=" +projectDir);     	 
-				       if(!Files.isWritable(Paths.get(savefile.getParent()))) {
+				      /* if(!Files.isWritable(Paths.get(savefile.getParent()))) {
 				    	  Main.showError("No permission to write.", "Error");
 				    	  continue;
-				       }
+				       }*/
 				  
 				       if(!savefile.getAbsolutePath().endsWith(".ses")) {
 				    	   savefile = new File(savefile.getAbsolutePath() +".ses");
