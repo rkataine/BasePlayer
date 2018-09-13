@@ -3416,6 +3416,8 @@ static void annotate() {
 					//return value;
 				}
 				else {
+					return null;
+					/*
 					Iterator<SAMRecord> value = samFileReader.queryOverlapping(readClass.sample.chr+"M", startpos, endpos);
 					if(!readClass.sample.chrSet) {
 						if(!value.hasNext()) {
@@ -3428,8 +3430,8 @@ static void annotate() {
 						else {
 							readClass.sample.chrSet = true;
 						}
-					}
-					return value;
+					}*/
+					//return value;
 				}
 				
 			}
@@ -5323,9 +5325,6 @@ void readSam(String chrom, Reads readClass, SAMRecord samRecordBuffer, java.util
 																				
 										startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-((i+1)*(readClass.readHeight+2))));							
 										addNode.setRectBounds(xpos, startY, (int)(addNode.getWidth()*pixel), readClass.readHeight);
-										if(i > readClass.getHeadAndTail().size()-1) {
-											return;
-										}
 										addNode.setPrev(readClass.getHeadAndTail().get(i)[tailnode]);						
 										readClass.getHeadAndTail().get(i)[tailnode].setNext(addNode);
 										readClass.getHeadAndTail().get(i)[tailnode] = addNode;						
@@ -5482,9 +5481,6 @@ void readSamLeft(String chrom, Reads readClass, SAMRecord samRecordBuffer, java.
 																				
 										startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-((i+1)*(readClass.readHeight+2))));							
 										addNode.setRectBounds(xpos, startY, (int)(addNode.getWidth()*pixel), readClass.readHeight);
-										if(i > readClass.getHeadAndTail().size()-1) {
-											return;
-										}
 										addNode.setPrev(readClass.getHeadAndTail().get(i)[headnode].getPrev());	
 										
 										readClass.getHeadAndTail().get(i)[headnode].setPrev(addNode);
@@ -5509,61 +5505,69 @@ void readSamLeft(String chrom, Reads readClass, SAMRecord samRecordBuffer, java.
 								continue;
 						}						
 						else  {
-							if(1==1) {
-								found = true;
-								break;
+											
+							if(readClass.getHeadAndTail().get(i)[headnode].getPosition()-2 > searchPos) {
+								if(readClass.getHeadAndTail().get(i)[headnode].getPrev() != null && readClass.getHeadAndTail().get(i)[headnode].getPrev().getPosition() + readClass.getHeadAndTail().get(i)[headnode].getPrev().getWidth() < searchPos-samRecordBuffer.getReadLength()-2) {
+																	
+									xpos = (int)((searchPos-start)*pixel);	
+									addNode = new ReadNode(samRecordBuffer, readClass.sample.getComplete(), chrom, readClass.sample, splitIndex,readClass, mismatches);	
+									
+									startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-((i+1)*(readClass.readHeight+2))));					
+									addNode.setRectBounds(xpos, startY, (int)(addNode.getWidth()*pixel), readClass.readHeight);
+									addNode.setPrev(readClass.getHeadAndTail().get(i)[headnode].getPrev());								
+									readClass.getHeadAndTail().get(i)[headnode].setPrev(addNode);
+									addNode.setNext(readClass.getHeadAndTail().get(i)[headnode]);	
+									if(addNode.getPrev() != null) {
+										addNode.getPrev().setNext(addNode);
+									}
+									readClass.setLastRead(addNode);	
+									found = true;
+									
+									break;
+								}
+								else if(!readClass.getHeadAndTail().get(i)[tailnode].isDiscordant()) {
+									if (1==1) {
+										found = true;
+										break;
+									}
+									xpos = (int)((searchPos-start)*pixel);	
+									addNode = new ReadNode(samRecordBuffer, readClass.sample.getComplete(), chrom, readClass.sample, splitIndex,readClass, mismatches);	
+									
+									mundane = readClass.getHeadAndTail().get(i)[tailnode];
+																	
+									startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-((i+1)*(readClass.readHeight+2))));					
+									addNode.setRectBounds(xpos, startY, (int)(addNode.getWidth()*pixel), readClass.readHeight);
+									
+									if(mundane.getPrev() != null) {
+										addNode.setPrev(mundane.getPrev());
+										mundane.getPrev().setNext(addNode);									
+									}
+									if(readClass.getHeadAndTail().get(i)[headnode].equals(mundane)) {
+										readClass.getHeadAndTail().get(i)[headnode] = addNode;
+									}
+									readClass.getHeadAndTail().get(i)[tailnode] = addNode;
+									found = false;
+									readClass.setLastRead(addNode);	
+									
+									try {
+										readClass.getReads().set(i,addNode);
+									}
+									catch(Exception e) {
+										System.out.println(readClass.getHeadAndTail().size() +" " +readClass.getReads().size());
+									}
+									addNode = mundane;
+									searchPos = addNode.getPosition();
+									isDiscordant = false;
+									addNode.setNext(null);
+									addNode.setPrev(null);
+									
+									continue;
+								}	
+							}							
+							else if(readClass.getHeadAndTail().get(i)[tailnode].getPosition() +readClass.getHeadAndTail().get(i)[tailnode].getWidth() +2 < searchPos) {
+								readSam(chrom, readClass, samRecord, mismatches, i);	
+								return;
 							}
-						
-							
-							if(readClass.getHeadAndTail().get(i)[tailnode].getPosition()+readClass.getHeadAndTail().get(i)[tailnode].getWidth() +2 < searchPos) {
-								
-								xpos = (int)((searchPos-start)*pixel);	
-								addNode = new ReadNode(samRecordBuffer, readClass.sample.getComplete(), chrom, readClass.sample, splitIndex,readClass, mismatches);	
-								
-								startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-((i+1)*(readClass.readHeight+2))));					
-								addNode.setRectBounds(xpos, startY, (int)(addNode.getWidth()*pixel), readClass.readHeight);
-								addNode.setPrev(readClass.getHeadAndTail().get(i)[tailnode]);
-								readClass.getHeadAndTail().get(i)[tailnode].setNext(addNode);
-								readClass.getHeadAndTail().get(i)[tailnode] = addNode;		
-								readClass.setLastRead(addNode);	
-								found = true;
-								
-								break;
-							}
-							else if(!readClass.getHeadAndTail().get(i)[tailnode].isDiscordant()) {
-								xpos = (int)((searchPos-start)*pixel);	
-								addNode = new ReadNode(samRecordBuffer, readClass.sample.getComplete(), chrom, readClass.sample, splitIndex,readClass, mismatches);	
-								
-								mundane = readClass.getHeadAndTail().get(i)[tailnode];
-																
-								startY = (int)(((readClass.sample.getIndex()+1)*Main.drawCanvas.drawVariables.sampleHeight-Main.drawCanvas.bottom-((i+1)*(readClass.readHeight+2))));					
-								addNode.setRectBounds(xpos, startY, (int)(addNode.getWidth()*pixel), readClass.readHeight);
-								
-								if(mundane.getPrev() != null) {
-									addNode.setPrev(mundane.getPrev());
-									mundane.getPrev().setNext(addNode);									
-								}
-								if(readClass.getHeadAndTail().get(i)[headnode].equals(mundane)) {
-									readClass.getHeadAndTail().get(i)[headnode] = addNode;
-								}
-								readClass.getHeadAndTail().get(i)[tailnode] = addNode;
-								found = false;
-								readClass.setLastRead(addNode);	
-								
-								try {
-									readClass.getReads().set(i,addNode);
-								}
-								catch(Exception e) {
-									System.out.println(readClass.getHeadAndTail().size() +" " +readClass.getReads().size());
-								}
-								addNode = mundane;
-								searchPos = addNode.getPosition();
-								isDiscordant = false;
-								addNode.setNext(null);
-								addNode.setPrev(null);
-								
-								continue;
-							}					
 				
 						}				
 					
