@@ -3390,8 +3390,7 @@ void clearReads() {
 		splits.get(i).getSelectbuf().setComposite( composite);		
 		splits.get(i).getSelectbuf().fillRect(0,0,(int)Main.screenSize.getWidth(), Main.drawScroll.getViewport().getHeight());	
 		splits.get(i).getSelectbuf().setComposite(splits.get(i).getBackups());
-		splits.get(i).setMinReadStart(Integer.MAX_VALUE);
-		splits.get(i).setMaxReadEnd(0);
+		
 	}
 	
 	 Iterator<Map.Entry<SplitClass, Reads>> it;
@@ -3417,6 +3416,8 @@ void clearReads() {
 				reads.getReads().clear();
 				reads.getHeadAndTail().clear();
 			}
+	        reads.searchend = 0;
+	        reads.searchstart = Integer.MAX_VALUE;
 			reads.setReadEnd(0);
 			reads.setReadStart(Integer.MAX_VALUE);
 			reads.setFirstRead(null);
@@ -3797,7 +3798,7 @@ void drawReads(SplitClass split) {
 			}
 			else if(split.viewLength <= Settings.readDrawDistance) {
 				
-				if(!lineZoomer && !mouseDrag && (split.getMaxReadEnd() < (int)split.end || split.getMinReadStart() > (int)split.start || split.clearedReads) ) {
+				if(!lineZoomer && !mouseDrag && (readsample.getreadHash().get(split).searchend < (int)split.end || readsample.getreadHash().get(split).searchstart > (int)split.start || split.clearedReads) ) {
 					
 					
 				if(!sampleZoomer && !loading && /*!readsample.getreadHash().get(split).loading && */!scrollbar) {
@@ -3838,7 +3839,7 @@ void drawReads(SplitClass split) {
 						}	*/
 			//		}
 					
-						if(split.getMaxReadEnd()-split.getMinReadStart() > Settings.readDrawDistance && (split.start - split.getMinReadStart() > split.viewLength*2 || split.getMaxReadEnd() - split.end > split.viewLength*2)) {
+						if(readsample.getreadHash().get(split).searchend-readsample.getreadHash().get(split).searchstart > Settings.readDrawDistance && (split.start - readsample.getreadHash().get(split).searchstart > split.viewLength*2 || readsample.getreadHash().get(split).searchend - split.end > split.viewLength*2)) {
 							
 							clearReads();						
 							
@@ -6741,7 +6742,7 @@ public void mouseReleased(MouseEvent event) {
 				continue;
 			}
 			if(sampleList.get(i).getreadHash().get(selectedSplit) != null) {
-				sampleList.get(i).getreadHash().get(selectedSplit).setCoverageStart(0);
+				sampleList.get(i).getreadHash().get(selectedSplit).setCoverageStart(Integer.MAX_VALUE);
 				sampleList.get(i).getreadHash().get(selectedSplit).setCoverages(null);
 				sampleList.get(i).getreadHash().get(selectedSplit).getReads().clear();		
 				sampleList.get(i).getreadHash().get(selectedSplit).getHeadAndTail().clear();	
@@ -6759,7 +6760,7 @@ public void mouseReleased(MouseEvent event) {
 			}
 			try {
 				if(sampleList.get(i).getreadHash().get(selectedSplit) != null) {
-					sampleList.get(i).getreadHash().get(selectedSplit).setCoverageStart(0);	
+					sampleList.get(i).getreadHash().get(selectedSplit).setCoverageStart(Integer.MAX_VALUE);	
 				}
 			}
 			catch(Exception e) {

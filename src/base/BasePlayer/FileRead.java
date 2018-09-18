@@ -125,7 +125,7 @@ public class FileRead extends SwingWorker< String, Object >  {
 	private ReadBuffer currentread;
 	private int searchPos;
 	private boolean isDiscordant;
-	private double[][] coverageArray;
+	//private double[][] coverageArray;
 	private int pointer;
 	private int oldstart;
 	private int addlength;
@@ -240,8 +240,9 @@ public class FileRead extends SwingWorker< String, Object >  {
 					if(Main.drawCanvas.sampleList.get(i).samFile == null) {			
 						continue;
 					}
+					
 					//this.readClass.loading = true;
-					this.readClass = Main.drawCanvas.sampleList.get(i).getreadHash().get(splitIndex);	
+					
 					getReads(chrom, start, end, this.readClass,splitIndex);	
 					splitIndex.updateReads = true;
 					//this.readClass.loading = false;				
@@ -3479,9 +3480,9 @@ static void annotate() {
 	}
 	
 	public ArrayList<ReadNode> getReads(String chrom, int startpos, int endpos, Reads readClass, SplitClass split) {
-	
-		try {		
 		
+		try {		
+		double[][] coverageArray = null;
 		if(Main.drawCanvas.drawVariables.sampleHeight > 100) {
 			bamIterator = getBamIterator(readClass,chrom,startpos,  endpos);
 			if(viewLength > Settings.readDrawDistance) {					
@@ -3537,6 +3538,7 @@ static void annotate() {
 							break;
 						}
 					}	
+					
 					if( readClass.getReadEnd() < split.end) {
 						if(samRecord.getUnclippedStart() >= readClass.getReadStart() && samRecord.getUnclippedStart() <= readClass.getReadEnd()) {				
 							continue;
@@ -3546,8 +3548,7 @@ static void annotate() {
 				
 				if(samRecord.getUnclippedEnd() < startpos) {
 					continue;
-				}
-			
+				}			
 				
 				
 				if(readClass.sample.getComplete() == null) {
@@ -3663,7 +3664,9 @@ static void annotate() {
 							right = false;							
 						}*/
 						try {		
-							
+							if(coverageArray == null) {
+								return null;
+							}
 							if(samRecord.getUnclippedEnd() >= readClass.getCoverageEnd()) {
 								coverageArray = coverageArrayAdd((int)((samRecord.getUnclippedEnd()-samRecord.getUnclippedStart() + (int)readClass.sample.longestRead)), coverageArray);
 							}
@@ -3732,13 +3735,13 @@ static void annotate() {
 				}				
 			}	
 			if(viewLength < Settings.readDrawDistance) {
-				if(splitIndex.getMinReadStart() > startpos) {
-					splitIndex.setMinReadStart(startpos);
+				if(readClass.searchstart > startpos) {
+					readClass.searchstart = startpos; //splitIndex.setMinReadStart(startpos);
 				}
-				if(splitIndex.getMaxReadEnd() < endpos) {
-					splitIndex.setMaxReadEnd(endpos);
+				if(readClass.searchend < endpos) {
+					readClass.searchend = endpos;
 				}
-				if(readClass.getReadStart() > firststart) {
+				if(firststart > 0 && readClass.getReadStart() > firststart) {
 					readClass.setReadStart(firststart);
 				}
 				if(readClass.getReadEnd() < laststart) {
