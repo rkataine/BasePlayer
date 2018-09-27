@@ -505,9 +505,14 @@ static void calcAverage() {
 				if(chrmap.get(samRecord.getReferenceName()) != mergeVector.get(pointer)[0]) {
 					pointer = 0;
 					int chrtest = chrmap.get(samRecord.getReferenceName());
-					
-					while(chrtest != mergeVector.get(pointer)[0] ) {
-						pointer++;
+					try {
+						while(chrtest != mergeVector.get(pointer)[0] ) {
+							pointer++;
+							
+						}
+					}
+					catch(Exception e) {
+						break;
 					}
 					first = true;
 				}
