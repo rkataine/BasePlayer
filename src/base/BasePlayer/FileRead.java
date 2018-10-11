@@ -2340,12 +2340,7 @@ static void annotate() {
 					if(info[gtindex].contains(".") || info[gtindex].length() < 3) {
 						continue;
 					}
-<<<<<<< HEAD
-				
-					firstallele = Short.parseShort(""+info[gtindex].split("/")[0]);
-					secondallele = Short.parseShort(""+info[gtindex].split("/")[1]);	
-					
-=======
+
 					if(info[gtindex].contains("|")) {
 						
 						firstallele = Short.parseShort(""+info[gtindex].split("|")[0]);
@@ -2355,7 +2350,7 @@ static void annotate() {
 						firstallele = Short.parseShort(""+info[gtindex].split("/")[0]);
 						secondallele = Short.parseShort(""+info[gtindex].split("/")[1]);		
 					}
->>>>>>> refs/heads/master
+
 					genotype = firstallele == secondallele;
 					
 					if(genotype && firstallele == 0) {
