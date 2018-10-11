@@ -2109,9 +2109,13 @@ void drawSidebar() {
 	sampleInfo = false;
 	bamHover = false;
 	removeSample = null;
+<<<<<<< HEAD
 	if( drawVariables.visiblestart < 0) {
 		 drawVariables.visiblestart = 0;
 	}
+=======
+	
+>>>>>>> refs/heads/master
 	for(int i = drawVariables.visiblestart; i<drawVariables.visiblestart+drawVariables.visiblesamples+2+removesamples; i++) {
 		if(i > sampleList.size()-1) {
 			break;
@@ -5250,6 +5254,10 @@ public void mouseClicked(MouseEvent event) {
 				}
 				else {
 					drawVariables.visiblestart = (short)selectedIndex;
+					if(drawVariables.visiblestart < 0) {
+						drawVariables.visiblestart = 0;
+						selectedIndex = (short)0;
+					}
 					drawVariables.visiblesamples = (short)1;
 					this.resizeCanvas(this.getWidth(), (int)(Main.samples*drawVariables.sampleHeight));
 					setScrollbar((int)(selectedIndex*drawVariables.sampleHeight));						
