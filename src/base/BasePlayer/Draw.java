@@ -69,6 +69,7 @@ import base.BasePlayer.BedCanvas.bedFeatureFetcher;
 public class Draw extends JPanel implements MouseMotionListener, MouseListener {	
 	private static final long serialVersionUID = 1L;
 	String readString ="";
+	static int calc = 0;
 	boolean annotationOn = false;
 	QuadCurve2D curve = new QuadCurve2D.Double(0,0,40,40,0,0);
 	public ArrayList<SplitClass> splits = new ArrayList<SplitClass>();
@@ -226,7 +227,7 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	private int maxwidth = 0;
 	private int mateadd = 0;
 	private int previsiblestart = 0;
-	private short previsibleend = 0;
+	
 	private ArrayList<splitTuple> splitList = new ArrayList<splitTuple>();
 	private int preread;
 	private int thisread;
@@ -270,6 +271,9 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	private int clipLength;
 	private double sampleheight;
 	private int totalheight;
+	private int prestart = 0;
+	
+	private short previsiblesamples;
 	
 	
 	static int clickedAdd = 0;
@@ -451,9 +455,11 @@ public Draw(int width, int height) {
 							updateCoverages = true;
 						}
 						else {
+							
 							Draw.updateReads = true;
 							updateCoverages = true;
 							Draw.updatevars = true;
+							
 						}
 						
 						repaint();
@@ -2043,14 +2049,16 @@ void zoomSamples() {
 		if(drawVariables.sampleHeight < 1) {
 			drawVariables.sampleHeight = 1;
 		}
+		
 		checkSampleZoom();		
-	
-		setScrollbar((int)(drawVariables.visiblestart*drawVariables.sampleHeight));	 
+		
+		//setScrollbar((int)(drawVariables.visiblestart*drawVariables.sampleHeight));	 
 		this.height = (int)(drawVariables.sampleHeight*Main.samples);		
 		this.setPreferredSize(new Dimension(this.getWidth(),this.height));		
 		this.revalidate();
 		setScrollbar((int)(drawVariables.visiblestart*drawVariables.sampleHeight));	 		
 		pressY = (int)(this.height*pressYrelative);		
+		
 	}
 	prezoom = (pressX-mouseX)/20;
 	
@@ -2101,10 +2109,14 @@ void drawSidebar() {
 	sampleInfo = false;
 	bamHover = false;
 	removeSample = null;
+	if( drawVariables.visiblestart < 0) {
+		 drawVariables.visiblestart = 0;
+	}
 	for(int i = drawVariables.visiblestart; i<drawVariables.visiblestart+drawVariables.visiblesamples+2+removesamples; i++) {
 		if(i > sampleList.size()-1) {
 			break;
 		}
+		
 		if(sampleList.get(i).removed) {
 			removesamples++;
 			continue;
@@ -2178,7 +2190,8 @@ void drawSidebar() {
 			else {*/
 			if(drawVariables.sampleHeight > Main.defaultFontSize) {
 				if(sidebar) {
-					if(moveY >= sampleYpos && moveY <= sampleYpos+ Main.defaultFontSize+2) {
+				
+					if(moveX > 50 && moveY >= sampleYpos && moveY <= sampleYpos+ Main.defaultFontSize+2) {
 						sidebuf.setFont(Main.menuFontBold);
 						setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 						sampleInfo = true;
@@ -2365,7 +2378,7 @@ public void drawScreen(Graphics g) {
 
 		buf.setColor(backColor);		
 		buf.fillRect(Main.sidebarWidth, 0,this.getWidth()-Main.sidebarWidth, Main.drawScroll.getViewport().getHeight());	
-	
+		
 		if(Main.drawScroll.getVerticalScrollBar().getUnitIncrement() != (int)drawVariables.sampleHeight) {
 			Main.drawScroll.getVerticalScrollBar().setUnitIncrement((int)drawVariables.sampleHeight);		
 			
@@ -2382,6 +2395,7 @@ public void drawScreen(Graphics g) {
 		if((Main.varsamples > 0 || annotationOn) && splits.get(0).viewLength <= 1000) {			
 			drawVars(this.splits.get(0).offset);		
 		}
+		
 		
 		if(Main.samples > 0 && drawVariables.sampleHeight > 100) {
 			
@@ -2579,6 +2593,7 @@ public void drawScreen(Graphics g) {
 			drawZoom();
 		}
 		else if (sampleZoomer) {
+			
 			 zoomSamples();
 		}
 		
@@ -3324,6 +3339,7 @@ void eraseReads(SplitClass split) {
 void clearReads(SplitClass split) {
 	
 	try {
+		
 		if(split.clearedReads) {
 			return;
 		}
@@ -3363,6 +3379,8 @@ void clearReads(SplitClass split) {
 		reads.setLastRead(null);
 		reads.setCoverageStart(Integer.MAX_VALUE);
 		reads.setCoverageEnd(0);
+		reads.searchstart = Integer.MAX_VALUE;
+		reads.searchend = 0;
 
 	}	
 	
@@ -3385,7 +3403,7 @@ void clearReads(SplitClass split) {
 void clearReads() {
 	
 	try {
-				 
+	
 	for(int i = 0; i<splits.size();i++) {
 		splits.get(i).getSelectbuf().setComposite( composite);		
 		splits.get(i).getSelectbuf().fillRect(0,0,(int)Main.screenSize.getWidth(), Main.drawScroll.getViewport().getHeight());	
@@ -3657,6 +3675,7 @@ void drawReads(SplitClass split) {
 	
 	
 	try {	
+		
 		if(variantcalculator) {
 			return;
 		}
@@ -3707,42 +3726,40 @@ void drawReads(SplitClass split) {
 		if(Main.readsamples > 0 ) {			
 			
 		if(updateReads || split.updateReads || updateCoverages) {
-			
+		
 		if(mouseWheel) {
-			
+		
 			split.getReadBuffer().setComposite( composite);					
 			split.getReadBuffer().fillRect(0,(int)(selectedIndex*drawVariables.sampleHeight)-Main.drawScroll.getVerticalScrollBar().getValue(), drawWidth,(int)drawVariables.sampleHeight);	
 			split.getReadBuffer().setComposite(split.getBackupr());					
 			split.getReadBuffer().setStroke(basicStroke);
+			
 		}
 		else {
 			split.getReadBuffer().setComposite( composite);					
 			split.getReadBuffer().fillRect(0,0, split.getReadImage().getWidth(),Main.drawScroll.getViewport().getHeight());	
 			split.getReadBuffer().setComposite(split.getBackupr());					
 			split.getReadBuffer().setStroke(basicStroke);
+			
 		}
 		
 	//		firstreadsample = true;
-		if(previsiblestart != drawVariables.visiblestart) {
+		if(!split.splitRead) {
 			
-			for(int i = 0; i<drawVariables.visiblestart; i++) {
-				clearReads(sampleList.get(i));
-			}
-			previsiblestart = drawVariables.visiblestart;
-		}
-		if(previsibleend != drawVariables.visiblestart +drawVariables.visiblesamples) {
-			for(int i = drawVariables.visiblestart +drawVariables.visiblesamples+1; i<Main.samples; i++) {
-				if(i > Main.samples-1) {
-					break;
+			if(previsiblestart != drawVariables.visiblestart || previsiblesamples != drawVariables.visiblesamples) {
+				
+				for(int i = 0; i<drawVariables.visiblestart; i++) {
+					clearReads(sampleList.get(i));
 				}
-				clearReads(sampleList.get(i));
+				for(int i = drawVariables.visiblestart+drawVariables.visiblesamples; i<sampleList.size(); i++) {
+					clearReads(sampleList.get(i));
+				}
 			}
-			previsibleend = (short)(drawVariables.visiblestart +drawVariables.visiblesamples);
 		}
 		
 		
-		boolean first = true;
-	
+		//boolean first = true;
+		
 		if(split.viewLength <= Settings.readDrawDistance && split.viewLength > 10){
 			try {
 				
@@ -3753,6 +3770,25 @@ void drawReads(SplitClass split) {
 			}
 			
 		}
+		
+		if((!lineZoomer && !mouseDrag) || split.clearedReads ) {
+			
+			if(!sampleZoomer && !loading && !scrollbar) {
+				
+				if(prestart != (int)split.start || previsiblestart != drawVariables.visiblestart || previsiblesamples != drawVariables.visiblesamples || split.clearedReads) {
+					if(!split.splitRead) {
+						getReads(split);	
+					}
+					else {
+						split.splitRead = false;
+					}
+				}
+				prestart = (int)split.start;
+				
+			}
+		}
+		previsiblestart = drawVariables.visiblestart;
+		previsiblesamples = drawVariables.visiblesamples;
 		for(int i =drawVariables.visiblestart; i<drawVariables.visiblestart+drawVariables.visiblesamples;i++ ) {
 			
 			try {	
@@ -3777,7 +3813,7 @@ void drawReads(SplitClass split) {
 			if(split.viewLength <= Settings.coverageDrawDistance && split.viewLength > Settings.readDrawDistance) {
 				
 				if(!lineZoomer && !mouseDrag && ((readsample.getreadHash().get(split).getCoverageStart() > (int)split.start || readsample.getreadHash().get(split).getCoverageEnd() < (int)split.end) || (readsample.getreadHash().get(split).getCoverageEnd() > (int)split.end && readsample.getreadHash().get(split).getCoverageStart() < (int)split.start))) {
-					
+					//clearReads();	
 					FileRead reader = new FileRead();
 					readsample.getreadHash().get(split).setReadStart(Integer.MAX_VALUE);
 					readsample.getreadHash().get(split).setReadEnd(0);
@@ -3798,81 +3834,33 @@ void drawReads(SplitClass split) {
 			}
 			else if(split.viewLength <= Settings.readDrawDistance) {
 				
-				if(!lineZoomer && !mouseDrag && (readsample.getreadHash().get(split).searchend < (int)split.end || readsample.getreadHash().get(split).searchstart > (int)split.start || split.clearedReads) ) {
+			/*	if(readsample.getreadHash().get(split).searchend-readsample.getreadHash().get(split).searchstart > Settings.readDrawDistance && (split.start - readsample.getreadHash().get(split).searchstart > split.viewLength*2 || readsample.getreadHash().get(split).searchend - split.end > split.viewLength*2)) {
 					
+					clearReads();	
 					
-				if(!sampleZoomer && !loading && /*!readsample.getreadHash().get(split).loading && */!scrollbar) {
+					updateReads = true;
 					
-				//	if(!readsample.MD) {
-					
-					/*	if(split.viewLength < 10000) {
-							searchwindow = 10000;
-						}
-						else {
-							searchwindow = split.viewLength;
-						}					
-						
-						if(split.reference == null) {	
-							
-							if( (int)(split.start-searchwindow-1) < 0){
-								split.readSequence = Main.chromDraw.getSeq(split.chrom,0, (int)(split.end+searchwindow+200), Main.referenceFile);
-								split.readSeqStart = 0;	
-							}
-							else {
-							
-								split.readSequence = Main.chromDraw.getSeq(split.chrom, (int)(split.start-searchwindow-1), (int)(split.end+split.viewLength+200), Main.referenceFile);
-								split.readSeqStart = (int)(split.start-searchwindow-1);	
-								
-							}
-						}
-						else {					
-							if(split.readSeqStart > split.start-split.viewLength) {
-						
-								split.readSequence.insert(0, Main.chromDraw.getSeq(split.chrom, (int)(split.start-searchwindow-1), split.readSeqStart, Main.referenceFile));
-								split.readSeqStart = (int)(split.start-searchwindow-1);				
-							
-							}
-							if(split.readSeqStart+split.readSequence.length() < (int)(split.end+split.viewLength+200)) {					
-								split.readSequence.append(Main.chromDraw.getSeq(split.chrom, split.readSeqStart+split.readSequence.length(), (int)(split.end+searchwindow+200), Main.referenceFile));
-						
-							}						
-						}	*/
-			//		}
-					
-						if(readsample.getreadHash().get(split).searchend-readsample.getreadHash().get(split).searchstart > Settings.readDrawDistance && (split.start - readsample.getreadHash().get(split).searchstart > split.viewLength*2 || readsample.getreadHash().get(split).searchend - split.end > split.viewLength*2)) {
-							
-							clearReads();						
-							
-						}
-						if(first) {
-							split.clearedReads = false;		
-							first = false;
-							FileRead reader = new FileRead();		
-							/*if(i == drawVariables.visiblestart) {
-								reader.firstSample = true;			
-								
-							}*/
-							/*while(ReferenceSeq.wait) {
-							}*/
-							reader.readClass = readsample.getreadHash().get(split);					
-							//readsample.getreadHash().get(split).loading = true;
-							reader.chrom = split.chrom;
-							reader.start = (int)(split.start);
-							reader.end = (int)(split.end);
-						
-							reader.viewLength = (int)(split.viewLength);
-							reader.pixel = split.pixel;							
-							reader.splitIndex = split;						
-							reader.getreads = true;						
-							reader.execute();
-						}
+					drawReads(split);
+					return;
 				}
-			}
+				*/
+				/*
+				if(!readsample.getreadHash().get(split).loading && !lineZoomer && !mouseDrag && (readsample.getreadHash().get(split).searchend < (int)split.end || readsample.getreadHash().get(split).searchstart > (int)split.start || split.clearedReads) ) {
+					
+					if(!sampleZoomer && !loading && !scrollbar) {
+						
+						getReads(split);				
+						
+							
+					}
+				}*/
 			}
 			if(i >= Main.samples) {
 				break;				
 			}			
-		
+			if(readsample.getreadHash().get(split) == null) {
+				readsample.resetreadHash();
+			}
 			readsample.getreadHash().get(split).setReadSize(readsample.getreadHash().get(split).getReads().size());
 		
 			for(int j = 0; j<readsample.getreadHash().get(split).getReads().size();j++) {
@@ -4086,6 +4074,9 @@ void drawRead(ReadNode read, Reads reads, int ypos) {
 	}
 	
 	read.split.getReadBuffer().setColor(tempColor);	
+	/*if(read.getName().equals("ST-E00214:53:H3JLWCCXX:1:2122:7354:64440")) {
+		read.split.getReadBuffer().setColor(Color.magenta);	
+	}*/
 	drawRect = read.getRect();
 	
 		if(read.getCigar() == null) {
@@ -4613,7 +4604,7 @@ public void mouseDragged(MouseEvent event) {
 					sampleZoomer = true;		
 				}
 				
-				 repaint();
+				repaint();
 				
 			}
 			else {
@@ -5353,9 +5344,9 @@ public void mouseClicked(MouseEvent event) {
 				}
 			
 			if(event.getClickCount() == 2 && clickedRead != null && mouseRect.intersects(clickedRect)) {
-				//TODO split screen
 				
 				if(clickedRead.isDiscordant()) {
+					selectedSplit.splitRead = true;
 					if(!clickedRead.getMateChrom().equals(selectedSplit.chrom) || clickedRead.getMatePos() < readsample.getreadHash().get(selectedSplit).getReadStart() || clickedRead.getMatePos() > readsample.getreadHash().get(selectedSplit).getReadEnd()) {
 						ArrayList<ReadNode[]> headAndTail = sampleList.get(selectedIndex).getreadHash().get(selectedSplit).getHeadAndTail();
 						ReadNode addread;						
@@ -5370,6 +5361,7 @@ public void mouseClicked(MouseEvent event) {
 							while(addread != null) {
 								if(!addread.isDiscordant()) {
 									addread = addread.getNext();
+								
 									continue;
 								}
 								else if(!addread.getMateChrom().equals(clickedRead.getMateChrom())) {
@@ -5397,6 +5389,7 @@ public void mouseClicked(MouseEvent event) {
 										addread.mates = addlist;
 										sampleList.get(selectedIndex).getMates().put(addread.getName(), addlist);
 										addread.split = selectedSplit;
+										
 									}
 									
 									addread = addread.getNext();
@@ -5404,6 +5397,7 @@ public void mouseClicked(MouseEvent event) {
 								}								
 							}
 						}
+						
 						headAndTail = null;
 						addSplit(clickedRead.getMateChrom(), clickedRead.getMatePos()-(int)selectedSplit.viewLength/2, clickedRead.getMatePos()+(int)selectedSplit.viewLength/2);
 					}
@@ -5698,7 +5692,11 @@ public void mouseClicked(MouseEvent event) {
 	
 }
 void groupMismatchReads(int position, SplitClass split, Sample readsample, Reads readClass) {
+	if(readClass == null || readClass.getReads() == null) {
+		return;
+	}
 	int addlevel = 0;
+	
 	ArrayList<ReadNode> removedReads = new ArrayList<ReadNode>();
 	for(int j = 0; j<readClass.getReads().size();j++) {
 			
@@ -6316,10 +6314,10 @@ public void gotoPos(String chrom, double start, double end) {
 	Draw.updateReads = false;
 	Draw.updatevars = false;	
 	splits.get(0).transStart = 0;
-	
+	clearReads();
 	if(FileRead.search) {
 		splits.get(0).nullRef();
-		clearReads();
+		
 		removeSplits();
 		if(Main.undoPointer < Main.undoList.size()-1) {
 			Main.undoList.add(Main.undoPointer+1,chrom+":"+(int)start+"-"+(int)end);
@@ -6696,6 +6694,17 @@ void moveSample(int move, int where) {
 	node = null;
 	movesample = null;
 }
+public void getReads(SplitClass split) {
+	if(split.viewLength <= Settings.readDrawDistance && drawVariables.sampleHeight > 100) {		
+		
+		split.clearedReads = false;		
+		
+		FileRead reader = new FileRead();
+		reader.splitIndex = split;
+		reader.getreads = true;						
+		reader.execute();
+	}
+}
 @Override
 public void mouseReleased(MouseEvent event) {
 	readScrollDrag = false;
@@ -6794,6 +6803,8 @@ public void mouseReleased(MouseEvent event) {
 	if(!loading && drawVariables.sampleHeight > 100) {
 		updatevars = true;
 		calculateVars = true;
+		
+		
 	}
 	sampleDrag = false;
 	repaint();
@@ -6803,7 +6814,7 @@ static void setScrollbar(final int value) {
 	
 	SwingUtilities.invokeLater(new Runnable() {
 	    public void run() {
-	    	
+	    		
 		    	updatevars = true;
 		    	for(int i = 0; i<Main.drawCanvas.splits.size(); i++) {
 		    		Main.drawCanvas.splits.get(i).updateReads = true;
@@ -6828,7 +6839,9 @@ static void setScrollbar(final int value) {
 			    	
 					updatevars = true;
 		    	}
-		    	
+		    	if(Main.drawCanvas.drawVariables.visiblestart != (short)(0.5+Main.drawScroll.getVerticalScrollBar().getValue()/Main.drawCanvas.drawVariables.sampleHeight)) {
+		    		Main.drawCanvas.drawVariables.visiblestart = (short)(0.5+Main.drawScroll.getVerticalScrollBar().getValue()/Main.drawCanvas.drawVariables.sampleHeight);
+				}
 		    	Main.drawCanvas.repaint();	
 		    	
 	    }
