@@ -77,7 +77,7 @@ public class FileRead extends SwingWorker< String, Object >  {
 	VariantCaller varc = null;
 	VariantCaller.VarCaller varcal = null;
 	static int searchwindow = 1000;
-	private boolean left = false;
+	//private boolean left = false;
 	boolean stop = false;
 	
 	private ReadNode addNode;
@@ -104,7 +104,7 @@ public class FileRead extends SwingWorker< String, Object >  {
 	static int firstReadPos;
 	static int lastReadPos;
 	private int startY;
-	private boolean right;
+	//private boolean right;
 	public SplitClass splitIndex;
 	private Sample currentSample;
 	public boolean statcalc;
@@ -126,9 +126,9 @@ public class FileRead extends SwingWorker< String, Object >  {
 	private int searchPos;
 	private boolean isDiscordant;
 	//private double[][] coverageArray;
-	private int pointer;
+	//private int pointer;
 	private int oldstart;
-	private int addlength;
+	//private int addlength;
 	private int readstart;
 	private int readpos;
 	private int mispos;	
@@ -137,7 +137,7 @@ public class FileRead extends SwingWorker< String, Object >  {
 	//public boolean firstSample = false;
 	static int affected = 0;
 	private int gtindex;
-	private int timecounter = 0;
+	//private int timecounter = 0;
 	static boolean bigcalc=false;
 	static boolean changing = false;
 	static boolean readFiles;	
@@ -155,6 +155,7 @@ public class FileRead extends SwingWorker< String, Object >  {
 	public static String outputName = "";
 	public static long filepointer = 0;	
 	HashMap<String, Integer[]> contexts;
+	private int advqual;
 	//HashMap<String, Float[]> contextQuals;
 	//static int[][] array;
 	public static BufferedWriter sigOutput;
@@ -1451,7 +1452,11 @@ static void checkMulti(Sample sample) {
 					VariantHandler.addMenuComponents(line);					
 				}	
 			}
-			
+			if(line.startsWith("##FORMAT")) {
+				if(line.contains("Type=Float") || line.contains("Type=Integer")) {					
+					VariantHandler.addMenuComponents(line);					
+				}	
+			}
 			if(line.toLowerCase().contains("#chrom")) {
 				headersplit = line.split("\t+");	
 				
@@ -2485,9 +2490,13 @@ static void annotate() {
 					}	
 				}
 				if(split.length > 7) {	
-					if(checkAdvQuals(split[7], altbase.length() > 1)) {
+					advqual = checkAdvQuals(split[7], infofield, info, altbase.length() > 1);
+					if(advqual == 2) {
 						return;
-					}				
+					}			
+					if(advqual == 1) {
+						continue;
+					}
 				}
 				if(refcalls+altcalls > VariantHandler.maxCoverageSlider.getMaximum()) {
 					VariantHandler.maxCoverageSlider.setMaximum(refcalls+altcalls);
@@ -2503,7 +2512,7 @@ static void annotate() {
 								current.putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase, refcalls+altcalls, altcalls, genotype, quality, gq, advancedQualities, split[2], currentSample, current, null));		
 							}
 							else {
-								current.putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase,refcalls+altcalls, altcalls, genotype, quality, gq,advancedQualities,  null, currentSample, current, null));		
+								current.putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase,refcalls+altcalls, altcalls, genotype, quality, gq, advancedQualities,  null, currentSample, current, null));		
 							}
 							if(noref ) {
 								if(split.length > 6) {
@@ -2511,10 +2520,16 @@ static void annotate() {
 										return;
 									}	
 								}
-								if(split.length > 7) {	
-									if(checkAdvQuals(split[7], altbase2.length() > 1)) {
+								if(split.length > 7) {
+									advqual = checkAdvQuals(split[7], infofield, info, altbase2.length() > 1);
+									if(advqual == 1) {
+										current = current.getNext();	
+										first = false;
+										continue;
+									}
+									if(advqual == 2) {
 										return;
-									}				
+									}												
 								}
 								
 								current.getNext().addSample(altbase2, refcalls+altcalls, refcalls, genotype, quality, gq, advancedQualities, currentSample);
@@ -2534,9 +2549,14 @@ static void annotate() {
 									}	
 								}
 								if(split.length > 7) {	
-									if(checkAdvQuals(split[7], altbase2.length() > 1)) {
+									advqual = checkAdvQuals(split[7], infofield, info, altbase2.length() > 1);
+									if(advqual == 1) {
+										
+										continue;
+									}
+									if(advqual == 2) {
 										return;
-									}				
+									}						
 								}
 								
 								current.addSample(altbase2, refcalls+altcalls, refcalls, genotype, quality, gq, advancedQualities, currentSample);
@@ -2557,15 +2577,21 @@ static void annotate() {
 								
 							}
 							if(noref ) {
-								if(split.length > 7) {	
-									if(split.length > 6) {
-										if(checkAdvFilters(split[6], altbase2.length() > 1)) {
-											return;
-										}	
-									}
-									if(checkAdvQuals(split[7], altbase2.length() > 1)) {
+								if(split.length > 6) {
+									if(checkAdvFilters(split[6], altbase2.length() > 1)) {
 										return;
-									}				
+									}
+									if(split.length > 7) {											
+									
+										advqual = checkAdvQuals(split[7], infofield, info, altbase2.length() > 1);
+										if(advqual == 1) {
+											
+											continue;
+										}
+										if(advqual == 2) {
+											return;
+										}		
+									}					
 								}
 								
 								current.getPrev().addSample(altbase2,refcalls+altcalls, refcalls, genotype, quality, gq,advancedQualities,  currentSample);
@@ -2594,31 +2620,55 @@ static void annotate() {
 	}
 	
 	
-	boolean checkAdvQuals(String split, boolean indel) {
+	int checkAdvQuals(String split, HashMap<String, Integer> infofield, String[] info, boolean indel) {
 		if(!VariantHandler.indelFilters.isSelected()) {	
+			
 			if(Main.drawCanvas.drawVariables.advQDraw != null && Main.drawCanvas.drawVariables.advQDraw.size() > 0) {
 				
 				for(int i = 0 ; i<Main.drawCanvas.drawVariables.advQDraw.size(); i++) {		
-					
-					if(split.contains(Main.drawCanvas.drawVariables.advQDraw.get(i).key)) {	
+					if(infofield.containsKey(Main.drawCanvas.drawVariables.advQDraw.get(i).key)) {
+						
+						if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals("<")) {
+							
+							if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) < Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
+								return 1;
+							}
+						}
+						else if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals("<=")) {
+							if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) <= Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
+								return 1;
+							}
+						}
+						else if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals(">")) {
+							if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) > Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
+								return 1;
+							}
+						}
+						else {
+							if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) >= Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
+								return 1;
+							}
+						}
+					}
+					else if(split.contains(Main.drawCanvas.drawVariables.advQDraw.get(i).key)) {	
 						if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals("<")) {
 							if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDraw.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDraw.get(i).key.length()+1).split(";")[0].trim()) < Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
-								return true;
+								return 2;
 							}
 						}
 						else if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals("<=")) {
 							if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDraw.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDraw.get(i).key.length()+1).split(";")[0].trim()) <= Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
-								return true;
+								return 2;
 							}
 						}
 						else if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals(">")) {
 							if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDraw.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDraw.get(i).key.length()+1).split(";")[0].trim()) > Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
-								return true;
+								return 2;
 							}
 						}
 						else {
 							if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDraw.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDraw.get(i).key.length()+1).split(";")[0].trim()) >= Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
-								return true;
+								return 2;
 							}
 						}
 					}					
@@ -2630,26 +2680,47 @@ static void annotate() {
 				if(Main.drawCanvas.drawVariables.advQDrawIndel != null && Main.drawCanvas.drawVariables.advQDrawIndel.size() > 0) {
 					
 					for(int i = 0 ; i<Main.drawCanvas.drawVariables.advQDrawIndel.size(); i++) {		
-						
-						if(split.contains(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key)) {	
+						if(infofield.containsKey(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key)) {
+							if(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).format.equals("<")) {
+								if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) < Main.drawCanvas.drawVariables.advQDrawIndel.get(i).value) {
+									return 1;
+								}
+							}
+							else if(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).format.equals("<=")) {
+								if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) <= Main.drawCanvas.drawVariables.advQDrawIndel.get(i).value) {
+									return 1;
+								}
+							}
+							else if(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).format.equals(">")) {
+								if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) > Main.drawCanvas.drawVariables.advQDrawIndel.get(i).value) {
+									return 1;
+								}
+							}
+							else {
+								if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) >= Main.drawCanvas.drawVariables.advQDrawIndel.get(i).value) {
+									return 1;
+								}
+							}
+						}
+						else if(split.contains(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key)) {	
 							if(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).format.equals("<")) {
 								if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key.length()+1).split(";")[0].trim()) < Main.drawCanvas.drawVariables.advQDrawIndel.get(i).value) {
-									return true;
+									return 2;
 								}
 							}
 							else if(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).format.equals("<=")) {
 								if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key.length()+1).split(";")[0].trim()) <= Main.drawCanvas.drawVariables.advQDrawIndel.get(i).value) {
-									return true;
+									return 2;
 								}
 							}
 							else if(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).format.equals(">")) {
 								if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key.length()+1).split(";")[0].trim()) > Main.drawCanvas.drawVariables.advQDrawIndel.get(i).value) {
-									return true;
+									return 2;
 								}
 							}
 							else {
 								if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key.length()+1).split(";")[0].trim()) >= Main.drawCanvas.drawVariables.advQDrawIndel.get(i).value) {
-									return true;
+									return 2;
 								}
 							}
 						}					
@@ -2660,26 +2731,47 @@ static void annotate() {
 				if(Main.drawCanvas.drawVariables.advQDraw != null && Main.drawCanvas.drawVariables.advQDraw.size() > 0) {
 					
 					for(int i = 0 ; i<Main.drawCanvas.drawVariables.advQDraw.size(); i++) {		
-						
-						if(split.contains(Main.drawCanvas.drawVariables.advQDraw.get(i).key)) {	
+						if(infofield.containsKey(Main.drawCanvas.drawVariables.advQDraw.get(i).key)) {
+							if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals("<")) {
+								if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) < Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
+									return 1;
+								}
+							}
+							else if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals("<=")) {
+								if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) <= Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
+									return 1;
+								}
+							}
+							else if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals(">")) {
+								if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) > Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
+									return 1;
+								}
+							}
+							else {
+								if(Float.parseFloat(info[infofield.get(Main.drawCanvas.drawVariables.advQDraw.get(i).key)]) >= Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
+									return 1;
+								}
+							}
+						}
+						else if(split.contains(Main.drawCanvas.drawVariables.advQDraw.get(i).key)) {	
 							if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals("<")) {
 								if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDraw.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDraw.get(i).key.length()+1).split(";")[0].trim()) < Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
-									return true;
+									return 2;
 								}
 							}
 							else if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals("<=")) {
 								if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDraw.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDraw.get(i).key.length()+1).split(";")[0].trim()) <= Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
-									return true;
+									return 2;
 								}
 							}
 							else if(Main.drawCanvas.drawVariables.advQDraw.get(i).format.equals(">")) {
 								if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDraw.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDraw.get(i).key.length()+1).split(";")[0].trim()) > Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
-									return true;
+									return 2;
 								}
 							}
 							else {
 								if(Float.parseFloat(split.substring(split.indexOf(Main.drawCanvas.drawVariables.advQDraw.get(i).key+"=")+Main.drawCanvas.drawVariables.advQDraw.get(i).key.length()+1).split(";")[0].trim()) >= Main.drawCanvas.drawVariables.advQDraw.get(i).value) {
-									return true;
+									return 2;
 								}
 							}
 						}					
@@ -2688,7 +2780,7 @@ static void annotate() {
 			}
 		}
 		
-		return false;
+		return 0;
 	}
 	boolean checkAdvFilters(String split, boolean indel) {
 		if(!VariantHandler.indelFilters.isSelected()) {	
@@ -2762,7 +2854,7 @@ static void annotate() {
 			
 		}
 
-			
+		
 	/*	if(first) {
 			
 			info = split[split.length-1].split(":");
@@ -2800,13 +2892,12 @@ static void annotate() {
 				infofield.put(infos[i], i);
 			}
 		}
-		
 		if(infofield.containsKey("GT")) {	
 			gtindex = infofield.get("GT");
 			if(info[gtindex].contains(".")) {
 				return;
 			}
-			
+			try {
 			if(info[gtindex].contains("|")) {
 				
 				firstallele = Short.parseShort(""+info[gtindex].split("|")[0]);
@@ -2815,7 +2906,12 @@ static void annotate() {
 			else {
 				firstallele = Short.parseShort(""+info[gtindex].split("/")[0]);
 				secondallele = Short.parseShort(""+info[gtindex].split("/")[1]);	
-			}		
+			}	
+			}
+			catch(Exception e) {
+				
+				return;
+			}
 			genotype = firstallele == secondallele;
 			
 			if(genotype && firstallele == 0) {
@@ -2900,6 +2996,11 @@ static void annotate() {
 					}
 				}
 			}
+			else if(infofield.containsKey("DP")) {
+				
+				refcalls = Integer.parseInt(info[infofield.get("DP")]);
+				altcalls = refcalls;
+			}
 			else if (split[7].contains("DP4")) {
 				coverages = split[7].substring(split[7].indexOf("DP4")+4).split(";")[0].split(",");
 				refallele = firstallele;					
@@ -2923,6 +3024,22 @@ static void annotate() {
 				refcalls = 20;
 				altcalls = 20;
 			}			
+		}
+		else if(split[7].contains("t_alt_count")) {
+			
+			try {
+				altcalls = Integer.parseInt(split[7].substring(split[7].indexOf("t_alt_count")+12).split(";")[0]);
+				refcalls = Integer.parseInt(split[7].substring(split[7].indexOf("t_ref_count")+12).split(";")[0]);
+			}
+			catch(Exception e) {
+				System.out.println("alt: " +split[7].substring(split[7].indexOf("t_alt_count")+12));
+				System.out.println("ref: " +split[7].substring(split[7].indexOf("t_ref_count")+12));
+			}
+			if(sample.annoTrack) {
+				sample.annoTrack = false;
+			}
+			
+			
 		}
 		else {
 			refcalls = 20;
@@ -3005,6 +3122,8 @@ static void annotate() {
 				}			
 			}
 		}		
+
+		
 		if(!sample.annoTrack) {
 			if(split.length > 6) {
 				if(checkAdvFilters(split[6], altbase.length() > 1)) {
@@ -3012,16 +3131,16 @@ static void annotate() {
 				}	
 			}
 			if(split.length > 7) {	
-				if(checkAdvQuals(split[7], altbase.length() > 1)) {
-					return;
+				if(checkAdvQuals(split[7], infofield, info, altbase.length() > 1) > 0) {
+					 return;
 				}				
 			}
+			
 			if(refcalls+altcalls > VariantHandler.maxCoverageSlider.getMaximum()) {
 				VariantHandler.maxCoverageSlider.setMaximum(refcalls+altcalls);
 				VariantHandler.maxCoverageSlider.setValue(refcalls+altcalls);
 			}
 		}
-		
 		
 		while(current != null && current.getNext() != null && current.getPosition() < pos ){	
 		
@@ -3048,9 +3167,7 @@ static void annotate() {
 						}	
 					}
 					if(split.length > 7) {	
-						if(checkAdvQuals(split[7], altbase2.length() > 1)) {
-							return;
-						}				
+						if(checkAdvQuals(split[7], infofield, info, altbase.length() > 1) > 0); return;		
 					}
 					
 					current.getNext().addSample(altbase2, refcalls+altcalls, refcalls, genotype, quality, gq, advancedQualities, sample);				
@@ -3067,9 +3184,7 @@ static void annotate() {
 							}	
 						}
 						if(split.length > 7) {	
-							if(checkAdvQuals(split[7], altbase.length() > 1)) {
-								continue;
-							}				
+							if(checkAdvQuals(split[7], infofield, info, altbase.length() > 1) > 0); return;					
 						}
 						
 						current.getNext().addSample(altbase, refcalls+altcalls, refcalls, genotype, quality, gq,advancedQualities,  sample);		
@@ -3093,9 +3208,7 @@ static void annotate() {
 					}	
 				}
 				if(split.length > 7) {	
-					if(checkAdvQuals(split[7], altbase2.length() > 1)) {
-						return;
-					}				
+					if(checkAdvQuals(split[7], infofield, info, altbase.length() > 1) > 0); return;			
 				}
 				
 				current.addSample(altbase2, refcalls+altcalls, refcalls, genotype, quality, gq, advancedQualities, sample);
@@ -3113,12 +3226,10 @@ static void annotate() {
 						}	
 					}
 					if(split.length > 7) {	
-						if(checkAdvQuals(split[7], altbase.length() > 1)) {
-							continue;
-						}				
+						if(checkAdvQuals(split[7], infofield, info, altbase.length() > 1) > 0); continue;					
 					}			
 					try {
-					current.getNext().addSample(altbase, refcalls+altcalls, refcalls, genotype, quality, gq, advancedQualities, sample);					
+						current.getNext().addSample(altbase, refcalls+altcalls, refcalls, genotype, quality, gq, advancedQualities, sample);					
 					}
 					catch(Exception e) {
 						System.out.println(current.getChrom() +":" +current.getPosition());
@@ -3152,9 +3263,7 @@ static void annotate() {
 						}	
 					}
 					if(split.length > 7) {	
-						if(checkAdvQuals(split[7], altbase2.length() > 1)) {
-							return;
-						}				
+						if(checkAdvQuals(split[7], infofield, info, altbase.length() > 1) > 0); return;					
 					}
 					
 					current.addSample(altbase2, refcalls+altcalls, refcalls, genotype, quality, gq, advancedQualities, sample);
@@ -3170,9 +3279,7 @@ static void annotate() {
 							}	
 						}
 						if(split.length > 7) {	
-							if(checkAdvQuals(split[7], altbase.length() > 1)) {
-								continue;
-							}				
+							if(checkAdvQuals(split[7], infofield, info, altbase.length() > 1) > 0); continue;					
 						}
 						
 						current.addSample(altbase, refcalls+altcalls, refcalls, genotype, quality, gq, advancedQualities, sample);		
@@ -3599,7 +3706,8 @@ static void annotate() {
 					}
 					
 					if(readClass.getCoverageStart() == Integer.MAX_VALUE) {
-						setReadArrays(readClass, firststart,endpos+readClass.sample.longestRead);						
+						setReadArrays(readClass, firststart,endpos+readClass.sample.longestRead);		
+						
 					}
 					
 					coverageArray = readClass.getCoverages();	
@@ -3688,14 +3796,19 @@ static void annotate() {
 							if(coverageArray == null) {
 								return null;
 							}
-							
-							if(samRecord.getUnclippedEnd() >= readClass.getCoverageEnd()) {
-								coverageArray = coverageArrayAdd((int)((samRecord.getUnclippedEnd()-samRecord.getUnclippedStart() + (int)readClass.sample.longestRead)), coverageArray, readClass);
+							if(readClass.getCoverageEnd() < endpos) {
+								coverageArray = coverageArrayAdd((int)((endpos-readClass.getCoverageEnd()+ (int)readClass.sample.longestRead)), coverageArray, readClass);
+							}
+							if(samRecord.getAlignmentEnd() >= readClass.getCoverageEnd()) {
+								
+								coverageArray = coverageArrayAdd((int)(((samRecord.getAlignmentEnd()-samRecord.getUnclippedStart()) + (int)readClass.sample.longestRead)), coverageArray, readClass);
 							}
 							if(samRecord.getUnclippedStart() < readClass.getCoverageStart()) {
+								
 								coverageArray = coverageArrayAddStart(samRecord.getUnclippedStart(), readClass.getCoverageEnd(), coverageArray, readClass);
 							}
 							if(coverageArray == null) {
+								
 								setReadArrays(readClass, firststart,endpos+readClass.sample.longestRead);	
 								coverageArray = readClass.getCoverages();	
 							}
@@ -4441,7 +4554,7 @@ public static boolean isTrackFile(File file) {
 		 
 		 while((line = reader.readLine()) != null) {
 			 counter++;
-			 if(counter > 500) {
+			 if(counter > 1000) {
 				 break;
 			 }
 			 gene = line.replace(" ", "");	
@@ -4452,8 +4565,8 @@ public static boolean isTrackFile(File file) {
 		 }
 		
 		 reader.close();
-		 if(counter > 500) {
-			 Main.showError("Please give less than 500 genes in a txt-file.", "Error.");
+		 if(counter > 1000) {
+			 Main.showError("Please give less than 1000 genes in a txt-file.", "Error.");
 			 return false;
 		 }
 		 else if(founds == 0) {

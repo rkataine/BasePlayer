@@ -17,6 +17,7 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -24,8 +25,12 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 
+import javax.activation.MimetypesFileTypeMap;
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
@@ -56,11 +61,15 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	private static JSlider gSlider = new JSlider(60,255);
 	private static JSlider bSlider = new JSlider(60,255);
 	static JSlider graySlider = new JSlider(0,255);
-	static SteppedComboBox fontlist, varDrawList;
-    static DefaultComboBoxModel<String> fontModel, varModel;
+	static JSlider alphaSlider = new JSlider(0,255);
+	static SteppedComboBox fontlist, varDrawList, wallPaperList;
+	
+	static DefaultComboBoxModel<String> fontModel, varModel;
+    static DefaultComboBoxModel<String> wallpapers;
+    static HashMap<String, Image> imageHash = new HashMap<String, Image>();
 	private static JSlider mappingQuality = new JSlider(0,60), baseQuality = new JSlider(0,60);
 	private static JLabel mappingLabel = new JLabel("Mapping quality: 10"), baseLabel = new JLabel("Base quality: 10"), reloadReads = new JLabel("Click here to reload reads"); 
-	
+	static Image wallpaper = null;
 	private static JLabel rLabel = new JLabel("Red: ");
 	private static JLabel gLabel = new JLabel("Green: ");
 	private static JLabel bLabel = new JLabel("Blue: ");
@@ -82,7 +91,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	private static JTextField windowField = new JTextField("");
 	static int readDrawDistance, coverageDrawDistance,coverageAlleleFreq, windowSize, readDepthLimit, softClips, mappingQ, insertSize, baseQ;
 	static Color frameColor = new Color(188,188,178);
-	
+	String userDir;
 	static JCheckBox bold = new JCheckBox("Bold");
 	static JColorChooser colorchooser = new JColorChooser();
 	static boolean constr = true;
@@ -106,19 +115,60 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		fontlist.setSelectedItem(""+Main.defaultFontSize);
 		constr = false;
 		String[] varTypes = {"Coverage","Allelic fraction","Quality","GQ","Calls"};
+		userDir = Main.userDir;
+		if(userDir == null) {
+			userDir = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().replace("%20", " ");
+		}
+		
+		try {
+			File[] wallpaperfiles = new File(userDir +"/additions/background/").listFiles();
+			ArrayList<String> images = new ArrayList<String>();
+			images.add("None");
+			if(wallpaperfiles != null) {
+				for(int i = 0; i<wallpaperfiles.length; i++) {
+					try {
+						String mimetype= new MimetypesFileTypeMap().getContentType(wallpaperfiles[i]);
+				        String type = mimetype.split("/")[0];
+				        if(type.equals("image")) {
+				        	images.add(wallpaperfiles[i].getName());
+				        	imageHash.put(wallpaperfiles[i].getName(),ImageIO.read(wallpaperfiles[i]));
+						}
+						
+					}
+					catch(Exception e) {
+						
+					}
+					
+				}
+			}
+			else {
+				new File(userDir +"/additions/background/").mkdirs();
+			}
+			String[] imagearray = new String[images.size()];
+			for(int i = 0; i<imagearray.length; i++) {
+				
+				imagearray[i] = images.get(i);
+			}	
+			wallpapers = new DefaultComboBoxModel<String>(imagearray);
+			
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		if(wallpapers != null) {
+			wallPaperList = new SteppedComboBox(wallpapers);
+			wallPaperList.addActionListener(this);
+		}
 		
 		varModel = new DefaultComboBoxModel<String>(varTypes);
 		varDrawList = new SteppedComboBox(varModel);
-		//varDrawList.setEditable(true);
+		
 		varDrawList.addActionListener(this);		
-		
-		varDrawList.setBorder(BorderFactory.createLineBorder(Color.lightGray, 1));
-		
+		varDrawList.setBorder(BorderFactory.createLineBorder(Color.lightGray, 1));		
 		
 		reloadReads.setForeground(Color.red);
 		reloadReads.setVisible(false);
-		reloadReads.setMinimumSize(mindimension);
-		
+		reloadReads.setMinimumSize(mindimension);		
 		
 		reloadReads.addMouseListener(this);
 		insertSizeSlider.setMinimumSize(mindimension);
@@ -137,14 +187,25 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		depthLimitSlide.setOpaque(false);
 		softclips.addActionListener(this);
 		softclips.setOpaque(false);
-		
+		alphaSlider.addChangeListener(this);
+		alphaSlider.addMouseListener(this);
 		depthLimitLabel.setMinimumSize(mindimension);
 		graySlider.addChangeListener(this);
 		graySlider.addMouseListener(this);
 		rSlider.addChangeListener(this);	
 		gSlider.addChangeListener(this);	
 		bSlider.addChangeListener(this);	
+		
 		setValues();
+		if(Launcher.alphaValue > 0) {
+			Settings.alphaSlider.setValue(Launcher.alphaValue);
+		}
+		
+		if(Launcher.wallpaperIndex > 0) {
+			if(Launcher.wallpaperIndex < Settings.wallPaperList.getItemCount()) {
+				wallPaperList.setSelectedIndex(Launcher.wallpaperIndex);
+			}
+		}
 		graySlider.setOpaque(false);
 		rSlider.setOpaque(false);
 		gSlider.setOpaque(false);
@@ -156,6 +217,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		bigFileField.addKeyListener(this);
 	//	windowField.setOpaque(false);
 		windowField.addKeyListener(this);
+		
 		GridBagConstraints c = new GridBagConstraints();
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.anchor = GridBagConstraints.NORTHWEST;		
@@ -258,6 +320,12 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		appearancePanel.add(bSlider,c);
 		c.gridx = 2;
 		appearancePanel.add(bLabel,c);
+		c.gridx = 0;
+		c.gridy++;
+		appearancePanel.add(wallPaperList,c);
+		c.gridy++;
+		
+		appearancePanel.add(alphaSlider,c);
 		c.weightx = 1;
 		c.weighty = 1;
 		c.gridwidth = GridBagConstraints.REMAINDER;
@@ -398,10 +466,11 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 			settings.put("rValue", 228);
 			settings.put("gValue", 228);
 			settings.put("bValue", 218);
+			settings.put("alphaValue", 0);
 			settings.put("insertSize", 1000);
 			settings.put("mappingQuality", 10);
 			settings.put("softClips", 0);		
-			
+			settings.put("wallpaper", 0);	
 		}
 		
 		baseQ = settings.get("baseQ");
@@ -419,7 +488,17 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 			settings.put("gValue", 228);
 			settings.put("bValue", 218);
 		}
+		/*int wallIndex = settings.get("wallpaper");
+		if(wallIndex > 0) {
+			if(wallIndex < wallPaperList.getItemCount()) {
+				
+				wallPaperList.setSelectedIndex(Launcher.wallpaperIndex);
+				
+			}
+		}
 		
+		
+		alphaSlider.setValue(settings.get("alphaValue"));*/
 		rSlider.setValue(settings.get("rValue"));
 		gSlider.setValue(settings.get("gValue"));
 		bSlider.setValue(settings.get("bValue"));
@@ -508,6 +587,7 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 				}
 				Main.writeToConfig("fontSize=" +Main.defaultFontSize);
 			}
+			return;
 		}
 		if(event.getSource() == varDrawList) {
 			if (event.getActionCommand().equals("comboBoxChanged")) {
@@ -530,6 +610,36 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 				}
 				Main.chromosomeDropdown.setSelectedIndex(Main.selectedChrom);
 			}
+			return;
+		}
+		if(event.getSource() == wallPaperList) {
+			if (event.getActionCommand().equals("comboBoxChanged")) {
+				int selectedIndex = wallPaperList.getSelectedIndex();
+				if(selectedIndex == 0) {
+					Settings.wallpaper = null;
+					Draw.backColor = new Color(graySlider.getValue(), graySlider.getValue(), graySlider.getValue());	
+					if(settings != null) {
+						settings.put("wallpaper",0);
+					}
+					Main.writeToConfig("wallpaper=0");
+				}
+				else {
+					
+					Settings.wallpaper = imageHash.get(wallPaperList.getItemAt(selectedIndex).toString());
+					if(settings != null) {
+						settings.put("wallpaper",selectedIndex);
+					}
+					Draw.backColor = new Color(graySlider.getValue(), graySlider.getValue(), graySlider.getValue(), alphaSlider.getValue());
+					Main.writeToConfig("wallpaper=" +selectedIndex);
+				}
+				if(Main.drawCanvas != null) {
+					Main.drawCanvas.repaint();
+					Main.chromDraw.repaint();
+					Main.bedCanvas.repaint();
+					Main.controlDraw.repaint();
+				}
+				
+			}
 		}
 		
 	}
@@ -543,14 +653,40 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 			return;
 		}
 		else if(event.getSource() == graySlider) {
-			Draw.backColor = new Color(graySlider.getValue(), graySlider.getValue(), graySlider.getValue());	
-			settings.put("backValue",graySlider.getValue());
+			if(wallpaper == null) {
+				Draw.backColor = new Color(graySlider.getValue(), graySlider.getValue(), graySlider.getValue());	
+			}
+			else {
+				Draw.backColor = new Color(graySlider.getValue(), graySlider.getValue(), graySlider.getValue(), alphaSlider.getValue());	
+			}
+			if(settings != null) {
+				settings.put("backValue",graySlider.getValue());
+			}
 			backLabel.setText("Gray: " +graySlider.getValue());
 			if(Main.drawCanvas != null) {
 				Main.drawCanvas.repaint();
 				Main.chromDraw.repaint();
 				Main.bedCanvas.repaint();
+				Main.controlDraw.repaint();
 			}
+		}
+		else if(event.getSource() == alphaSlider) {
+			if(wallpaper == null) {
+				
+			}
+			else {
+				Draw.backColor = new Color(graySlider.getValue(), graySlider.getValue(), graySlider.getValue(), alphaSlider.getValue());	
+				if(Main.drawCanvas != null) {
+					Main.drawCanvas.repaint();
+					Main.chromDraw.repaint();
+					Main.bedCanvas.repaint();
+					Main.controlDraw.repaint();
+				}
+			}
+			if(settings != null) {
+				settings.put("alphaValue",alphaSlider.getValue());
+			}
+			
 		}
 		else if(event.getSource() == rSlider || event.getSource() == gSlider || event.getSource() == bSlider) {
 			
@@ -718,7 +854,10 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		
 			Main.writeToConfig("backColor=" +graySlider.getValue());
 		}
-		
+		else if (event.getSource() == alphaSlider) {
+			
+			Main.writeToConfig("alphaValue=" +alphaSlider.getValue());
+		}
 	}
 	@Override
 	public void keyTyped(KeyEvent e) {

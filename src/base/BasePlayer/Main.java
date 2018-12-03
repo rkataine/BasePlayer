@@ -117,6 +117,8 @@ import base.BasePlayer.BedCanvas.bedFeatureFetcher;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+
+import javax.imageio.ImageIO;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManager;
@@ -666,107 +668,107 @@ import javax.net.ssl.X509TrustManager;
    				if (responseCode == HttpsURLConnection.HTTP_OK) {	        				
    	
 		      			
-		      			String loading = drawCanvas.loadingtext;
-		      			InputStream inputStream = httpConn.getInputStream();
-		      			BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-		      			Main.drawCanvas.loadingtext = loading + " 0MB";
-		      			String line;
-		      			StringBuffer buffer = new StringBuffer("");
-		      			while((line=reader.readLine()) != null) {		
-		      				
-		      				buffer.append(line);
-		      				
-		      			}
-		      			inputStream.close();
-		      			reader.close();
-		      			String split2;
-		      			String[] split = buffer.toString().split("dataUnit");
-		      			String location;
-		      			ArrayList<File> array = new ArrayList<File>();
-		      			File[] paths;
-		    			FileSystemView fsv = FileSystemView.getFileSystemView();
-		    			paths = File.listRoots();
-		    			String loc = "/mnt";
-		    			boolean missingfiles = false;
-		    			for(File path:paths){
-		    				if(fsv.getSystemDisplayName(path).contains("merit")) {
-		    					loc = path.getCanonicalPath();
-		    				}					    			  
-		    			}
-		    			
-		      			for(int i = 0; i<split.length; i++) {
-		      				
-		      				if(!split[i].contains("lastLocation")) {		
-		      					
-		      					continue;
-		      				}
-		      				
-		      				split2 = split[i].split("\"lastLocation\":\"")[1];
-		      				location = split2.substring(0,split2.indexOf("\"}"));
-		      				String filename = "";
-		      				String testloc = location.replace("/mnt", loc) +"/wgspipeline/";
-		      				File testDir = new File(testloc);
-		      				if(testDir.exists() && testDir.isDirectory()) {
-		      					if(bamonly) {
-		      						File[] addDir = testDir.listFiles(new FilenameFilter() {
-			      		  	    	     public boolean accept(File dir, String name) {
-			      		  	    	        return name.toLowerCase().endsWith(".bam") || name.toLowerCase().endsWith(".cram");
-			      		  	    	     }
-			      		  	    	});
-			      					if(addDir.length > 0) {
-			      						filename = addDir[0].getName();
-			      					}
+	      			String loading = drawCanvas.loadingtext;
+	      			InputStream inputStream = httpConn.getInputStream();
+	      			BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+	      			Main.drawCanvas.loadingtext = loading + " 0MB";
+	      			String line;
+	      			StringBuffer buffer = new StringBuffer("");
+	      			while((line=reader.readLine()) != null) {		
+	      				
+	      				buffer.append(line);
+	      				
+	      			}
+	      			inputStream.close();
+	      			reader.close();
+	      			String split2;
+	      			String[] split = buffer.toString().split("dataUnit");
+	      			String location;
+	      			ArrayList<File> array = new ArrayList<File>();
+	      			File[] paths;
+	    			FileSystemView fsv = FileSystemView.getFileSystemView();
+	    			paths = File.listRoots();
+	    			String loc = "/mnt";
+	    			boolean missingfiles = false;
+	    			for(File path:paths){
+	    				if(fsv.getSystemDisplayName(path).contains("merit")) {
+	    					loc = path.getCanonicalPath();
+	    				}					    			  
+	    			}
+	    			
+	      			for(int i = 0; i<split.length; i++) {
+	      				
+	      				if(!split[i].contains("lastLocation")) {		
+	      					
+	      					continue;
+	      				}
+	      				
+	      				split2 = split[i].split("\"lastLocation\":\"")[1];
+	      				location = split2.substring(0,split2.indexOf("\"}"));
+	      				String filename = "";
+	      				String testloc = location.replace("/mnt", loc) +"/wgspipeline/";
+	      				File testDir = new File(testloc);
+	      				if(testDir.exists() && testDir.isDirectory()) {
+	      					if(bamonly) {
+	      						File[] addDir = testDir.listFiles(new FilenameFilter() {
+		      		  	    	     public boolean accept(File dir, String name) {
+		      		  	    	        return name.toLowerCase().endsWith(".bam") || name.toLowerCase().endsWith(".cram");
+		      		  	    	     }
+		      		  	    	});
+		      					if(addDir.length > 0) {
+		      						filename = addDir[0].getName();
 		      					}
-		      					else {
-			      					File[] addDir = testDir.listFiles(new FilenameFilter() {
-			      		  	    	     public boolean accept(File dir, String name) {
-			      		  	    	        return name.toLowerCase().endsWith(".vcf.gz");
-			      		  	    	     }
-			      		  	    	});
-			      					if(addDir.length > 0) {
-			      						filename = addDir[0].getName();
-			      					}
+	      					}
+	      					else {
+		      					File[] addDir = testDir.listFiles(new FilenameFilter() {
+		      		  	    	     public boolean accept(File dir, String name) {
+		      		  	    	        return name.toLowerCase().endsWith(".vcf.gz");
+		      		  	    	     }
+		      		  	    	});
+		      					if(addDir.length > 0) {
+		      						filename = addDir[0].getName();
 		      					}
-		      				}
-		      				
-		      				location = testloc +"/" +filename;
-		      				
-		      				
-		      				if(!new File(location).exists()) {				      					
+	      					}
+	      				}
+	      				
+	      				location = testloc +"/" +filename;
+	      				
+	      				
+	      				if(!new File(location).exists()) {				      					
+	      					
+	      					if(!new File(location).exists()) {
+	      						missingfiles = true;				      						
+	      			   			ErrorLog.addError("No sample files found in " +testloc);
 		      					
-		      					if(!new File(location).exists()) {
-		      						missingfiles = true;				      						
-		      			   			ErrorLog.addError("No sample files found in " +testloc);
-			      					
-			      				}
-		      					else {
-		      						array.add(new File(location));
-		      					}
 		      				}
-		      				else {
-		      					
-		      					array.add(new File(location));
-		      				}				      				
-		      			}				      			
-		      			
-		      			File[] files = new File[array.size()];
-		      			for(int i = 0; i<files.length; i++) {
-		      				
-		      				files[i] = array.get(i);
-		      			}				      			
-		      			 FileRead filereader = new FileRead(files);
-		      			 filereader.start = (int)drawCanvas.selectedSplit.start;
-		        		 filereader.end = (int)drawCanvas.selectedSplit.end;
-		        		 if(bamonly) {
-		        			 filereader.readBAM = true;
-		        		 }
-		        		 else {
-		        			 filereader.readVCF = true;
-		        		 }
-		        		 filereader.execute();
-		        		 if(missingfiles) {
-		        			 JOptionPane.showMessageDialog(Main.drawScroll, "Missing files. Check Tools->View log", "Note", JOptionPane.INFORMATION_MESSAGE);
-		        		 }
+	      					else {
+	      						array.add(new File(location));
+	      					}
+	      				}
+	      				else {
+	      					
+	      					array.add(new File(location));
+	      				}				      				
+	      			}				      			
+	      			
+	      			File[] files = new File[array.size()];
+	      			for(int i = 0; i<files.length; i++) {
+	      				
+	      				files[i] = array.get(i);
+	      			}				      			
+	      			 FileRead filereader = new FileRead(files);
+	      			 filereader.start = (int)drawCanvas.selectedSplit.start;
+	        		 filereader.end = (int)drawCanvas.selectedSplit.end;
+	        		 if(bamonly) {
+	        			 filereader.readBAM = true;
+	        		 }
+	        		 else {
+	        			 filereader.readVCF = true;
+	        		 }
+	        		 filereader.execute();
+	        		 if(missingfiles) {
+	        			 JOptionPane.showMessageDialog(Main.drawScroll, "Missing files. Check Tools->View log", "Note", JOptionPane.INFORMATION_MESSAGE);
+	        		 }
 		        		 
    				}
        		  }
@@ -932,15 +934,14 @@ try {
 	open = new ImageIcon(imgUrl);
 	imgUrl = getClass().getResource("icons/settings.png");
 	settingsIcon = new ImageIcon(imgUrl);
+	userDir = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().replace("%20", " ");
 	settings = new JMenuItem("Settings", settingsIcon);
 	
-    
-   
    
  //   Average.frame.setVisible(false);
 	
 	try {
-	userDir = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().replace("%20", " ");
+
 	savedir  = Launcher.defaultSaveDir;
 	path = Launcher.defaultDir;		
 	gerp = Launcher.gerpfile;
@@ -1126,10 +1127,7 @@ try {
 		  }
 		});
 	 
-	try {
-		
-		
-		
+	try {		
 		
 		A=Toolkit.getDefaultToolkit().getImage(getClass().getResource("SELEX/A.png"));
 		C=Toolkit.getDefaultToolkit().getImage(getClass().getResource("SELEX/C.png"));

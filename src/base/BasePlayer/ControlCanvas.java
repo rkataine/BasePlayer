@@ -111,8 +111,17 @@ private static final long serialVersionUID = 1L;
 void drawScreen(Graphics g) {	
 	
 	//buf.drawImage(Draw.image, Main.sidebarWidth, 0, this.getWidth(),(int)Main.screenSize.getHeight(), this);
-	buf.setColor(Draw.backColor);
-	buf.fillRect(Main.sidebarWidth, 0, this.getWidth(), nodeImage.getHeight());	
+	
+	if(Settings.wallpaper == null) {
+		buf.setColor(Draw.backColor);
+		buf.fillRect(Main.sidebarWidth, 0, this.getWidth(), nodeImage.getHeight());	
+	}
+	else {
+		
+		buf.drawImage(Settings.wallpaper, 0,0, null);
+		buf.setColor(Draw.backColor);	
+		buf.fillRect(Main.sidebarWidth, 0,this.getWidth(), nodeImage.getHeight());
+	}
 //	buf.setColor(Color.gray);
 	if(Main.readingControls) {
 		return;
@@ -128,7 +137,7 @@ void drawScreen(Graphics g) {
 	if(resizer && !mouseDrag) {
 		resizer = false;
 	}
-	drawNodes();
+	//drawNodes();
 	if(Control.controlData.fileArray.size() > 1) {
 		buf.setStroke(Draw.doubleStroke);
 	/*	for(int i = 1; i< Control.controlData.fileArray.size(); i++) {

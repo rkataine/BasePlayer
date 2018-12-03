@@ -275,7 +275,6 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	
 	private short previsiblesamples;
 	
-	
 	static int clickedAdd = 0;
 	static boolean updateCoverages = false;
 	
@@ -709,7 +708,7 @@ void drawCoverage(SplitClass split) {
 					readsample.resetreadHash();
 				}
 				readHash = readsample.getreadHash().get(split);
-				if(readHash.getCoverages() != null) {					
+				if(readHash != null && readHash.getCoverages() != null) {					
 					
 					split.getReadBuffer().setColor(Color.black);
 					if(split.viewLength > Settings.readDrawDistance) {
@@ -1757,6 +1756,7 @@ boolean hideVar(SampleNode sample, boolean indel) {
 	if(sample.alleles != null) {		
 		return true;
 	}
+	
 	if(sample.getSample() != null) {
 		if(sample.getSample().removed) {
 			
@@ -1850,6 +1850,7 @@ boolean hideVar(SampleNode sample, boolean indel) {
 		}
 	}
 	}
+	
 	/*if(drawVariables.advQDraw != null) {
 		if(sample.advQualities != null) {
 			
@@ -2275,12 +2276,14 @@ void drawSidebar() {
 								sidebuf.setColor(Color.red);								
 								if(!FileRead.searchingBams && sidebarSample.readString != null) {
 									if(sidebar) {
-										if(moveY >= sampleYpos+Main.defaultFontSize*6 && moveY <= sampleYpos+Main.defaultFontSize*6+ Main.defaultFontSize+2) {
+										//System.out.println(moveY +" " +(sampleYpos+Main.defaultFontSize*6));
+										if(moveY-Main.drawScroll.getVerticalScrollBar().getValue() >= sampleYpos+Main.defaultFontSize*6 && moveY-Main.drawScroll.getVerticalScrollBar().getValue() <= sampleYpos+Main.defaultFontSize*6+ Main.defaultFontSize+2) {
 											if(moveX >= Main.defaultFontSize*4) {												
 											
 												sidebuf.setFont(Main.menuFontBold);
 												setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 												bamHover = true;
+												
 											}
 										}
 									}
@@ -2377,10 +2380,16 @@ void resizeAllCanvas(int width) {
 }
 
 public void drawScreen(Graphics g) {
-
-		buf.setColor(backColor);		
-		buf.fillRect(Main.sidebarWidth, 0,this.getWidth()-Main.sidebarWidth, Main.drawScroll.getViewport().getHeight());	
-		
+		if(Settings.wallpaper == null) {
+			buf.setColor(backColor);		
+			buf.fillRect(Main.sidebarWidth, 0,this.getWidth()-Main.sidebarWidth, Main.drawScroll.getViewport().getHeight());	
+		}
+		else {
+			
+			buf.drawImage(Settings.wallpaper, 0, 0, this.getWidth(), Main.drawScroll.getViewport().getHeight(),this);
+			buf.setColor(backColor);	
+			buf.fillRect(Main.sidebarWidth, 0,this.getWidth()-Main.sidebarWidth, Main.drawScroll.getViewport().getHeight());
+		}
 		if(Main.drawScroll.getVerticalScrollBar().getUnitIncrement() != (int)drawVariables.sampleHeight) {
 			Main.drawScroll.getVerticalScrollBar().setUnitIncrement((int)drawVariables.sampleHeight);		
 			
@@ -4610,7 +4619,7 @@ public void mouseDragged(MouseEvent event) {
 				
 			}
 			else {
-				if(selectedIndex > -1) {
+				if(!bamHover && selectedIndex > -1) {
 					if(getCursor().getType() != Cursor.HAND_CURSOR) {					
 						setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 					}
@@ -5151,6 +5160,10 @@ void addBam(int sampleindex) {
  		  String openfile = fc.getFile();			
        
         if (openfile != null) {
+         if(openfile.endsWith(".bai") || openfile.endsWith(".crai")) {
+        	 Main.showError("Please, select BAM or CRAM, not the index file.", "Error");
+        	 return;
+         }
          File file = new File(fc.getDirectory() +openfile);
          if(!file.exists()) {
         	 Main.showError("File does not exist.", "Error");
@@ -5186,9 +5199,9 @@ void addBam(int sampleindex) {
 	  	}
        	
         }
-        else {
+       /* else {
        	 Main.showError("File does not exist.", "Error");
-        }
+        }*/
 		 
 	}
 	catch(Exception ex) {
@@ -5242,6 +5255,7 @@ public void mouseClicked(MouseEvent event) {
 			}				
 		}
 		case InputEvent.BUTTON1_MASK: {
+			
 			if(event.getClickCount() == 2 && sidebar) {
 				if(drawVariables.visiblesamples == 1) {				
 					setScrollbar(0);
@@ -5264,8 +5278,13 @@ public void mouseClicked(MouseEvent event) {
 			}
 			else if(event.getClickCount() == 2) {
 				if(!FileRead.cancelreadread && coverageregion && selectedSplit.viewLength < Settings.readDrawDistance && Main.samples > 0) {
-					Reads readclass = sampleList.get(selectedIndex).getreadHash().get(selectedSplit);		
-					groupMismatchReads(Main.chromDraw.getPosition(event.getX()-Main.sidebarWidth, selectedSplit), selectedSplit,sampleList.get(selectedIndex), readclass);
+					try {
+						Reads readclass = sampleList.get(selectedIndex).getreadHash().get(selectedSplit);		
+						groupMismatchReads(Main.chromDraw.getPosition(event.getX()-Main.sidebarWidth, selectedSplit), selectedSplit,sampleList.get(selectedIndex), readclass);
+					}
+					catch(Exception e) {
+						//TODO check this
+					}
 					//System.out.println(Main.chromDraw.getPosition(event.getX()-Main.sidebarWidth, selectedSplit));
 					return;
 				}
@@ -5289,12 +5308,14 @@ public void mouseClicked(MouseEvent event) {
 					}
 				}
 			}
-			if(coverageregion && !splitremove) {
+			
+			if(!sidebar && coverageregion && !splitremove) {
 				
 				return;
 			}
 			
 			if(sidebar && bamHover) {
+				
 				addBam(selectedIndex);
 				break;
 			}
@@ -6713,6 +6734,7 @@ public void getReads(SplitClass split) {
 }
 @Override
 public void mouseReleased(MouseEvent event) {
+	
 	readScrollDrag = false;
 	
 	if(getCursor().getType() == Cursor.HAND_CURSOR) {					

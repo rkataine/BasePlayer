@@ -24,6 +24,7 @@ public class Launcher  {
 	static File configfile;
 //	private static long timer;	
 	static String memlimit = "1200m", defaultDir = "demo", line, ctrldir = "demo", defaultAnnotation ="", defaultGenome = "", defaultSaveDir = "", genomeDir = "", fontSize = "", backColor ="";
+	static int wallpaperIndex = 0, alphaValue = 0;
 	static String proxyHost ="", proxyPort ="", proxyType = "";
 	static boolean isProxy = false;
 	static String gerpfile;	
@@ -128,6 +129,24 @@ public class Launcher  {
 				  }
 				  else if(line.startsWith("backColor")) {
 					  backColor = line.substring(line.indexOf("=")+1).replace(" ", "");
+				  }
+				  else if(line.startsWith("wallpaper")) {
+					  try {
+						
+						  wallpaperIndex = Integer.parseInt(line.substring(line.indexOf("=")+1).replace(" ", ""));
+						  
+					  }
+					  catch(Exception e) {
+						  
+					  }
+				  }
+				  else if(line.startsWith("alphaValue")) {
+					  try {
+						  alphaValue = Integer.parseInt(line.substring(line.indexOf("=")+1).replace(" ", ""));
+					  }
+					  catch(Exception e) {
+						  
+					  }
 				  }
 				  else if(line.startsWith("DefaultSave")) {
 					  defaultSaveDir = line.substring(line.indexOf("=")+1).replace(" ", "");

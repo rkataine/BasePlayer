@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 
-@SuppressWarnings({ "unused", "deprecation" })
 
 public class MultisampleFilter {
 
@@ -35,24 +34,26 @@ public class MultisampleFilter {
 	
 	private static RandomAccessFile chromo;
 	private static String resString;
-	private static int headerLen;
+	private static long headerLen;
 	private static RandomAccessFile infile;
-	private static boolean flankfound = false;
+
 
 	public static void main(String[] args) {
 		
 		
 		if(args.length < 2) {
-			System.out.println("Give bam directory and reference file");
-			System.out.println("Example: zcat samples/sample.vcf.gz | java -jar MultisampleFilter.jar all ref/hs37d5.fa > results/sample.vcf");
+			System.out.println("Give bam file/directory and reference file");
+			System.out.println("Example: zcat samples/sample.vcf.gz | java -jar MultisampleFilter.jar bamfile/directory ref/hs37d5.fa > results/sample.vcf");
 		}
 		else {
-		String bamdir = args[0];
-		String reffile = args[1];
-		
-		setChromDrop(reffile);
-		heterogeneity(new File("X:/cg7/projects/Spomyoma/MY5014_heterogeneity/filtered/Somatic_list.vcf.gz"));
-		somaticOrNot(bamdir);		
+			String bamdir = args[0];
+			String reffile = args[1];
+			//String reffile = "C:/LocalData/rkataine/BasePlayer_dev/BasePlayer/genomes/Homo_sapiens.GRCh37/Homo_sapiens.GRCh37.dna.primary_assembly.fa";
+			//String bamdir = "X:/cg8/scripts/SomaticFiltering/GermlineToSomatic/normalpool";
+			//String file = "X:/cg8/scripts/SomaticFiltering/GermlineToSomatic/samples/test.vcf";
+			setChromDrop(reffile);
+			//heterogeneity(new File("X:/cg7/projects/Spomyoma/MY5014_heterogeneity/filtered/Somatic_list.vcf.gz"));
+			somaticOrNot(bamdir);		
 		
 		}
 	}
@@ -61,18 +62,26 @@ public class MultisampleFilter {
 		try {
 			
 			List<File> bamList = Collections.synchronizedList(new ArrayList<File>()); 
-			List<String[]> clusterList = Collections.synchronizedList(new ArrayList<String[]>()); 
+			/*List<String[]> clusterList = Collections.synchronizedList(new ArrayList<String[]>()); 
 			List<String> clusterMutations = Collections.synchronizedList(new ArrayList<String>()); 
 			List<String> sampleList = Collections.synchronizedList(new ArrayList<String>()); 
+			*/
 			File bam = new File(bamDir);
+			File[] bams = null;
+			if(bam.isDirectory()) {
+				bams = bam.listFiles();
+			}
+			else {
+				bams = new File[1];
+				bams[0] = bam;
+			}
 			
-			File[] bams = bam.listFiles();
-			String[] locus = {};
-			String samples = "";
+			//String[] locus = {};
+			//String samples = "";
 					
 			for(File file: bams) {
 				if(file.getAbsolutePath().endsWith(".bam")) {
-					samples += file.getName().substring(0,10)+"\t";
+					//samples += file.getName().substring(0,10)+"\t";
 				//	if(file.getName().startsWith("c289") || file.getName().startsWith("c291") || file.getName().startsWith("s1161") || file.getName().startsWith("c115") || file.getName().startsWith("c222") || file.getName().startsWith("c232") || file.getName().startsWith("c286") || file.getName().startsWith("c299") || file.getName().startsWith("c594") || file.getName().startsWith("s1113") ) {
 						bamList.add(file);
 				//	}
@@ -81,59 +90,67 @@ public class MultisampleFilter {
 			
 			String chrom ="";
 	//		BufferedReader bufReader = new BufferedReader(new FileReader("C:/HY-Data/RKATAINE/c182_6780_T_LP6005135-DNA_H01.somatic.vcf"));
-			String line, base = "", basetemp="", header=""; //, info = "";
+			String line, base = "";
 			String[] split= null;
-			int postemp = 0, pos = 0, samplecount = 0, windowLength = 0, chromcounter = 0;
-			double mutrate = 0;
-			boolean found = false;
-//			System.out.println("#Chrom\tPosition\tRef\tAlt\tTumor\t" +samples);
+			int pos = 0;
 			
+			int bloodCount = 0;
+			boolean infoFound = false, setheader=true;
+//			System.out.println("#Chrom\tPosition\tRef\tAlt\tTumor\t" +samples);
+			ArrayList<String> headerList = new ArrayList<String>();
 			InputStreamReader isReader = new InputStreamReader(System.in);
 			BufferedReader bufReader = new BufferedReader(isReader);
-			boolean setheader = true;
+			//BufferedReader bufReader = new BufferedReader(new FileReader(vcffile));
 			while(true) {
 				line = bufReader.readLine();
 				if(line == null) {
 					break;
-				}					
-		               
-		        
+				}		
+					        
 				if(line.startsWith("#")) {
-					if(line.startsWith("##INFO") && setheader) {
-						header += "##INFO=<ID=FILTER,Number=.,Type=String,Description=\"20bp flanks around variation and variant reads/coverage in 10 blood samples\">\n";
-						setheader = false;
+					if(line.startsWith("##INFO")) {
+						
+						infoFound = true;
+					}					
+					
+					if(line.contains("flanks")) {
+						String[] blood = line.split("\\s+");
+						bloodCount = Integer.parseInt(blood[blood.length-3]);
+						
 					}
-					header += line +"\n";
+					headerList.add(line.trim());
+					//header += line +"\n";
 					continue;
 				}
-				if(header.length() > 1) {
-					System.out.print(header);
-					header = "";
+				if(headerList.size() > 0) {
+					for (int i = 0 ; i< headerList.size(); i++) {
+						if(infoFound && headerList.get(i).startsWith("##INFO") && setheader) {
+							System.out.println("##INFO=<ID=FILTER,Number=.,Type=String,Description=\"20bp flanks around variation and variant reads/coverage in " +(bamList.size()+bloodCount) +" blood samples\">");						
+							setheader = false;
+							infoFound = true;
+						}
+						if(!infoFound) {
+							if(headerList.size() == 1) {
+								System.out.println("##INFO=<ID=FILTER,Number=.,Type=String,Description=\"20bp flanks around variation and variant reads/coverage in " +(bamList.size()+bloodCount) +" blood samples\">");						
+								infoFound = true;
+							}
+							else if(i == 1) {
+								System.out.println("##INFO=<ID=FILTER,Number=.,Type=String,Description=\"20bp flanks around variation and variant reads/coverage in " +(bamList.size()+bloodCount) +" blood samples\">");						
+								infoFound = true;
+							}
+						}
+						System.out.println(headerList.get(i));
+					}
+					
+					headerList.clear();
 				}
 				split = line.split("\\t");
-				if(split[0].equals("23")) {
-					split[0] = "X";
-				}
-				else if(split[0].equals("24")) {
-					split[0] = "Y";
-				}
-				else if(split[0].contains("25")) {
-					split[0] = "MT";
-				}				
 				
 				if(!split[0].equals(chrom)) {
 					chrom = split[0];
 					
-					if(chrom.equals("23")) {
-						chrom = "X";
-					}
-					else if(chrom.equals("24")) {
-						chrom = "Y";
-					}
-					else if(chrom.contains("25")) {
-						chrom = "MT";
-					}					
-					chromcounter = 0;
+					headerLen = chromIndex.get(chrom)[0];
+					
 				}
 				
 				
@@ -151,13 +168,219 @@ public class MultisampleFilter {
 				else {					
 					base = ""+split[4];					
 				}				
-			//	checkReads(chrom, pos, base, bamList, base, "", split);
+				
+				if(split[7].contains("FILTER=")) {
+					String filterfield = "";
+					String infofield = "";
+					String[] infoSplit = split[7].split(";");
+					for(int i = 0; i < infoSplit.length; i++) {
+						if(infoSplit[i].startsWith("FILTER=")) {
+							filterfield = infoSplit[i];
+						}
+						else {
+							infofield += infoSplit[i] +";";
+						}						
+					}
+					System.out.print(split[0] +"\t" +split[1] +"\t" +split[2] +"\t" +split[3] +"\t" +split[4] +"\t" +split[5] +"\t" +split[6] +"\t" +infofield +filterfield);
+				}
+				else {	
+					String seq = getSeq(pos-10, pos+11, infile);
+					String error = "", foxog = "";
+					if(seq.substring(9, 12).equals("CTC") && base.equals("C") || seq.substring(9, 12).equals("GAG") && base.equals("G")) {
+						error = "errorCCC";
+					}
+					if(seq.substring(9, 12).equals("CCG") && base.equals("A") || seq.substring(9, 12).equals("CGG") && base.equals("T")) {
+						foxog = "FOXOG";
+					}
+					String errors = "";
+					if(error.length() > 0) {
+						errors = ";errorCCC";
+					}
+					else if(foxog.length() > 0) {
+						errors = ";FOXOG";
+					}
+					seq = seq.substring(0,10).toLowerCase() +seq.substring(10, 11) +seq.substring(11,21).toLowerCase();
+				
+					System.out.print(split[0] +"\t" +split[1] +"\t" +split[2] +"\t" +split[3] +"\t" +split[4] +"\t" +split[5] +"\t" +split[6] +"\t" +split[7]+errors +";FILTER=" +seq);
+				
+				}
+				for(int i = 0 ; i< bamList.size(); i++) {
+					String result = checkReads(chrom, pos, base, bamList.get(i));
+					System.out.print(","+result);
+				}
+				for(int i = 8; i<split.length; i++) {
+					System.out.print("\t" +split[i]);
+				}
+				System.out.println();
 			}		
+			
+			
 		}
 		catch(Exception e) {
 			e.printStackTrace();			
 		}
 	}
+
+	public static String checkReads(String chromString, int pos, String variation, File bamfile) {
+		CigarElement cigar = null;
+		SAMRecord samRecord = null;
+		
+		try {
+		
+		
+			String chrom = chromString;
+			SamReader inputSam = SamReaderFactory.make().open(bamfile);
+			//SAMFileReader inputSam = new SAMFileReader(bamfile);
+			samRecord = new SAMRecord(inputSam.getFileHeader());	 
+			int start = pos-200, end = pos +200;
+			Iterator<SAMRecord> ite;
+			
+			/*if(chrom.equals("X")) {
+				chrom = "23";
+			}
+			else if(chrom.equals("Y")) {
+				chrom = "24";
+			}
+			else if(chrom.contains("M")) {
+				chrom = "25";
+			}*/
+			ite = inputSam.queryOverlapping(chrom, start, end);
+			//ite = inputSam.iterator(inputSam.getIndex().getSpanOverlapping(Integer.parseInt(chrom)-1, start, end));	
+			int poscount = 0;
+			int readPos = 0, position = 0;
+			String base = variation;
+			
+			int altcount = 0, refcount = 0;
+			
+			while(ite.hasNext() && ite != null) {
+				
+				samRecord =ite.next(); 	
+				
+				if(samRecord.getUnclippedEnd() < pos) {
+					continue;
+				}
+				if(samRecord.getUnclippedStart() > pos) {
+					break;
+				}
+		/*		if(!flankfound && (pos - samRecord.getUnclippedStart() > 11 && samRecord.getUnclippedEnd() -pos > 11)) {
+					readseq = samRecord.getReadString().substring((pos-samRecord.getUnclippedStart())-10, (pos-samRecord.getUnclippedStart())+11);
+					readseq = readseq.substring(0,10).toLowerCase() +readseq.substring(10, 11) +readseq.substring(11,21).toLowerCase();
+					flankfound = true;
+					
+				}
+			*/
+				position = 0;
+				poscount = 0;
+				
+				if(samRecord.getCigar().numCigarElements() > 1) {		
+					if(base.length() > 1) {
+						if(samRecord.getCigarString().contains("I") || samRecord.getCigarString().contains("D")) {
+							altcount++;
+						}
+						else {
+							refcount++;
+						}
+					}
+					else {
+					
+						cigar = null;
+						for(int k = 0; k<samRecord.getCigar().numCigarElements(); k++) {
+							
+							cigar = samRecord.getCigar().getCigarElement(k);
+							if ((samRecord.getUnclippedStart() + position) > pos) {								
+								break;
+							}
+							if(cigar.getOperator().compareTo(CigarOperator.MATCH_OR_MISMATCH)== 0) {
+								position += cigar.getLength();
+							}
+							else if(cigar.getOperator().compareTo(CigarOperator.DELETION) == 0) {	
+								
+					//			System.out.println(bamfile.getName().substring(0, 5) +" " +samRecord.getUnclippedStart() +" " +samRecord.getCigarString() +" " +pos +" " +(samRecord.getUnclippedStart() + position));												
+							/*	if(base.length() > 1 && pos == samRecord.getUnclippedStart() + position) {
+									indelfound = true;
+									altcount++;
+									break;
+								}*/
+								position += cigar.getLength();
+								poscount -=	cigar.getLength();	
+							}
+							else if(cigar.getOperator().compareTo(CigarOperator.INSERTION) == 0) {		
+							/*	if(base.length() > 1 && samRecord.getUnclippedStart() + position == pos) {
+									altcount++;
+									indelfound = true;
+									break;
+								}*/
+								poscount += cigar.getLength();
+							}
+							else if(cigar.getOperator().compareTo(CigarOperator.SOFT_CLIP) == 0) {
+								position+=cigar.getLength()+1;
+							}
+						
+						}
+					}
+				}
+				else {
+					if(base.length() > 1) {						
+						refcount++;					
+					}
+				}
+				/*if(base.length() > 1) {
+					if(!indelfound) {
+						refcount++;
+					}
+				}*/
+				if(base.length() == 1) {
+					readPos = (pos - samRecord.getUnclippedStart()) + poscount;							
+					
+								
+					try {
+						base = Character.toString(samRecord.getReadString().charAt(readPos));
+					}
+					catch(Exception e) {
+						
+						continue;
+					}
+					
+					if(base.equals(variation)) {
+						altcount++;				
+					}
+					else {
+						refcount++;
+					}
+				}
+				/*
+				if(count > 0) { 
+					samplecount++;
+					count = 0;
+					if(samplecount == 1) {
+						inputSam.close();
+						return true;
+					}
+					break;
+				}
+				*/
+			}
+			inputSam.close();
+			
+			if(refcount == 0 && altcount == 0) {
+				return "0/0";
+				
+			}
+			else {
+				return altcount +"/" +(altcount+refcount);
+			}
+			
+			
+		
+			
+		}
+		catch(Exception e) {
+			
+			e.printStackTrace();
+		}
+		
+		return "";
+	}	
 	public static void heterogeneity(File multivcf) {
 		try {
 			
@@ -231,7 +454,7 @@ public class MultisampleFilter {
 				row = new StringBuffer(split[0] +"\t" +split[1] +"\t" +split[2] +"\t" +split[3] +"\t" +split[4] +"\t" +split[5]);
 				for(int i = 0 ; i<split.length-9; i++) {
 					if(split[9+i].equals("0/0")) {
-						String result = checkReads(chrom, pos, base, bamList.get(i), base, "", split);						
+						String result = checkReads(chrom, pos, base, bamList.get(i));						
 						row.append("\t"+result);
 					}
 					else {
@@ -249,162 +472,6 @@ public class MultisampleFilter {
 		}
 		
 	}
-	public static String checkReads(String chromString, int pos, String variation, File bamfile, String ref, String info, String[] split) {
-		CigarElement cigar = null;
-		SAMRecord samRecord = null;
-		
-		try {
-		
-			boolean indelfound = false, flankfound=false, first = true;
-			String chrom = chromString;
-			SamReader inputSam = SamReaderFactory.make().open(bamfile);
-			//SAMFileReader inputSam = new SAMFileReader(bamfile);
-			samRecord = new SAMRecord(inputSam.getFileHeader());	 
-			int start = pos-200, end = pos +200;
-			Iterator<SAMRecord> ite;
-			
-			if(chrom.equals("X")) {
-				chrom = "23";
-			}
-			else if(chrom.equals("Y")) {
-				chrom = "24";
-			}
-			else if(chrom.contains("M")) {
-				chrom = "25";
-			}
-			ite = inputSam.queryOverlapping(chrom, start, end);
-			//ite = inputSam.iterator(inputSam.getIndex().getSpanOverlapping(Integer.parseInt(chrom)-1, start, end));	
-			int poscount = 0;
-			int readPos = 0, position = 0;
-			String base = variation;
-			
-			int altcount = 0, refcount = 0;
-			
-			while(ite.hasNext() && ite != null) {
-				
-				samRecord =ite.next(); 	
-				
-				if(samRecord.getUnclippedEnd() < pos) {
-					continue;
-				}
-				if(samRecord.getUnclippedStart() > pos) {
-					break;
-				}
-		/*		if(!flankfound && (pos - samRecord.getUnclippedStart() > 11 && samRecord.getUnclippedEnd() -pos > 11)) {
-					readseq = samRecord.getReadString().substring((pos-samRecord.getUnclippedStart())-10, (pos-samRecord.getUnclippedStart())+11);
-					readseq = readseq.substring(0,10).toLowerCase() +readseq.substring(10, 11) +readseq.substring(11,21).toLowerCase();
-					flankfound = true;
-					
-				}
-			*/
-				position = 0;
-				poscount = 0;
-				indelfound = false;
-				
-				if(samRecord.getCigar().numCigarElements() > 1) {		
-					if(base.length() > 1) {
-						if(samRecord.getCigarString().contains("I") || samRecord.getCigarString().contains("D")) {
-							altcount++;
-						}
-						else {
-							refcount++;
-						}
-					}
-					else {
-					cigar = null;
-					for(int k = 0; k<samRecord.getCigar().numCigarElements(); k++) {
-						
-						cigar = samRecord.getCigar().getCigarElement(k);
-						if ((samRecord.getUnclippedStart() + position) > pos) {								
-							break;
-						}
-						if(cigar.getOperator().compareTo(CigarOperator.MATCH_OR_MISMATCH)== 0) {
-							position += cigar.getLength();
-						}
-						else if(cigar.getOperator().compareTo(CigarOperator.DELETION) == 0) {	
-							
-				//			System.out.println(bamfile.getName().substring(0, 5) +" " +samRecord.getUnclippedStart() +" " +samRecord.getCigarString() +" " +pos +" " +(samRecord.getUnclippedStart() + position));												
-						/*	if(base.length() > 1 && pos == samRecord.getUnclippedStart() + position) {
-								indelfound = true;
-								altcount++;
-								break;
-							}*/
-							position += cigar.getLength();
-							poscount -=	cigar.getLength();	
-						}
-						else if(cigar.getOperator().compareTo(CigarOperator.INSERTION) == 0) {		
-						/*	if(base.length() > 1 && samRecord.getUnclippedStart() + position == pos) {
-								altcount++;
-								indelfound = true;
-								break;
-							}*/
-							poscount += cigar.getLength();
-						}
-						else if(cigar.getOperator().compareTo(CigarOperator.SOFT_CLIP) == 0) {
-							position+=cigar.getLength()+1;
-						}
-					
-					}
-					}
-				}
-			/*	if(base.length() > 1) {
-					if(!indelfound) {
-						refcount++;
-					}
-				}*/
-				if(base.length() == 1) {
-					readPos = (pos - samRecord.getUnclippedStart()) + poscount;							
-					
-								
-					try {
-						base = Character.toString(samRecord.getReadString().charAt(readPos));
-					}
-					catch(Exception e) {
-						
-						continue;
-					}
-					
-					if(base.equals(variation)) {
-						altcount++;				
-					}
-					else {
-						refcount++;
-					}
-				}
-				/*
-				if(count > 0) { 
-					samplecount++;
-					count = 0;
-					if(samplecount == 1) {
-						inputSam.close();
-						return true;
-					}
-					break;
-				}
-				*/
-			}
-			inputSam.close();
-			
-			if(refcount == 0 && altcount == 0) {
-				return "0,0";
-				
-			}
-			else {
-				return refcount +"," +altcount;
-			}
-			
-			
-		
-			
-		}
-		catch(Exception e) {
-			
-			e.printStackTrace();
-		}
-		
-		return "";
-	}	
-
 	static void setChromDrop(String dir) {
 		try {
 		File chromindex = null;
@@ -432,6 +499,62 @@ public class MultisampleFilter {
 		catch(Exception e) {
 			e.printStackTrace();
 		}
+	}
+public static String getSeq(int start, int end, RandomAccessFile seqchrom) {
+		
+		try {
+			seqresult = new byte[end-start+100];
+			if(seqresult.length > 30000) {
+				return "";
+			}
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			return "";
+		}
+		
+//		resString ="";
+		seqBuffer = new StringBuffer();
+		chromo = seqchrom;
+		
+		try {
+		
+			if((headerLen+(start)+((start)/60))-1 >= (seqchrom.length() -seqresult.length)) {
+				
+				seqresult = new byte[(int)(seqchrom.length() - (headerLen+(start)+((start)/60)-1))-1];
+			}
+			
+			chromo.seek((headerLen+(start)+((start)/60))-1);
+			chromo.readFully(seqresult);
+			
+			if(seqresult[0] == 10) {
+				chromo.seek((headerLen+(start-1)+((start)/60))-1);
+				seqchrom.readFully(seqresult);
+			}			
+					
+			for(int i= 0; i< seqresult.length; i++){
+				
+				if(seqresult[i] != 10) {
+					seqBuffer.append((char)seqresult[i]);
+			//		resString+=(char)seqresult[i];					
+				}
+				
+				resString = seqBuffer.toString().toUpperCase();
+				if(resString.length() >= end-start) {
+					break;
+				}			
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		//	System.out.println(e +" getseq");
+		}	
+		
+		if(resString.length() < end-start) {
+			return "";
+		}
+		
+		return resString.substring(0, end-start);			
 	}
 	
 }

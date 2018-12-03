@@ -176,9 +176,17 @@ void drawScreen(Graphics g) {
 	
 	drawSidebar();
 		
-	buf.setColor(Draw.backColor);
-	buf.fillRect(Main.sidebarWidth-4, 0, this.getWidth(), this.getHeight());	
 	
+	if(Settings.wallpaper == null) {
+		buf.setColor(Draw.backColor);
+		buf.fillRect(Main.sidebarWidth-4, 0, this.getWidth(), this.getHeight());	
+	}
+	else {
+		
+		buf.drawImage(Settings.wallpaper, Main.sidebarWidth-4,0, this);
+		buf.setColor(Draw.backColor);	
+		buf.fillRect(Main.sidebarWidth-4, 0,this.getWidth(), this.getHeight());
+	}
 	//buf.setColor(Color.gray);
 	
 	if(!zoomDrag && !resize) {	
