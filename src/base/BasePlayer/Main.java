@@ -2427,6 +2427,9 @@ static class MyFilterVCF extends javax.swing.filechooser.FileFilter {
 			if(file.getName().toLowerCase().endsWith(".gff.gz")) {
 				return true;
 			}
+			if(file.getName().toLowerCase().endsWith(".gff3.gz")) {
+				return true;
+			}
 			if(file.getName().toLowerCase().endsWith(".bigwig")) {
 				return true;
 			}
@@ -2447,7 +2450,7 @@ static class MyFilterVCF extends javax.swing.filechooser.FileFilter {
 			}	
 	} 
 	
-	public String getDescription() { return "*.bed, *.gff.gz, *.bedgraph.gz, *.bigWig, *.bigBed, *.tsv.gz"; }
+	public String getDescription() { return "*.bed, *.gff.gz, *.gff3.gz *.bedgraph.gz, *.bigWig, *.bigBed, *.tsv.gz"; }
 }
 	static class MyFilterTXT extends javax.swing.filechooser.FileFilter {
 		public boolean accept(File file) { 
@@ -3017,11 +3020,11 @@ public void actionPerformed(ActionEvent e) {
 			
 			 FileDialog fc = new FileDialog(frame, "Choose track file(s)", FileDialog.LOAD);
 	  		  fc.setDirectory(Main.trackDir);
-	  		  fc.setFile("*.bed;*.bedgraph.gz;*.gff.gz;*.bigwig;*.bw;*.bigbed;*.bb;*.tsv.gz;*.tsv.bgz;*.txt");
+	  		  fc.setFile("*.bed;*.bedgraph.gz;*.gff.gz;*.gff3.gz;*.bigwig;*.bw;*.bigbed;*.bb;*.tsv.gz;*.tsv.bgz;*.txt");
 	  		 fc.setFilenameFilter(new FilenameFilter() {
 		  			public boolean accept(File dir, String name) {
 				        return name.toLowerCase().endsWith(".bed") || name.toLowerCase().endsWith(".bed.gz") || name.toLowerCase().endsWith(".bedgraph.gz")|| name.toLowerCase().endsWith(".bedgraph.gz")|| name.toLowerCase().endsWith(".bedgraph.gz")
-				        		|| name.toLowerCase().endsWith(".gff.gz")|| name.toLowerCase().endsWith(".bigwig")|| name.toLowerCase().endsWith(".bw")|| name.toLowerCase().endsWith(".bigbed")
+				        		|| name.toLowerCase().endsWith(".gff.gz")||name.toLowerCase().endsWith(".gff3.gz") ||  name.toLowerCase().endsWith(".bigwig")|| name.toLowerCase().endsWith(".bw")|| name.toLowerCase().endsWith(".bigbed")
 				        		|| name.toLowerCase().endsWith(".bb")|| name.toLowerCase().endsWith(".tsv.gz")|| name.toLowerCase().endsWith(".tsv.bgz")|| name.toLowerCase().endsWith(".txt");
 				     }
 				 });
@@ -3033,8 +3036,9 @@ public void actionPerformed(ActionEvent e) {
 	        	
 	        	  trackDir = openfiles[0].getParent();	 	
        		  	  writeToConfig("DefaultTrackDir=" +trackDir);
-	        	  FileRead filereader = new FileRead(openfiles);		        	
-	        	  filereader.readBED(openfiles);
+	        	  FileRead filereader = new FileRead(openfiles);     
+	        	  filereader.readBED = true;
+	        	  filereader.execute();
 	        	
 	         }
 	         else {
@@ -3080,7 +3084,7 @@ public void actionPerformed(ActionEvent e) {
         	  else { 		  
         		 
         		  
-        		  if(Main.chooserText.length() > 5 && Main.chooserText.endsWith(".bed.gz")  ||  Main.chooserText.endsWith(".gff.gz") || Main.chooserText.endsWith(".bedgraph.gz")) {	        			  
+        		  if(Main.chooserText.length() > 5 && Main.chooserText.endsWith(".bed.gz")  ||  Main.chooserText.endsWith(".gff.gz") ||  Main.chooserText.endsWith(".gff3.gz") || Main.chooserText.endsWith(".bedgraph.gz")) {	        			  
         			 
 	        		  if(Main.chooserText.startsWith("http://") || Main.chooserText.startsWith("ftp://")) {
 	        			 

@@ -599,7 +599,9 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		frame.getContentPane().setBackground(Color.white);
 		frame.setBackground(Color.white);
 		frame.addComponentListener(this);
+		
 		menuScroll = new JScrollPane(menuPanel);	
+		
 	//	menuScroll.setMinimumSize(new Dimension(200, 100));
 		menuPanel.setBackground(Color.white);	
 		
@@ -2001,7 +2003,9 @@ static void removeMenuComponents() {
 		menuPanel.removeAll();
 		menuPanelIndel.removeAll();
 		menuPanel.add(new JLabel("Hard filters"));
+		menuPanel.add(new JSeparator());
 		menuPanelIndel.add(new JLabel("Hard filters"));
+		menuPanelIndel.add(new JSeparator());
 	/*for(int i = menu.getComponentCount()-2; i>0; i--) {
 		if(menuScroll.getComponent(i) instanceof JLabel || menu.getComponent(i) instanceof JTextField) {
 			menu.remove(i);			
@@ -2076,7 +2080,7 @@ static void addMenuComponents(String line) {
 	}
 	else {
 		
-		if(line.indexOf("Number=1")<0) {
+		if(line.indexOf("Number=")<0) {
 			return;
 		}
 		String key = line.substring(line.indexOf("<ID=")+4, line.indexOf(","));
@@ -2169,8 +2173,10 @@ static void addMenuComponents(String line) {
 			VariantHandler.menuPanelIndel.getComponent(i).setPreferredSize(new Dimension(Main.defaultFontSize*6,(int)(Main.defaultFontSize*2)));
 		}
 	}
+	
 	VariantHandler.menu.pack();
 	VariantHandler.menuIndel.pack();
+	
 }
 /*	static void writeTranscriptsToVCF(ArrayList<Gene> genes, BufferedWriter output) {
 		if(genes.size() == 0) {
@@ -2215,7 +2221,7 @@ static void addMenuComponents(String line) {
 				+ "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">"+Main.lineseparator
 				+ "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth\">"+Main.lineseparator
 				+ "##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">" +Main.lineseparator
-				+ "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">"+Main.lineseparator
+				+ "##FORMAT=<ID=GQ,Number=1,Type=Float,Description=\"Genotype Quality\">"+Main.lineseparator
 				+ "##reference=" +Main.ref.getName() +Main.lineseparator);
 				
 				

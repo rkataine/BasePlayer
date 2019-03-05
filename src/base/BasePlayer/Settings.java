@@ -132,13 +132,11 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 				        if(type.equals("image")) {
 				        	images.add(wallpaperfiles[i].getName());
 				        	imageHash.put(wallpaperfiles[i].getName(),ImageIO.read(wallpaperfiles[i]));
-						}
-						
+						}						
 					}
 					catch(Exception e) {
 						
-					}
-					
+					}					
 				}
 			}
 			else {

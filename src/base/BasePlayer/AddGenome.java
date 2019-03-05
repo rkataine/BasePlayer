@@ -1288,7 +1288,39 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 		}
  		return dict;
 	}
+static SAMSequenceDictionary ReadDictChr(File fastafile) {
+	SAMSequenceDictionary dict = new SAMSequenceDictionary();
 	
+	try {
+		BufferedReader reader = null;
+		if(fastafile.getName().endsWith(".gz")) {
+			reader = new BufferedReader(new FileReader(fastafile.getCanonicalPath().substring(0,fastafile.getCanonicalPath().lastIndexOf(".gz") ) +".fai"));
+		}
+		else {
+			reader = new BufferedReader(new FileReader(fastafile.getCanonicalPath() +".fai"));
+		}
+		
+	
+		String line;
+		String[] split;
+		
+		while((line = reader.readLine())!=null) {				
+			split = line.split("\t");
+			if(!split[0].startsWith("chr")) {
+				split[0] = "chr" +split[0];
+			}
+			SAMSequenceRecord record = new SAMSequenceRecord(split[0], Integer.parseInt(split[1]));
+			dict.addSequence(record);				
+		}
+		reader.close();
+	}
+	catch(Exception e){
+		
+		e.printStackTrace();
+	}
+		return dict;
+}
+
 	static void parseGFF(File gffFile, File outfile, String genome, String genomeFile) {		
 		
 			try {
@@ -1849,14 +1881,15 @@ static SAMSequenceDictionary ReadDict(File fastafile) {
 					  FileDialog fs = new FileDialog(frame, "Select annotation gff3/gtf-file", FileDialog.LOAD);
 			  		  fs.setDirectory(Main.downloadDir);	  		
 			  		  fs.setVisible(true);
+			  		  String filename = fs.getFile();	
 			  		  fs.setFile("*.gff3;*.gtf");
 			  		  fs.setFilenameFilter(new FilenameFilter() {
 				  			public boolean accept(File dir, String name) {
 						        return name.toLowerCase().contains(".gff3") || name.toLowerCase().contains(".gtf");
 						     }
 						 });
-			  		  String filename = fs.getFile();			
-			       
+			  		 		
+			        
 			         if (filename != null) {
 			        	 File addfile = new File(fs.getDirectory() +"/" +filename);
 			        	

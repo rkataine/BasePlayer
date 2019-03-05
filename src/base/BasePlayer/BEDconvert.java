@@ -415,7 +415,7 @@ public class BEDconvert extends JPanel implements ActionListener, MouseListener 
 		}
 		int chrindex = -1, startindex = -1, endindex = -1, nameindex =-1, scoreindex = -1, strandindex = -1; 
 		//SEARCH chrom
-		for(int i = 0; i < columnModel.getColumnCount(); i++) {	    	
+		for(int i = 0; i < columnModel.getColumnCount(); i++) {
 			try {
 	    	if(table.getValueAt(0, i).toString().contains("chr") || table.getValueAt(1, i).toString().contains("chr") || table.getValueAt(0, i).toString().contains("genoName")) {
 	    		

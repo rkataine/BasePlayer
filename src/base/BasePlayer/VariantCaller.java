@@ -332,7 +332,7 @@ public class VarCaller extends SwingWorker<String, Object> {
 							Main.drawCanvas.variantsEnd = end;
 							ReferenceSeq reference = new ReferenceSeq(Main.drawCanvas.splits.get(0).chrom, start-300, end+300, Main.referenceFile);
 							VariantCall[][] coverages = reader.variantCaller(Main.drawCanvas.splits.get(0).chrom, start,end, reads, minquality,minreadquality, reference);
-							
+							if(coverages != null) {
 							for(int i = 0 ; i<coverages.length; i++) {		
 								if(!Main.drawCanvas.loading) {
 									break;
@@ -408,6 +408,8 @@ public class VarCaller extends SwingWorker<String, Object> {
 									}									
 								}
 							}
+						}
+						
 							/*if(bednode != null) {
 								bednode = bednode.getNext();
 								

@@ -63,7 +63,7 @@ import org.apache.commons.io.FilenameUtils;
 @SuppressWarnings("deprecation")
 public class FileRead extends SwingWorker< String, Object >  {
 	static boolean caller = false;
-	Boolean readVCF = false, changeChrom = false, readBAM = false,searchInsSites = false, varcalc = false, getreads = false;
+	Boolean readVCF = false, changeChrom = false, readBAM = false,searchInsSites = false, varcalc = false, getreads = false, readBED = false;
 	File[] files;
 	String chrom = "0";
 	static boolean asked = false;
@@ -189,7 +189,11 @@ public class FileRead extends SwingWorker< String, Object >  {
 			readBAM = false;
 			Main.drawCanvas.ready("Loading samples");
 		}
-		
+		else if(readBED) {					
+			readBED(files);
+			readBED = false;
+			Main.drawCanvas.ready("Loading tracks");
+		}		
 		else if(changeChrom) {		
 			changeChrom(chrom);	
 			changeChrom = false;			
@@ -384,7 +388,12 @@ static String setVCFFileStart(String chrom, int start, int end, Sample sample) {
 				}
 			}
 			else {
-				index = new TabixIndex(new File(sample.getTabixFile()+".tbi"));
+				try {
+					index = new TabixIndex(new File(sample.getTabixFile()+".tbi"));
+				}
+				catch(Exception e) {
+					index = new TabixIndex(new File(sample.getTabixFile()+".csi"));	
+				}
 			}
 			
 			java.util.List<Block> blocks = null;
@@ -1376,7 +1385,7 @@ static boolean checkIndex(File file) {
 			return new File(file.getCanonicalPath() +".idx").exists() || new File(file.getCanonicalPath() +".tbi").exists();			
 		}
 		else if(file.getName().toLowerCase().endsWith(".vcf.gz")) {
-			return new File(file.getCanonicalPath() +".tbi").exists();
+			return new File(file.getCanonicalPath() +".tbi").exists() || new File(file.getCanonicalPath() +".csi").exists();
 		}
 		else if(file.getName().toLowerCase().endsWith(".bam")) {
 			if(!new File(file.getCanonicalPath() +".bai").exists()) {
@@ -1443,17 +1452,17 @@ static void checkMulti(Sample sample) {
 			try {
 			
 			if(line.startsWith("##INFO")) {
-				if(line.contains("Type=Float") || line.contains("Type=Integer")) {					
+				if(line.contains("Type=Float") || line.contains("Type=Integer") || line.contains("Number=")) {					
 					VariantHandler.addMenuComponents(line);					
 				}
 			}
 			if(line.startsWith("##FILTER")) {
-				if(line.contains("ID=") || line.contains("Description=")) {					
+				if(line.contains("ID=") || line.contains("Description=") || line.contains("Number=")) {					
 					VariantHandler.addMenuComponents(line);					
 				}	
 			}
 			if(line.startsWith("##FORMAT")) {
-				if(line.contains("Type=Float") || line.contains("Type=Integer")) {					
+				if(line.contains("Type=Float") || line.contains("Type=Integer") || line.contains("Number=")) {					
 					VariantHandler.addMenuComponents(line);					
 				}	
 			}
@@ -1505,7 +1514,11 @@ static void checkMulti(Sample sample) {
 			}
 			line = reader.readLine();
 		}
-		
+		/*
+		VariantHandler.menu.setPreferredSize(new Dimension(300,500));
+		VariantHandler.menuPanel.setPreferredSize(new Dimension(300,500));*/
+		VariantHandler.menuScroll.setPreferredSize(new Dimension(250,500));
+		VariantHandler.menuScrollIndel.setPreferredSize(new Dimension(250,500));
 	if (line == null) {
 		return;
 	}
@@ -3600,6 +3613,9 @@ static void annotate() {
 	
 	public ArrayList<ReadNode> getReads(String chrom, int startpos, int endpos, Reads readClass, SplitClass split) {
 		
+		if(endpos-startpos > Settings.coverageDrawDistance || endpos-startpos < 100) {
+			return null;
+		}
 		try {		
 		double[][] coverageArray = null;
 		if(Main.drawCanvas.drawVariables.sampleHeight > 100) {
@@ -4497,6 +4513,9 @@ public static boolean isTrackFile(String file) {
 	else if(file.toLowerCase().endsWith("gff.gz")) {
 		return true;
 	}
+	else if(file.toLowerCase().endsWith("gff3.gz")) {
+		return true;
+	}
 	else if(file.toLowerCase().endsWith(".bigwig")) {
 		return true;
 	}
@@ -4528,6 +4547,9 @@ public static boolean isTrackFile(File file) {
 	else if(file.getName().toLowerCase().endsWith("gff.gz")) {
 		return true;
 	}
+	else if(file.getName().toLowerCase().endsWith("gff3.gz")) {
+		return true;
+	}
 	else if(file.getName().toLowerCase().endsWith(".bigwig")) {
 		return true;
 	}
@@ -4553,10 +4575,10 @@ public static boolean isTrackFile(File file) {
 		 int counter = 0, founds = 0;
 		 
 		 while((line = reader.readLine()) != null) {
-			 counter++;
+			 /*counter++;
 			 if(counter > 1000) {
 				 break;
-			 }
+			 }*/
 			 gene = line.replace(" ", "");	
 			 if(Main.searchTable.containsKey(gene.toUpperCase()) || Main.geneIDMap.containsKey(gene.toUpperCase())) {
 				 
@@ -4747,7 +4769,7 @@ static void setBedTrack(BedTrack addTrack) {
 	  }
 	 
 	  int count = 0;
-	  if(name.endsWith(".gff.gz")) {
+	  if(name.endsWith(".gff.gz") || name.endsWith(".gff3.gz")) {
 		  addTrack.iszerobased = 1;
 		  addTrack.getZerobased().setSelected(false);
 		  while(count < 10) {
@@ -4761,7 +4783,7 @@ static void setBedTrack(BedTrack addTrack) {
 				  if(!Double.isNaN(Double.parseDouble(split[5]))) {		    					 
 					  addTrack.hasvalues = true;
 				  }
-				 
+				
 			  }
 			  if(Main.SELEXhash.containsKey(split[2].replace(".pfm", ""))) {								
 				  addTrack.selex = true;

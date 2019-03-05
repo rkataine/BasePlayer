@@ -415,6 +415,241 @@ static void calcAverageRegions() {
 static void calcAverage() {
 	
 	try {		
+	  java.util.List<int[]> mergeVector = Average.mergeVector;
+	  ArrayList<int[]> coverageMatrix = new ArrayList<int[]>();
+	  for(int i = 0 ; i< mergeVector.size(); i++) {
+		  int[] coverageArray = new int[mergeVector.get(i)[2]-mergeVector.get(i)[1]];
+		 
+		  coverageMatrix.add(coverageArray);
+	  }
+	 
+	  int zeros = 0;
+	  long result = 0, qualities = 0, cliplengths = 0, readlengths = 0, reads =0;
+	
+	  int currentLength = 0;
+	  int start = 0, end = 0;
+	  Reads readClass;
+	  FileRead reader = new FileRead();
+	  Iterator<SAMRecord> iterator;
+	 
+	  int pointer = 0, stat = 0, extrapointer = 0;
+	  
+	  String status = "";
+	  String percent = "";
+	  int[] coverageWidth = new int[10];
+	  boolean first = true;
+	  SamReader inputSam = null;
+	  //int[] coverageArray = {};
+	  for(int s=0;s<Main.drawCanvas.sampleList.size();s++) {
+		 
+		  if (Main.cancel) {
+				break;
+			}
+		  if(Main.drawCanvas.sampleList.get(s).samFile == null) {
+			 continue; 
+		  }
+		  //SamReader inputSam = SamReaderFactory.make().open(Main.drawCanvas.sampleList.get(s).samFile);
+		   //SAMFileReader inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
+		  for(int i = 0 ; i< coverageMatrix.size(); i++) {			  
+			  for(int j = 0 ; j<coverageMatrix.get(i).length; j++) {
+				  coverageMatrix.get(i)[j] = 0;
+			  }			 
+		  }
+		  pointer = 0;
+		  extrapointer = 0;
+		  qualities = 0;
+		  readClass = Main.drawCanvas.sampleList.get(s).getreadHash().get(Main.drawCanvas.splits.get(0));
+		  currentLength = 0;
+		  result = 0;
+		  zeros = 0;
+		  reads = 0;
+		  cliplengths = 0;
+		  readlengths = 0;
+		  coverageWidth = new int[10];
+		  HashMap<String, Integer> chrmap = null;
+		  //Iterator<SAMRecord> iterator = null;
+		  //System.out.println(Main.chromosomeDropdown.getItemAt(startchrom) +" " +Average.startpos +" " +Average.endpos);
+		  if(startchrom == endchrom) {
+			  //iterator = inputSam.queryOverlapping(Main.chromosomeDropdown.getItemAt(startchrom), Average.startpos,  Average.endpos);
+			  iterator = reader.getBamIterator(readClass, Main.chromosomeDropdown.getItemAt(startchrom),  Average.startpos, Average.endpos);
+				 
+		  }
+		  else {
+			  inputSam = SamReaderFactory.make().open(Main.drawCanvas.sampleList.get(s).samFile);
+			  //inputSam = new SAMFileReader(Main.drawCanvas.sampleList.get(s).samFile);
+			  chrmap = MethodLibrary.mapChrnameToIndex(inputSam.getFileHeader());
+			  iterator = inputSam.iterator();
+		  }
+		 
+		  SAMRecord samRecord = null;
+		  for(int i = 0; i<10; i++) {
+			  coverageWidth[i] = 0;
+		  }
+		  while(iterator.hasNext()) {
+		 
+			  try {
+				  samRecord = iterator.next();
+			  }
+			  catch(Exception ex) {
+				  ex.printStackTrace();
+				  continue;
+			  }
+			  if (Main.cancel) {
+					break;
+				}
+			  	if(samRecord == null) {
+			  		continue;
+			  	}
+			 
+			  	end = samRecord.getAlignmentEnd();
+			  	
+				if(end == 0) {
+					continue;
+				}	
+				if(pointer > mergeVector.size()-1) {
+					break;
+				}
+				
+				if(chrmap.get(samRecord.getReferenceName()) == null) {
+					continue;
+				}
+				 
+				if(chrmap.get(samRecord.getReferenceName()) != mergeVector.get(pointer)[0]) {
+					pointer = 0;
+					int chrtest = chrmap.get(samRecord.getReferenceName());
+					try {
+						while(chrtest != mergeVector.get(pointer)[0] ) {
+							pointer++;
+							
+						}
+					}
+					catch(Exception e) {
+						break;
+					}
+					first = true;
+				}
+				
+				/*if(samRecord.getReferenceIndex() < mergeVector.get(pointer)[0]) {
+					
+					continue;
+				}
+				if(mergeVector.get(pointer)[0] < samRecord.getReferenceIndex()) {
+					
+					pointer++;
+					if(pointer > mergeVector.size()-1) {
+						break;
+					}	
+					first = true;
+				}*/
+				if(end < mergeVector.get(pointer)[1]) {
+					
+					continue;
+				}
+				
+				start = samRecord.getAlignmentStart();
+				if(start > mergeVector.get(pointer)[2]) {
+					
+					if(!first) {
+						
+						for(int i = 0; i<coverageMatrix.get(pointer).length; i++) {
+							result+=coverageMatrix.get(pointer)[i];
+							if(coverageMatrix.get(pointer)[i] > 0) {
+								if(coverageMatrix.get(pointer)[i] >= 10) {
+									for(int j = 0 ; j<10; j++) {
+										coverageWidth[j]++;
+									}									
+								}
+								else {
+									for(int j = coverageMatrix.get(pointer)[i]-1; j>=0; j--) {
+										coverageWidth[j]++;
+									}
+								}
+							}
+						}
+					
+						if(stat != (int)(pointer/(double)mergeVector.size()*100)) {		
+							if(currentLength != 0) {
+					  			Average.model.setValueAt(""+MethodLibrary.round((result/(double)currentLength),2), s, 1);	
+					  		}				  		
+					  		percent = "1 : "+(int)((coverageWidth[0]/(double)currentLength)*100)
+					  				+" | 2 : "+(int)((coverageWidth[1]/(double)currentLength)*100)
+					  				+" | 3 : "+(int)((coverageWidth[2]/(double)currentLength)*100)
+					  				+" | 4 : "+(int)((coverageWidth[3]/(double)currentLength)*100)
+					  				+" | 5 : "+(int)((coverageWidth[4]/(double)currentLength)*100)
+					  				+" | 6 : "+(int)((coverageWidth[5]/(double)currentLength)*100)
+					  				+" | 7 : "+(int)((coverageWidth[6]/(double)currentLength)*100)
+					  				+" | 8 : "+(int)((coverageWidth[7]/(double)currentLength)*100)
+					  				+" | 9 : "+(int)((coverageWidth[8]/(double)currentLength)*100)
+					  				+" | 10+ : "+(int)((coverageWidth[9]/(double)currentLength)*100);
+					  		
+					  		Average.model.setValueAt(MethodLibrary.round(qualities/(double)reads, 2), s, 2);
+					  		Average.model.setValueAt(MethodLibrary.round(cliplengths/(double)readlengths,4), s, 3);
+					  		Average.model.setValueAt(MethodLibrary.round(zeros/(double)reads,4), s, 4);
+					  		
+					  		Average.model.setValueAt(percent +"%", s, 5);
+					  		stat = (int)(pointer/(double)mergeVector.size()*100);
+					  		status = ""+pointer/(double)mergeVector.size()*100;						  	
+					  		Average.model.setValueAt("Running " +status.substring(0,status.indexOf("."))+"%", s, 6);
+						}
+					}
+					pointer++;
+					if(pointer > mergeVector.size()-1) {
+						break;
+					}	
+					first = true;
+				}
+				if(first) {
+					
+					
+					currentLength +=mergeVector.get(pointer)[2]-mergeVector.get(pointer)[1];
+					first = false;
+				}
+				reads++;
+				qualities += samRecord.getMappingQuality();
+				cliplengths += (samRecord.getUnclippedEnd()-samRecord.getUnclippedStart())-(end-start);
+				readlengths += (samRecord.getUnclippedEnd()-samRecord.getUnclippedStart());				
+				if(samRecord.getMappingQuality() == 0) {
+					zeros++;  
+					continue;
+				}
+				try {
+					extrapointer = pointer;
+					while(extrapointer < mergeVector.size() && end > mergeVector.get(extrapointer)[1]) {
+						for(int i = start; i<end; i++ ) {
+							if(i<mergeVector.get(extrapointer)[1]) {
+								continue;
+							}
+							if(i > mergeVector.get(extrapointer)[2]-1) {								
+								break;
+							}
+							
+							coverageMatrix.get(extrapointer)[i-mergeVector.get(extrapointer)[1]]++;
+						}
+						extrapointer++;
+					}
+				}
+				catch(Exception e) {
+					ErrorLog.addError(e.getStackTrace());
+					e.printStackTrace();
+					continue;
+				}
+					
+			    }
+		  		Average.model.setValueAt("100%", s, 6);		
+		  		inputSam.close();			
+							  
+		  }
+		  
+		}
+		catch(Exception ex) {
+			ErrorLog.addError(ex.getStackTrace());			
+			ex.printStackTrace();
+		}
+
+}
+static void calcAverageOld() {
+	
+	try {		
 		 java.util.List<int[]> mergeVector = Average.mergeVector;
 	 
 	  int zeros = 0;

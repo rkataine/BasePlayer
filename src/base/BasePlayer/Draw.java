@@ -5321,6 +5321,7 @@ public void mouseClicked(MouseEvent event) {
 			}
 			if(varOverLap != null) {	
 				MethodLibrary.showVariantMenu(this, varOverLap, sampleOverLap, moveX+(int)selectedSplit.pixel, moveY, "");
+				varOverLap = null;
 				break;
 				
 			}

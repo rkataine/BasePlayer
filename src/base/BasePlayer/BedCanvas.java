@@ -888,7 +888,7 @@ void drawNodes() {
 							}
 						}					
 						
-					if(Main.drawCanvas.splits.get(0).viewLength <= 300 && track.selex) {
+					if(Main.drawCanvas.splits.get(0).viewLength <= 300 && (track.selex || track.getDrawNode().id != null)) {
 						
 						if((track.getDrawNode().level-1)*(selexheight+15)+(track.mouseWheel*((selexheight+15)*2))+5 >= 5 && (track.getDrawNode().level-1)*(selexheight+15)+(track.mouseWheel*((selexheight+15)*2))+15 < this.trackheight) {
 							testRect.setBounds((int)((track.getDrawNode().getDrawPosition()-Main.drawCanvas.splits.get(0).start)*Main.drawCanvas.splits.get(0).pixel),trackstart+((track.getDrawNode().level-1)*(selexheight+15))+(track.mouseWheel*((selexheight+15)*2)),bedwidth,10);
@@ -1043,7 +1043,14 @@ void drawInfo() {
 				if(infoNode.name.length() > infolist.get(maxlength).length()) {
 					maxlength = infolist.size()-1;
 				}
+				if(infoNode.secondaryName != null && infoNode.secondaryName.length() > 0) {
+					infolist.add(infoNode.secondaryName);
+					if(infoNode.secondaryName.length() > infolist.get(maxlength).length()) {
+						maxlength = infolist.size()-1;
+					}
+				}
 			}
+			
 			else {
 				if(infoNode.getTrack().file != null) {
 					infolist.add(infoNode.getTrack().file.getName().substring(0, 10) +"...");
@@ -1073,6 +1080,15 @@ void drawInfo() {
 				else {
 					infolist.add("Strand: -");
 				}			
+			}
+			if(infoNode.info != null) {
+				String[] split = infoNode.info.split(";");
+				for(int i = 0; i<split.length;i++) {
+					infolist.add(split[i]);
+					if(infolist.get(infolist.size()-1).length() > infolist.get(maxlength).length()) {
+						maxlength = infolist.size()-1;
+					}
+				}
 			}
 			if(fm== null) {
 				fm = nodebuf.getFontMetrics();
@@ -1701,7 +1717,7 @@ public class BedReader extends SwingWorker<String, Object> {
 					
 					iterateBED(bedIterator, track);
 				}
-				else if (track.file.getName().toLowerCase().endsWith("gff.gz")){
+				else if (track.file.getName().toLowerCase().endsWith("gff.gz") || track.file.getName().toLowerCase().endsWith("gff3.gz")){
 					
 					iterateGFF(bedIterator, track);
 					
@@ -2422,7 +2438,7 @@ void iterateGFF(TabixReaderMod.Iterator iterator, BedTrack track) {
 						addNode.putNext(new BedNode(split[0],(Integer.parseInt(split[3]))-track.iszerobased,Integer.parseInt(split[4])-(Integer.parseInt(split[3]))+track.iszerobased, track));
 						
 					}
-				
+					
 					addNode.getNext().putPrev(addNode);
 					
 					addNode = addNode.getNext();
@@ -2439,6 +2455,7 @@ void iterateGFF(TabixReaderMod.Iterator iterator, BedTrack track) {
 						
 					}
 					else {
+						
 						addNode.name = split[2];
 					}
 					if(split.length > 5) {						
@@ -2464,8 +2481,29 @@ void iterateGFF(TabixReaderMod.Iterator iterator, BedTrack track) {
 							
 							if(split.length > 8) {
 								addNode.info = split[8];
+								
+								String[] infoFields = split[8].split(";");
+								for(int i = 0 ; i<infoFields.length; i++) {
+									if(infoFields[i].startsWith("Name=")) {
+										if(addNode.id == null) {
+											addNode.secondaryName = split[2];
+											addNode.name = infoFields[i].substring(5);
+										}
+										
+									}
+									else if(infoFields[i].startsWith("pfm=")) {
+										if(Main.factorNames.get(infoFields[i].substring(4).replace(".pfm", "")) != null) {
+											addNode.secondaryName = split[2];
+											addNode.id = infoFields[i].substring(4).replace(".pfm", "");
+											addNode.name = Main.factorNames.get(addNode.id);
+										}									
+									}
+								}
+								
 							}
 						}
+						
+						
 					}				
 				}
 				else {
@@ -3324,7 +3362,7 @@ boolean annotate(BedNode head, VarNode node) {
 								current.setBedhits();
 							}
 							found = true;
-							if(currentBed.getTrack().selex) {
+							if(currentBed.id != null || currentBed.getTrack().selex) {
 							
 								if(currentBed.getTrack().getAffinityBox().isSelected()) {
 									if(currentBed.getTrack().limitValue != (double)Integer.MIN_VALUE && currentBed.getTrack().limitValue != null) {
@@ -3512,7 +3550,7 @@ public void mousePressed(MouseEvent event) {
 	case InputEvent.BUTTON1_MASK: {	
 		
 	//	if(this.settingsbutton > -1) {
-			if(sidebar && this.sideMouseRect.intersects(bedTrack.get(this.hoverIndex).settingsButton)) {
+			if(sidebar && this.hoverIndex < bedTrack.size() && this.sideMouseRect.intersects(bedTrack.get(this.hoverIndex).settingsButton)) {
 				
 				this.bedTrack.get(this.hoverIndex).getPopup().show(this, mouseX, mouseY);
 				//settingsbutton = -1;

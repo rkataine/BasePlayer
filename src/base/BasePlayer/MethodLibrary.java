@@ -260,6 +260,9 @@ public class MethodLibrary {
 			if(split.length > 7) {
 				String[] infosplit = split[7].split(";");
 				for(int i = 0 ; i< infosplit.length; i++) {
+					if(infosplit[i].length() > 30) {
+						infosplit[i] = infosplit[i].substring(0, 30) +"...";
+					}
 					if(longest < infosplit[i].length()) {
 						longest = infosplit[i].length();
 						longestText = infosplit[i];
@@ -277,6 +280,9 @@ public class MethodLibrary {
 						String[] infosplit = annosplit[7].split(";");
 						
 						for(int j = 0 ; j< infosplit.length; j++) {
+							if(infosplit[j].length() > 30) {
+								infosplit[j] = infosplit[j].substring(0, 30) +"...";
+							}
 							if(longest < infosplit[j].length()) {
 								longest = infosplit[j].length();
 								longestText = infosplit[j];
@@ -1183,21 +1189,31 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
     	}
     	
     	read.close();
-		  TabixIndexCreator indexCreator;	
-		  SAMSequenceDictionary dict = AddGenome.ReadDict(Main.ref);
-		indexCreator = new TabixIndexCreator(dict, TabixFormat.VCF);	
+		  TabixIndexCreator indexCreator = null;	
+		  SAMSequenceDictionary dict = null;
+		
 		VCFHeader vcfheader = new VCFHeader();
 		VCFHeaderLine headerline = new VCFHeaderLine("format","##fileformat=VCFv4.1");
 		vcfheader.addMetaDataLine(headerline);
 		VariantHandler.vcfCodec.setVCFHeader(vcfheader, VCFHeaderVersion.VCF4_1);
 		long filepointer = 0;
 		
-		boolean cancelled = false;
+		boolean cancelled = false, first = true;
 	    while((line = reader.readLine()) != null) {
 	    	
 	    	if(line.startsWith("#") || line.startsWith("\"") || line.length() < 10) {
 	    		filepointer += line.length()+addbyte;
 	    		continue;
+	    	}
+	    	if(first) {
+	    		first = false;
+	    		if(line.startsWith("chr")) {
+	    			dict = AddGenome.ReadDictChr(Main.ref);
+	    		}
+	    		else {
+	    			dict = AddGenome.ReadDict(Main.ref);
+	    		}
+	    		indexCreator = new TabixIndexCreator(dict, TabixFormat.VCF);	
 	    	}
 	    	Feature vcf = VariantHandler.vcfCodec.decode(line);			
 	    	if(!Main.drawCanvas.loading) {
@@ -1705,10 +1721,16 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 					}
 					
 				}
+				try {
 				if(!aminoTable[i].contains("UTR") && !aminoTable[i].contains("intro") && (aminoTable[i].contains("if") || !aminoTable[i].substring(0, 3).equals(aminoTable[i].substring(aminoTable[i].length()-3)))) {
 					
 					return "missense";
-				}				
+				}	
+				}
+				catch(Exception e) {
+					System.out.println(aminoTable[i]);
+					System.out.println(e);
+				}
 				
 			}
 			if(nonsense) {
