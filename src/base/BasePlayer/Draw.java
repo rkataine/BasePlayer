@@ -956,7 +956,7 @@ public void drawVars(int offset) {
 					}		
 					if(FileRead.novars) {	
 						
-						if(!currentDraw.getChrom().equals(splits.get(0).chrom)) {
+						if(splits.get(0) == null || !currentDraw.getChrom().equals(splits.get(0).chrom)) {
 							break;
 						}
 					}
@@ -1782,7 +1782,6 @@ boolean hideVar(SampleNode sample, boolean indel) {
 	
 	if(!sample.getSample().annoTrack) {
 		
-		
 		if(!VariantHandler.indelFilters.isSelected()) {	
 			if(sample.getQuality() != null && VariantHandler.qualitySlider.getValue() > sample.getQuality()) {		
 				return true;
@@ -1796,7 +1795,7 @@ boolean hideVar(SampleNode sample, boolean indel) {
 			if(VariantHandler.maxCoverageSlider.getValue() < sample.getCoverage()) {		
 				return true;
 			}
-			if(VariantHandler.callSlider.getValue()/100.0 > sample.getAlleleFraction()) {		
+			if(VariantHandler.callSlider.getValue()/100.0 > sample.getAlleleFraction() || sample.getAlleleFraction() == 0.0) {		
 				return true;
 			}
 			if(VariantHandler.callSlider.getUpperValue() != 100) {
@@ -1819,7 +1818,7 @@ boolean hideVar(SampleNode sample, boolean indel) {
 				if(VariantHandler.maxCoverageSliderIndel.getValue() < sample.getCoverage()) {		
 					return true;
 				}
-				if(VariantHandler.callSliderIndel.getValue()/100.0 > sample.getAlleleFraction()) {		
+				if(VariantHandler.callSliderIndel.getValue()/100.0 > sample.getAlleleFraction() || sample.getAlleleFraction() == 0.0) {			
 					return true;
 				}
 			}
@@ -1836,7 +1835,7 @@ boolean hideVar(SampleNode sample, boolean indel) {
 				if(VariantHandler.maxCoverageSlider.getValue() < sample.getCoverage()) {		
 					return true;
 				}
-				if(VariantHandler.callSlider.getValue()/100.0 > sample.getAlleleFraction()) {		
+				if(VariantHandler.callSlider.getValue()/100.0 > sample.getAlleleFraction() || sample.getAlleleFraction() == 0.0) {		
 					return true;
 				}
 			}
@@ -2385,7 +2384,6 @@ public void drawScreen(Graphics g) {
 			buf.fillRect(Main.sidebarWidth, 0,this.getWidth()-Main.sidebarWidth, Main.drawScroll.getViewport().getHeight());	
 		}
 		else {
-			
 			buf.drawImage(Settings.wallpaper, 0, 0, this.getWidth(), Main.drawScroll.getViewport().getHeight(),this);
 			buf.setColor(backColor);	
 			buf.fillRect(Main.sidebarWidth, 0,this.getWidth()-Main.sidebarWidth, Main.drawScroll.getViewport().getHeight());
@@ -2656,7 +2654,8 @@ public void drawScreen(Graphics g) {
 			if(FileRead.cancelreadread) {
 				if(!buf.getColor().equals(Color.lightGray)) {
 					buf.setColor(Color.lightGray);				
-				}	
+				}
+				buf.drawString("Double click sample tracks to load reads again.", Main.sidebarWidth +20, 20);
 			//	Main.putMessage("Double click sample tracks to load reads.");
 			}
 		}
@@ -2669,7 +2668,9 @@ public void drawScreen(Graphics g) {
 	//	buf.setColor(Color.white);
 	//	buf.setFont(defaultFont);
 		//buf.drawString("Font size: "+Main.defaultFontSize, 300, 100);
-		g.drawImage(backbuffer, 0, Main.drawScroll.getVerticalScrollBar().getValue(), null);				
+		
+		g.drawImage(backbuffer, 0, Main.drawScroll.getVerticalScrollBar().getValue(), null);		
+		
 }
 
 void drawVarCurtain() {	
@@ -3734,7 +3735,7 @@ void drawReads(SplitClass split) {
 		if(split.viewLength < Settings.coverageDrawDistance && drawVariables.sampleHeight > 100) {
 			
 	
-		if(Main.readsamples > 0 ) {			
+		if(Main.readsamples > 0 && !FileRead.cancelreadread) {			
 			
 		if(updateReads || split.updateReads || updateCoverages) {
 		
@@ -3824,7 +3825,7 @@ void drawReads(SplitClass split) {
 			if(split.viewLength <= Settings.coverageDrawDistance && split.viewLength > Settings.readDrawDistance) {
 				
 				if(!lineZoomer && !mouseDrag && ((readsample.getreadHash().get(split).getCoverageStart() > (int)split.start || readsample.getreadHash().get(split).getCoverageEnd() < (int)split.end) || (readsample.getreadHash().get(split).getCoverageEnd() > (int)split.end && readsample.getreadHash().get(split).getCoverageStart() < (int)split.start))) {
-					//clearReads();	
+					//clearReads();					
 					FileRead reader = new FileRead();
 					readsample.getreadHash().get(split).setReadStart(Integer.MAX_VALUE);
 					readsample.getreadHash().get(split).setReadEnd(0);
@@ -4692,13 +4693,13 @@ void drag(int dragX) {
 
 void addSplit(String chrom, int start, int end) {
     SplitClass split = new SplitClass();
-    split.chrom = chrom;
-    if(selectedSplit.chrom.equals(chrom)) {
+    split.chrom = chrom.replace("chr","");
+    if(selectedSplit.chrom.equals(split.chrom)) {
     	split.setGenes(selectedSplit.getGenes());
     }
     else {
     	
-    	split.setGenes(Main.fileReader.getExons(chrom));
+    	split.setGenes(Main.fileReader.getExons(split.chrom));
     }
    
     if(Main.samples > 0) {
@@ -4715,17 +4716,17 @@ void addSplit(String chrom, int start, int end) {
     	}
     }
     try {
-    	if(Main.chromIndex.containsKey(Main.refchrom +chrom)) {
-    		split.chromEnd = Main.chromIndex.get(Main.refchrom +chrom)[1].intValue();
+    	if(Main.chromIndex.containsKey(Main.refchrom +split.chrom)) {
+    		split.chromEnd = Main.chromIndex.get(Main.refchrom +split.chrom)[1].intValue();
     	}
     	else {
-    		Main.showError("Target chromosome (" +(Main.refchrom +chrom) +") is not available.\nTry to download more comprehensive reference FASTA-file.", "Note");    			
+    		Main.showError("Target chromosome (" +(Main.refchrom +split.chrom) +") is not available.\nTry to download more comprehensive reference FASTA-file.", "Note");    			
     		return;
     	}
     }
     catch(Exception e) {
     	split.chromEnd = end+(end-start);
-    	System.out.println(chrom);
+    	System.out.println(split.chrom);
     	ErrorLog.addError(e.getStackTrace());
     	e.printStackTrace();
     }
@@ -5305,6 +5306,8 @@ public void mouseClicked(MouseEvent event) {
 					if(FileRead.cancelreadread) {
 						FileRead.cancelreadread = false;
 						Main.putMessage(null);
+						updateReads = true;
+						repaint();
 					}
 				}
 			}
@@ -6172,7 +6175,7 @@ String[] createReadInfo(ReadNode read) {
 		temp[6] = "Split position(s): ";
 		for(int i = 0; i<SAs.length; i++) {
 			String[] sa = SAs[i].split(",");
-			
+			sa[0] = sa[0].replace("chr","");
 			temp[6] += "chr" +sa[0] +":" +MethodLibrary.formatNumber(Integer.parseInt(sa[1]));
 			if(i < SAs.length-1) {
 				temp[6] += ", ";

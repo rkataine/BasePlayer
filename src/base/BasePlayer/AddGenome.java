@@ -744,6 +744,11 @@ public class AddGenome  extends JPanel implements ActionListener, MouseListener 
 					if(split[0].contains("GRCh38")) {
 						split[0] = split[0].replace("toplevel", "primary_assembly");
 					}
+					
+					if (split[2].contains("update")) {
+						split[2] = split[2].replace("update", "release-82");
+					}
+
 					if(split.length == 5) {
 						URL[] urls = {new URL(split[0]),new URL(split[2]),new URL(split[4])};
 						genomeHash.put(name, urls);

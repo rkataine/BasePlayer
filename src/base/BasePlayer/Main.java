@@ -26,6 +26,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
+import java.awt.Rectangle;
+import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -41,6 +43,7 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.awt.image.BufferedImage;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.seekablestream.SeekableStreamFactory;
@@ -51,6 +54,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -452,6 +456,7 @@ import javax.net.ssl.X509TrustManager;
 	private boolean pleiades = false;
 	private JMenuItem tbrowser;
 	private JMenuItem bconvert;
+	private JMenuItem photo;	
 	int mouseX = 0;
 	static String lineseparator;
 
@@ -1516,6 +1521,7 @@ void setMenuBar() {
 	variantCaller = new JMenuItem("Variant Caller");
 	tbrowser = new JMenuItem("Table Browser");
 	bconvert = new JMenuItem("BED converter");
+	photo = new JMenuItem("Take a photo");
 	peakCaller = new JMenuItem("Peak Caller");
 	addtracks = new JMenuItem("Add tracks", open);
 	filemenu.add(addtracks);
@@ -1552,10 +1558,12 @@ void setMenuBar() {
 	average.setToolTipText("No bam/cram files opened");
 	tbrowser.addActionListener(this);
 	bconvert.addActionListener(this);
+	//photo.addActionListener(this);
 	toolmenu.add(tbrowser);
 	toolmenu.add(average);
 	toolmenu.add(variantCaller);
 	toolmenu.add(bconvert);
+	//toolmenu.add(photo);
 	fromURL.addMouseListener(this);
 	fromURL.addActionListener(new ActionListener() {
 
@@ -2572,6 +2580,18 @@ public void actionPerformed(ActionEvent e) {
 		
 		tablebrowser.frame.setVisible(true);
 	}
+	else if(e.getSource() == photo) {
+		
+		try {
+			ScreenPhotos photos = new ScreenPhotos();
+			photos.execute();
+			//BufferedImage image = new Robot().createScreenCapture(new Rectangle(frame.getX()+10, frame.getY()+5, frame.getBounds().width-18, frame.getBounds().height-13));
+			//ImageIO.write(image, "png", new File("screenshot.png"));
+		}
+		catch(Exception ex) {
+			ex.printStackTrace();
+		}
+	}
 	else if(e.getSource() == bconvert) {
 		bedconverter.frame.setLocation(frame.getLocationOnScreen().x+frame.getWidth()/2 - VariantCaller.frame.getWidth()/2, frame.getLocationOnScreen().y+frame.getHeight()/6);			
 		bedconverter.frame.setState(JFrame.NORMAL);
@@ -3282,6 +3302,7 @@ static void clearData() {
 	try {
 	FileRead.checkSamples();
 	FileRead.asked = false;
+	Main.drawCanvas.drawVariables.somatic = false;
 	undoList.clear();	
 	undoPointer = 0;
 	bedCanvas.bedOn = false;
@@ -6084,6 +6105,103 @@ static boolean zoomtopos(String chrom, String pos, String sample) {
 	return true;
 }
 
+public class ScreenPhotos extends SwingWorker<String, Object> {
+	
+	protected String doInBackground() {
+		
+		process();
+		
+		return "";
+	}
+	
+	void process() {
+		try {
+		  int readDistance = Settings.coverageDrawDistance;
+		  System.out.println(Main.samples);
+		  InputStream in = null;
+		  String[] split;
+		  BufferedReader reader = null;
+		  GZIPInputStream gzip = null;
+		  FileReader freader = null;
+		  File trackfile = Main.bedCanvas.bedTrack.get(0).file;
+		  
+		  if(trackfile != null) {
+			  if(trackfile.getName().endsWith(".gz") || trackfile.getName().endsWith(".bgz")) {
+				  gzip = new GZIPInputStream(new FileInputStream(trackfile));
+				  reader = new BufferedReader(new InputStreamReader(gzip));
+			  }
+			  else {
+				  freader = new FileReader(trackfile);
+				  reader = new BufferedReader(freader);
+			  }
+		  }
+		  else {
+			  return;
+		  }
+		  String line;
+		  int start, end = 0;
+		  String chr = "1";
+		  while((line = reader.readLine()) != null) {
+			  	split = line.split("\t");
+			  	try {
+			  		chr = split[0];
+			  		start = Integer.parseInt(split[1]);
+			  		end = Integer.parseInt(split[2]);
+			  	}
+			  	catch(Exception ex) {
+			  		continue;
+			  	}
+			  	FileRead.search = true;
+			  	Main.nothread = true;
+			  	if(end-start > Settings.coverageDrawDistance) {
+			  		Settings.coverageDrawDistance = (end-start) + 100; 
+			  	}
+			  	Main.drawCanvas.gotoPos(chr, start, end);				
+				Main.drawCanvas.clearReads(drawCanvas.splits.get(0));
+				
+				for(int i = 0; i<Main.samples; i++) {		
+						
+					drawCanvas.drawVariables.visiblestart = (short)i;		
+					Draw.updateReads = true;
+					
+					FileRead.readsLoaded = false;			
+					
+					Draw.setScrollbar((int)(i*drawCanvas.drawVariables.sampleHeight));
+					while(!FileRead.readsLoaded) {		
+						try{
+							Thread.sleep(1000);
+						}catch(InterruptedException ex){
+						  //do stuff
+						}
+						
+					}
+					while(Main.drawCanvas.loading) {		
+						try{
+							Thread.sleep(1000);
+						}catch(InterruptedException ex){
+						  //do stuff
+						}						
+					}					
+					Thread.sleep(1000);
+					try {
+						BufferedImage image = new Robot().createScreenCapture(new Rectangle(frame.getX()+10, frame.getY()+5, frame.getBounds().width-18, frame.getBounds().height-13));
+						ImageIO.write(image, "png", new File(split[3] +"_" +Main.drawCanvas.sampleList.get(i).getName() +".png"));
+					}
+					catch(Exception ex) {
+						ex.printStackTrace();
+					}		
+				}
+				
+		  }
+		  Settings.coverageDrawDistance = readDistance;
+		}
+		catch(Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+	
+}
+
 public class Seqfetcher extends SwingWorker<String, Object> {
 	File file, outfile;
 	BedTrack track;
@@ -6558,6 +6676,7 @@ public void keyPressed(KeyEvent e) {
 		}*/
 	}
 	else if(keyCode == KeyEvent.VK_F12) {
+		
 		/*VarNode next = Main.drawCanvas.current.getNext();
 		
 		MethodLibrary.makeMultiAlt("2",next.getPosition(), "G", next);

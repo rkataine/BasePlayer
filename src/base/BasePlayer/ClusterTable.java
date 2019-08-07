@@ -347,7 +347,7 @@ void drawScreen(Graphics g) {
 					
 					
 					if(cluster.varnodes.get(0).getBedHits() != null) {
-						bedarray = MethodLibrary.makeTrackArray(cluster.varnodes.get(0),null);
+						bedarray = MethodLibrary.makeTrackArray(cluster.varnodes.get(0),null, true);
 						for(int b = 0 ; b<bedarray.length; b++) {
 							buf.setColor(Color.black);
 							if(b == bedarray.length-1) {
@@ -587,7 +587,7 @@ void drawScreen(Graphics g) {
 						vararray = null;
 						if(Main.bedCanvas.bedOn) {								
 							for(int a =0;a<aminoarray.size(); a++) {									
-								bedarray = MethodLibrary.makeTrackArray(aminoarray.get(a).getNode(),aminoarray.get(a).getRow()[5]);
+								bedarray = MethodLibrary.makeTrackArray(aminoarray.get(a).getNode(),aminoarray.get(a).getRow()[5], true);
 								if(bedarray != null) {
 								for(int b = 0 ; b<bedarray.length; b++) {
 										buf.setColor(Color.black);

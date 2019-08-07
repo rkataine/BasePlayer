@@ -1,9 +1,12 @@
 /* (swing1.1) */
 package base.BasePlayer;
 
-import java.awt.*;
-import java.util.*;
-import javax.swing.*;
+import java.awt.Dimension;
+import java.awt.Rectangle;
+import java.util.Vector;
+
+import javax.swing.ComboBoxModel;
+import javax.swing.JComboBox;
 //import javax.swing.plaf.metal.*;
 import javax.swing.plaf.basic.*;
 
@@ -18,12 +21,19 @@ class SteppedComboBoxUI extends BasicComboBoxUI {
   protected ComboPopup createPopup() {
     BasicComboPopup popup = new BasicComboPopup( comboBox ) {
      
-		private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
 	public void show() {
+		String longest = "";
+		for (int i = 0; i< comboBox.getModel().getSize(); i++) {
+			if (comboBox.getModel().getElementAt(i).toString().length() > longest.length()) {
+				longest = comboBox.getModel().getElementAt(i).toString();			
+			}
+		}
 		
-        Dimension popupSize = ((SteppedComboBox)comboBox).getPopupSize();
-        popupSize.setSize( popupSize.width, getPopupHeightForRowCount( comboBox.getMaximumRowCount() ) );
+		int maxwidth = Main.filemenu.getFontMetrics(Main.menuFont).stringWidth(longest) + 25;
+        Dimension popupSize = new Dimension(maxwidth, getPopupHeightForRowCount( comboBox.getMaximumRowCount()));// ((SteppedComboBox)comboBox).getPopupSize();
+        //popupSize.setSize( popupSize.width, popupSize.height );
         Rectangle popupBounds = computePopupBounds( 0,
         comboBox.getBounds().height, popupSize.width, popupSize.height);
         scroller.setMaximumSize( popupBounds.getSize() );

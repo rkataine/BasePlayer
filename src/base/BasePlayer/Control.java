@@ -41,7 +41,7 @@ public Control() {
 
 static void applyControl() {
 	try {
-	//	String[] controlvars = null;
+
 		String teststring = null;
 		
 		for(int c = 0; c<controlData.fileArray.size(); c++) {	
@@ -58,7 +58,11 @@ static void applyControl() {
 				 
 			 }
 			 catch(Exception tab) {
-				 Main.showError("Could not find " +controlData.fileArray.get(c).getTabixFile(), "Note");
+				 if (tab.toString().contains(".tbi")) {
+					 Main.showError("Could not find index file (.tbi) for " +controlData.fileArray.get(c).getTabixFile(), "Note");
+				 } else {
+					 Main.showError("Could not find " +controlData.fileArray.get(c).getTabixFile(), "Note");
+				 }	
 				 //JOptionPane.showMessageDialog(Main.chromDraw, "Could not find " +controlData.fileArray.get(c).getTabixFile(), "Note", JOptionPane.INFORMATION_MESSAGE);
 			 }
 			 Main.drawCanvas.loadingtext = "Applying control " +controlData.fileArray.get(c).getName();				
@@ -483,10 +487,10 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 	    							
 	    						//	 System.out.println(position +" " +alleles); 
 	    							try {
-	 					    		 allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
+	    								allelenumber = Integer.parseInt(split[7].substring(refindex, endindex));
 	    							}
 	    							catch(Exception e) {
-	    								System.out.println(line);
+	    								
 	    								Main.showError("Controlling error in line:\n" +line, "Error");
 	    							}
 	    					//		 allelenumber = Integer.parseInt(split[7].substring(refindex, split[7].indexOf(";", refindex)));
@@ -504,8 +508,7 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 		    							 }
 	    						 	 }
 	    							 else {
-	    								 System.out.println(line);
-	    								 alleles = 0;
+	    								 alleles = 2;
 	    							 }
 	    						/*	 coverages = infosplit[split[8].indexOf("AD")/3].split(",");
 	    							
@@ -517,7 +520,7 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 	    						//	 allelenumber = ref+alt;
 	    							 allelenumber = 2;
 	    						 }
-	    						
+	    						 
 	    						 if(alleles > 0) {
 	    							samplelist = current.vars.get(i).getValue();		    				
 	    	    				 	samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	
@@ -546,7 +549,7 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
     							 }
 						 	 }
 							 else {
-								 alleles = 0;
+								 alleles = 2;
 							 }
 							 allelenumber = 2;
 							/* coverages = infosplit[split[8].indexOf("AD")/3].split(",");
@@ -557,7 +560,7 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 							 allelenumber = ref+alt;
     					 */
     					 }
-	    				
+  
 	    				 if(alleles > 0) {
 	    					 samplelist = current.vars.get(i).getValue();	    				
 	    				 	 samplelist.add(new SampleNode(alleles,allelenumber,controlData.fileArray.get(c)));	    
@@ -689,9 +692,7 @@ static void addFiles(File[] filestemp) {
 									population = line.substring(idindex+3, dotindex).replace("AC", "").replace("_", "");
 									if(population.length() == 0) {
 										population = "ALL";
-									}
-									
-									
+									}							
 								}
 							}								
 						}
@@ -709,8 +710,9 @@ static void addFiles(File[] filestemp) {
 					line = reader.readLine();
 				}
 				addSample.varcount = samplecount*2;
+
 				if(samplecount == 0) {
-					int count =0, maxnumber = 0, endindex = -1;
+					int count =0, maxnumber = 2, endindex = -1;
 					String[] split = line.split("\t");
 					if(line.contains("AN=")) {
 						while(count < 1000) {

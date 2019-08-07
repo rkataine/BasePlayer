@@ -686,7 +686,7 @@ void drawScreen(Graphics g) {
 								
 								for(int a =0;a<aminoarray.size(); a++) {						
 									
-									bedarray = MethodLibrary.makeTrackArray(aminoarray.get(a).getNode(),aminoarray.get(a).getRow()[5]);
+									bedarray = MethodLibrary.makeTrackArray(aminoarray.get(a).getNode(),aminoarray.get(a).getRow()[5], true);
 									if(bedarray != null) {
 									for(int b = 0 ; b<bedarray.length; b++) {
 											buf.setColor(Color.black);

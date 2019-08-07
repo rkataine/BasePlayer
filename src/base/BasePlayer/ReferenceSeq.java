@@ -82,7 +82,7 @@ public class ReferenceSeq {
 	}
 	public byte[] getSeq(String chrom, int start, int end, RandomAccessFile seqchrom) {
 		try {
-			if(chrom == null) {
+			if(chrom == null || end-start < 0) {
 				return null;
 			}
 			if(!Main.chromIndex.containsKey(Main.refchrom +chrom)) {

@@ -239,7 +239,7 @@ public class MethodLibrary {
 						}
 						Main.drawCanvas.baseHover = altbase;
 						Double value = MethodLibrary.calcAffiniyChange(varOverLap,Main.drawCanvas.baseHover,varOverLap.getBedHits().get(i));
-						area.append(MethodLibrary.shortName(varOverLap.getBedHits().get(i).name, 7) +"=" +MethodLibrary.round(varOverLap.getBedHits().get(i).value,3) +" (" +MethodLibrary.round(value,3) +")\n");
+						area.append(MethodLibrary.shortName(varOverLap.getBedHits().get(i).name, 7, true) +"=" +MethodLibrary.round(varOverLap.getBedHits().get(i).value,3) +" (" +MethodLibrary.round(value,3) +")\n");
 					}
 				}
 			}
@@ -969,7 +969,7 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 			
 			return null;
 		}
-			makeTrackArray(node, null);
+			makeTrackArray(node, null, true);
 		}
 		node = null;
 		return bedarray;	
@@ -988,7 +988,7 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 		
 	}
 	
-	public static StringBuffer[] makeTrackArray(VarNode node, String base) {
+	public static StringBuffer[] makeTrackArray(VarNode node, String base, boolean shorten) {
 	
 		if(node.getBedHits() == null) {
 			return null;
@@ -1006,14 +1006,9 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 					}					
 				}
 				else {
-					if(node.getBedHits().get(v).name != null && node.getBedHits().get(v).name.length()> 0) {
+					if(node.getBedHits().get(v).name != null && node.getBedHits().get(v).name.length()> 0) {						
 						
-						if(node.getBedHits().get(v).name.length() > 10) {
-							bedarray[node.getBedHits().get(v).getTrack().trackIndex] = new StringBuffer(node.getBedHits().get(v).name.substring(0, 10) +"...");
-						}
-						else {
-							bedarray[node.getBedHits().get(v).getTrack().trackIndex] = new StringBuffer(node.getBedHits().get(v).name);
-						}
+						bedarray[node.getBedHits().get(v).getTrack().trackIndex] = new StringBuffer(shortName(node.getBedHits().get(v).name,10,shorten));						
 						
 						if(node.getBedHits().get(v).getTrack().hasvalues) {
 							bedarray[node.getBedHits().get(v).getTrack().trackIndex].append("=" +MethodLibrary.round(node.getBedHits().get(v).value,2));
@@ -1047,7 +1042,7 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 					bedarray[node.getBedHits().get(v).getTrack().trackIndex].append(";");
 					if(node.getBedHits().get(v).name != null) {
 						
-						bedarray[node.getBedHits().get(v).getTrack().trackIndex].append(shortName(node.getBedHits().get(v).name,10));
+						bedarray[node.getBedHits().get(v).getTrack().trackIndex].append(shortName(node.getBedHits().get(v).name,10, shorten));
 						//bedarray[node.getBedHits().get(v).getTrack().trackIndex].append(node.getBedHits().get(v).name);
 						
 						if(node.getBedHits().get(v).getTrack().hasvalues) {
@@ -1434,8 +1429,8 @@ public static StringBuffer[] makeTrackArray(ArrayList<VarNode> nodes) {
 			e.printStackTrace();
 		}	
 	}
-	public static String shortName(String line, int maxlength) {
-		if(line.length() > maxlength) {
+	public static String shortName(String line, int maxlength, boolean shorten) {
+		if(line.length() > maxlength && shorten) {
 			return line.substring(0, maxlength) +"...";
 		}
 		else {

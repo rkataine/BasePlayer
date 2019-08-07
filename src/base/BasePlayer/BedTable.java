@@ -603,7 +603,7 @@ void drawScreen(Graphics g) {
 								
 								for(int a =0;a<aminoarray.size(); a++) {		
 									
-									StringBuffer[] bedarraytemp = MethodLibrary.makeTrackArray(aminoarray.get(a).getNode(),aminoarray.get(a).getRow()[5]);
+									StringBuffer[] bedarraytemp = MethodLibrary.makeTrackArray(aminoarray.get(a).getNode(),aminoarray.get(a).getRow()[5], true);
 									if(bedarraytemp != null) {
 										int h = 0;
 										for(int b = 0 ; b<bedarraytemp.length; b++) {

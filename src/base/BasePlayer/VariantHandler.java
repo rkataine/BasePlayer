@@ -2396,7 +2396,7 @@ static void addMenuComponents(String line) {
 	   			headerstring.append(Main.lineseparator);
 	   		}
 	   		else {
-	   			headerstring.append("#Sample\tGene\tMutationCount\tSampleCount\tENSG\tENST\tBioType\tPosition\tStrand\tRegion\tEffect\tBaseChange\tGenotype(calls/coverage)\tQuality\tGQ\trs-code\t" +clusters +controls +tracks+"Description"+Main.lineseparator);
+	   			headerstring.append("#Sample\tGene\tMutationCount\tSampleCount\tENSG\tENST\tBioType\tPosition\tStrand\tRegion\tEffect\tBaseChange\tGenotype(calls/coverage)\tAllelicFraction\tQuality\tGQ\trs-code\t" +clusters +controls +tracks+"Description"+Main.lineseparator);
 	   		}
 	   	}
 	   	else {
@@ -2957,7 +2957,9 @@ static void	writeTranscriptToFile(Gene gene, BufferedWriter output) {
     		 StringBuffer genotypes = new StringBuffer("");
     		 StringBuffer qualities = new StringBuffer("");
     		 StringBuffer GQualities = new StringBuffer("");
-    		
+    		 StringBuffer fractions = new StringBuffer("");
+    		 double fraction = 0;
+    		 
 	    	 for(int s = 0; s<table.aminoarray.size(); s++) {
 	    		 row = table.aminoarray.get(s).getRow();
 	    		 node = table.aminoarray.get(s).getNode();
@@ -3046,7 +3048,7 @@ static void	writeTranscriptToFile(Gene gene, BufferedWriter output) {
 	 	    			
 	  				 	tracks = new StringBuffer("");	
 	  				 	
-	  				 	bedarray = MethodLibrary.makeTrackArray(node,entry.getKey());
+	  				 	bedarray = MethodLibrary.makeTrackArray(node,entry.getKey(), false);
 	 					if(bedarray != null) {
 	 						for(int b = 0 ; b<bedarray.length; b++) {
 	 							if(!Main.bedCanvas.bedTrack.get(b).intersect) {
@@ -3110,6 +3112,7 @@ static void	writeTranscriptToFile(Gene gene, BufferedWriter output) {
     	    		 genotypes = new StringBuffer("");
     	    		 qualities = new StringBuffer("");
     	    		 GQualities = new StringBuffer("");
+    	    		 fractions = new StringBuffer("");
     	    		 for(int i = 0; i<entry.getValue().size(); i++) {
  	    				
 	    				 if(Main.drawCanvas.hideVar(entry.getValue().get(i), entry.getKey().length() > 1)) {
@@ -3124,39 +3127,42 @@ static void	writeTranscriptToFile(Gene gene, BufferedWriter output) {
 	    				 else {
 	    					 genotypes.append("Het(" +varnode.getCalls() +"/" +varnode.getCoverage() +");");
 	    				 } 		
+	    				 fraction = MethodLibrary.round(varnode.getCalls() / (double)varnode.getCoverage(), 2);
+	    				 fractions.append(fraction +";");
 	    				 samples.append(varnode.getSample().getName() +";");
 	    				 qualities.append(varnode.getQuality()+";");
 	    				 GQualities.append(varnode.getGQString() +";");
     	    		 }
-    	    		 
+    	    		
     	    		genotypes.deleteCharAt(genotypes.length()-1);
     	    		qualities.deleteCharAt(qualities.length()-1);
     	    		samples.deleteCharAt(samples.length()-1);
     	    		GQualities.deleteCharAt(GQualities.length()-1);
+    	    		fractions.deleteCharAt(fractions.length()-1);
     	    		 if(output != null) {
     	    			
 		    				 if(exons.length() > 0) {
 		    					 if(!aminochange.equals("N/A")) {
 		    						 output.write(samples +"\t" +
 		    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
-						  		  	 row[2] +"\t" +strand	+"\t" +exons +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t" +qualities +"\t" +GQualities +"\t"+rscode +"\t" +clusters +controls +tracks +description +Main.lineseparator);
+						  		  	 row[2] +"\t" +strand	+"\t" +exons +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t" +fractions +"\t" +qualities +"\t" +GQualities +"\t"+rscode +"\t" +clusters +controls +tracks +description +Main.lineseparator);
 		    					 }
 		    					 else {
 		    						 output.write(samples +"\t" +
 		    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
-		    						 row[2] +"\t" +strand	+"\t" +"UTR" +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t"+qualities +"\t" +GQualities +"\t" +rscode +"\t"+clusters+controls +tracks +description +Main.lineseparator);
+		    						 row[2] +"\t" +strand	+"\t" +"UTR" +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t" +fractions +"\t" +qualities +"\t" +GQualities +"\t" +rscode +"\t"+clusters+controls +tracks +description +Main.lineseparator);
 		    					 }
 		    				 }
 		    				 else {
 		    					 if(node.getTranscripts() != null && node.isInGene()) {
 		    						 output.write(samples +"\t" +
 		    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
-		    						 row[2] +"\t" +strand	+"\t" +"Intronic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t"+qualities +"\t" +GQualities +"\t" +rscode+"\t" +clusters+controls +tracks +description +Main.lineseparator);	    						 
+		    						 row[2] +"\t" +strand	+"\t" +"Intronic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t" +fractions +"\t" +qualities +"\t" +GQualities +"\t" +rscode+"\t" +clusters+controls +tracks +description +Main.lineseparator);	    						 
 		    					 }
 		    					 else {
 		    						 output.write(samples +"\t" +
 		    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
-		    						 row[2] +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t" +qualities +"\t" +GQualities +"\t"+rscode+"\t" +clusters +controls +tracks +description +Main.lineseparator);	    
+		    						 row[2] +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotypes +"\t" +fractions +"\t" +qualities +"\t" +GQualities +"\t"+rscode+"\t" +clusters +controls +tracks +description +Main.lineseparator);	    
 		    					 }
 		    				 }
     	    			 }	    	    		
@@ -3178,7 +3184,8 @@ static void	writeTranscriptToFile(Gene gene, BufferedWriter output) {
 	    				 else {
 	    					 genotype = "Het(" +varnode.getCalls() +"/" +varnode.getCoverage() +")";
 	    				 } 				 	    				
-	    				
+	    				 fraction = MethodLibrary.round(varnode.getCalls() / (double)varnode.getCoverage(), 2);
+	    				 
 	    				 try {
 	    					 if(output != null) {
 	    						
@@ -3186,24 +3193,24 @@ static void	writeTranscriptToFile(Gene gene, BufferedWriter output) {
 			    					 if(!aminochange.equals("N/A")) {
 			    						 output.write(varnode.getSample().getName() +"\t" +
 			    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
-							  		  	 row[2] +"\t" +strand	+"\t" +exons +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +varnode.getQuality() +"\t" +varnode.getGQString() +"\t"+rscode +"\t" +clusters +controls +tracks +description +Main.lineseparator);
+							  		  	 row[2] +"\t" +strand	+"\t" +exons +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +fraction +"\t" +varnode.getQuality() +"\t" +varnode.getGQString() +"\t"+rscode +"\t" +clusters +controls +tracks +description +Main.lineseparator);
 			    					 }
 			    					 else {
 			    						 output.write(varnode.getSample().getName() +"\t" +
 			    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
-			    						 row[2] +"\t" +strand	+"\t" +"UTR" +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t"+varnode.getQuality() +"\t" +varnode.getGQString() +"\t" +rscode +"\t"+clusters+controls +tracks +description +Main.lineseparator);
+			    						 row[2] +"\t" +strand	+"\t" +"UTR" +"\t" +aminochange +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +fraction +"\t" +varnode.getQuality() +"\t" +varnode.getGQString() +"\t" +rscode +"\t"+clusters+controls +tracks +description +Main.lineseparator);
 			    					 }
 			    				 }
 			    				 else {
 			    					 if(node.getTranscripts() != null && node.isInGene()) {
 			    						 output.write(varnode.getSample().getName() +"\t" +
 			    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
-			    						 row[2] +"\t" +strand	+"\t" +"Intronic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t"+varnode.getQuality() +"\t" +varnode.getGQString() +"\t" +rscode+"\t" +clusters+controls +tracks +description +Main.lineseparator);	    						 
+			    						 row[2] +"\t" +strand	+"\t" +"Intronic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +fraction +"\t" +varnode.getQuality() +"\t" +varnode.getGQString() +"\t" +rscode+"\t" +clusters+controls +tracks +description +Main.lineseparator);	    						 
 			    					 }
 			    					 else {
 			    						 output.write(varnode.getSample().getName() +"\t" +
 			    						 row[0] +"\t" +row[1] +"\t" +gene.samples.size() +"\t" +geneID +"\t" +transcripts +"\t" +biotype +"\t"+
-			    						 row[2] +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +varnode.getQuality() +"\t" +varnode.getGQString() +"\t"+rscode+"\t" +clusters +controls +tracks +description +Main.lineseparator);	    
+			    						 row[2] +"\t" +strand	+"\t" +"Intergenic"+"\t" +"N/A" +"\t" +Main.getBase.get(node.getRefBase()) +"->" +entry.getKey() +"\t" +genotype +"\t" +fraction +"\t" +varnode.getQuality() +"\t" +varnode.getGQString() +"\t"+rscode+"\t" +clusters +controls +tracks +description +Main.lineseparator);	    
 			    					 }
 			    				 }
 	    					 }

@@ -29,7 +29,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import javax.activation.MimetypesFileTypeMap;
+// import javax.activation.MimetypesFileTypeMap;
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
@@ -127,12 +127,12 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 			if(wallpaperfiles != null) {
 				for(int i = 0; i<wallpaperfiles.length; i++) {
 					try {
-						String mimetype= new MimetypesFileTypeMap().getContentType(wallpaperfiles[i]);
-				        String type = mimetype.split("/")[0];
-				        if(type.equals("image")) {
+						// String mimetype= new MimetypesFileTypeMap().getContentType(wallpaperfiles[i]);
+				        // String type = mimetype.split("/")[0];
+				        // if(type.equals("image")) {
 				        	images.add(wallpaperfiles[i].getName());
 				        	imageHash.put(wallpaperfiles[i].getName(),ImageIO.read(wallpaperfiles[i]));
-						}						
+						//}						
 					}
 					catch(Exception e) {
 						
