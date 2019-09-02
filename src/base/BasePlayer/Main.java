@@ -231,6 +231,7 @@ import javax.net.ssl.X509TrustManager;
 	static JMenuItem average;
 	static JMenuItem settings;
 	static JMenuItem update;
+	static JMenuItem fixControlFile;
 	static JMenuItem errorlog;
 	//static JLabel helpLabel = new JLabel("This is pre-release version of BasePlayer\nContact: help@baseplayer.fi\n\nUniversity of Helsinki");
 	static JMenu genome;
@@ -1499,6 +1500,7 @@ void setMenuBar() {
 	openvcfs = new JMenuItem("Add VCFs", open);
 	openbams = new JMenuItem("Add BAMs", open);
 	average = new JMenuItem("Coverage calculator");
+	fixControlFile = new JMenuItem("Fix control bases");
 	update = new JMenuItem("Update");
 	update.setVisible(false);
 	errorlog = new JMenuItem("View log");
@@ -1556,13 +1558,17 @@ void setMenuBar() {
 	average.addActionListener(this);
 	average.setEnabled(false);
 	average.setToolTipText("No bam/cram files opened");
-	tbrowser.addActionListener(this);
+	fixControlFile.addActionListener(this);
+	fixControlFile.setToolTipText("Fix rejected bases in control file (e.g. after liftOver)");
+	fixControlFile.setEnabled(false);
+	tbrowser.addActionListener(this);	
 	bconvert.addActionListener(this);
 	//photo.addActionListener(this);
 	toolmenu.add(tbrowser);
 	toolmenu.add(average);
 	toolmenu.add(variantCaller);
 	toolmenu.add(bconvert);
+	toolmenu.add(fixControlFile);
 	//toolmenu.add(photo);
 	fromURL.addMouseListener(this);
 	fromURL.addActionListener(new ActionListener() {
@@ -2621,6 +2627,10 @@ public void actionPerformed(ActionEvent e) {
 		VariantCaller.frame.setState(JFrame.NORMAL);
 		VariantCaller.frame.setVisible(true);
 	}
+	else if(e.getSource() == fixControlFile) {
+		Control.fixRunner runner = new Control.fixRunner();
+		runner.execute();
+	}
 	else if(e.getSource() == average) {
 		if(Average.frame == null) {
 		 Average.createAndShowGUI();
@@ -2982,6 +2992,7 @@ public void actionPerformed(ActionEvent e) {
 		
 	}
 	else if (e.getSource() == addcontrols) {
+		fixControlFile.setEnabled(true);
 		if(!checkGenome()) return;
 		if(VariantHandler.frame != null) {
 		 VariantHandler.frame.setState(Frame.ICONIFIED);
@@ -5600,40 +5611,46 @@ public static class OpenProject extends SwingWorker<String, Object> {
 				try {
 					readingControls = true;
 					try {
-					Control.controlData = (ControlData)ois.readObject();
-					
-					if(Control.controlData.fileArray.size() > 0) {
+						Control.controlData = (ControlData)ois.readObject();
 						
-						if(Control.controlData.fileArray.get(0) instanceof ControlFile) {
-							if(Control.controlData.fileArray.size() > 0) {								
-								  Main.trackPane.setVisible(true);							
-								  Main.varpane.setDividerSize(3);	 									
-								  Main.varpane.setDividerLocation(0.1);
-								  Main.controlScroll.setVisible(true);
-								  Main.controlDraw.setVisible(true);	
-								  varpane.revalidate();
+						if(Control.controlData.fileArray.size() > 0) {
+							
+							if(Control.controlData.fileArray.get(0) instanceof ControlFile) {
+								ArrayList<ControlFile> controls = new ArrayList<ControlFile>();
+								for(int i = 0 ; i< Control.controlData.fileArray.size(); i++) {
+									if(!new File(Control.controlData.fileArray.get(i).getTabixFile()).exists()) {
+										ErrorLog.addError("Control file: " +Control.controlData.fileArray.get(i).getTabixFile() +" not found.");										
+										missing = true;
+										continue;
+									}
+									if(!new File(Control.controlData.fileArray.get(i).tabixfile).exists()) {										
+										 ErrorLog.addError("Control file index: " +Control.controlData.fileArray.get(i).tabixfile +" not found.");										
+										 missing = true;
+										 continue;
+									 }
+									 controls.add(Control.controlData.fileArray.get(i));
+								}
+								if (controls.size() > 0) {
 								
+									  Main.trackPane.setVisible(true);							
+									  Main.varpane.setDividerSize(3);	 									
+									  Main.varpane.setDividerLocation(0.1);
+									  Main.controlScroll.setVisible(true);
+									  Main.controlDraw.setVisible(true);	
+									  varpane.revalidate();
+										
+									
+									  for(int i = 0 ; i < controls.size(); i++) {								 
+										 controlDraw.trackDivider.add(0.0);
+										 controls.get(i).setMenu();					
+									  }
+								}
 							}
-						  for(int i = 0 ; i<Control.controlData.fileArray.size(); i++) {								 
-							  
-							 if(!new File(Control.controlData.fileArray.get(i).tabixfile).exists()) {
-								 ErrorLog.addError(Control.controlData.fileArray.get(i).tabixfile +" not found.");
-								 controlDraw.removeControl(i);								
-								 i--;
-								 missing = true;
-								 continue;
-							 }
-							 controlDraw.trackDivider.add(0.0);
-							  Control.controlData.fileArray.get(i).setMenu();
-				//			  MethodLibrary.addHeaderColumns(Control.controlData.fileArray.get(i));
-						
-						  }
-					}
-					else {									
-						  Control.controlData.fileArray = Collections.synchronizedList(new ArrayList<ControlFile>());
-						 
-					}
-				}
+							else {									
+								  Control.controlData.fileArray = Collections.synchronizedList(new ArrayList<ControlFile>());
+								 
+							}
+						}
 					}
 					catch(Exception e) {
 						e.printStackTrace();

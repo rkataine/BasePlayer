@@ -757,7 +757,6 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 			}
 		
 			if(sample.getTabixFile() != null) {
-				
 				String searchChrom = setVCFFileStart(chrom, start, end, sample);
 				
 				boolean vcf = sample.getVCFReader() != null;
@@ -1466,7 +1465,7 @@ static void checkMulti(Sample sample) {
 			if(line.toLowerCase().contains("#chrom")) {
 				headersplit = line.split("\t+");	
 				
-				if(headersplit.length  > 10) {					
+				if(headersplit.length  > 10) {				
 					if(headersplit.length == 11 && !asked) {
 						if (JOptionPane.showConfirmDialog(Main.drawScroll, "Is this somatic project?", "Somatic?", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
 				    	   somatic = true;
@@ -1500,7 +1499,7 @@ static void checkMulti(Sample sample) {
 				}
 				line = reader.readLine();
 				break;
-			}		
+			}
 			split = line.split("\t");
 			if(split.length > 2 && split[1].matches("\\d+")) {
 				break;
@@ -1545,7 +1544,7 @@ static void checkMulti(Sample sample) {
 			
 			headersplit = line.split("\t");
 			
-			if(headersplit.length == 11) {
+			if(headersplit.length > 10) {
 				
 				if(headersplit[10].startsWith("0:") || (headersplit[10].charAt(0) == '0' && headersplit[10].charAt(2) == '0')) {
 					sample.somaticColumn = 9;
@@ -2798,7 +2797,7 @@ static void annotate() {
 				
 				for(int i = 0 ; i<Main.drawCanvas.drawVariables.advQDraw.size(); i++) {		
 					
-					if(split.equals(Main.drawCanvas.drawVariables.advQDraw.get(i).key)) {	
+					if(split.contains(Main.drawCanvas.drawVariables.advQDraw.get(i).key)) {	
 						return true;
 					}					
 				}					
@@ -2810,7 +2809,7 @@ static void annotate() {
 					
 					for(int i = 0 ; i<Main.drawCanvas.drawVariables.advQDrawIndel.size(); i++) {		
 						
-						if(split.equals(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key)) {	
+						if(split.contains(Main.drawCanvas.drawVariables.advQDrawIndel.get(i).key)) {	
 							
 							return true;
 						}					
@@ -2822,7 +2821,7 @@ static void annotate() {
 					
 					for(int i = 0 ; i<Main.drawCanvas.drawVariables.advQDraw.size(); i++) {			
 						
-						if(split.equals(Main.drawCanvas.drawVariables.advQDraw.get(i).key)) {	
+						if(split.contains(Main.drawCanvas.drawVariables.advQDraw.get(i).key)) {	
 							
 							return true;
 						}					
@@ -2864,7 +2863,6 @@ static void annotate() {
 			
 		}
 
-		
 	/*	if(first) {
 			
 			info = split[split.length-1].split(":");
@@ -4288,7 +4286,7 @@ java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> getMismatches(SAMRecord s
 						}
 						try {
 							
-							if(samRecord.getReadBases()[mispos] !=  split.getReadReference().getSeq()[((readstart+r)-split.getReadReference().getStartPos()-1)]) {	
+							if(samRecord.getReadBases()[mispos] != split.getReadReference().getSeq()[((readstart+r)-split.getReadReference().getStartPos()-1)]) {	
 								readClass.getCoverages()[(readstart+r)- readClass.getCoverageStart()][Main.baseMap.get((byte)samRecord.getReadBases()[mispos])]++;
 								
 								if(samRecord.getBaseQualityString().length() != 1 && (int)samRecord.getBaseQualityString().charAt(mispos)-readClass.sample.phred < Settings.baseQ ) {

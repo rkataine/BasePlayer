@@ -928,7 +928,7 @@ public StringBuffer getSeq(String chrom, int start, int end, RandomAccessFile se
 				end = Main.chromIndex.get(Main.refchrom +chrom)[1].intValue();
 			}			
 		}
-		
+
 		seqresult = new byte[(end-start+1)+((end-start)/(Main.chromIndex.get(Main.refchrom +chrom)[2].intValue()-1))];
 		
 		if(seqresult.length == 0 || seqresult.length > 200000) {
@@ -3110,11 +3110,11 @@ public BufferedImage createBands(SplitClass split) {
 					if(firstdraw) {
 						cytoImageBuffer.setColor(backTransparent);
 						cytoImageBuffer.fillRect(0, 0, 6, height);
-						Xpos = (int)(Integer.parseInt(bandVector.get(i)[1])*((Main.drawCanvas.getDrawWidth())/(double)chromPos.get(split.chrom)))+6;
+						Xpos = (int)(Integer.parseInt(bandVector.get(i)[1])*((Main.drawCanvas.getDrawWidth())/(double)chromPos.get(Main.refchrom +split.chrom)))+6;
 						firstdraw = false;
 					}
 					else {
-						Xpos = (int)(Integer.parseInt(bandVector.get(i)[1])*((Main.drawCanvas.getDrawWidth())/(double)chromPos.get(split.chrom)))+1;
+						Xpos = (int)(Integer.parseInt(bandVector.get(i)[1])*((Main.drawCanvas.getDrawWidth())/(double)chromPos.get(Main.refchrom +split.chrom)))+1;
 					}
 					if( bandVector.get(i)[4].contains(",")) {
 						color = bandVector.get(i)[4].split(",");
@@ -3159,7 +3159,7 @@ public BufferedImage createBands(SplitClass split) {
 				cytoImageBuffer.drawRoundRect(4, 0, Main.drawCanvas.getDrawWidth()-10, height-1, 20, 20);
 				if(bandVector.size() > 0) {
 					bandwidth = (int)((Integer.parseInt(bandVector.get(first)[2]) - Integer.parseInt(bandVector.get(first)[1]))*((Main.drawCanvas.getDrawWidth())/(double)chromPos.get(Main.refchrom +split.chrom)));
-					Xpos = (int)(Integer.parseInt(bandVector.get(first)[1])*((Main.drawCanvas.getDrawWidth())/(double)chromPos.get(split.chrom)))+1;
+					Xpos = (int)(Integer.parseInt(bandVector.get(first)[1])*((Main.drawCanvas.getDrawWidth())/(double)chromPos.get(Main.refchrom +split.chrom)))+1;
 			
 					cytoImageBuffer.setColor(backTransparent);
 					cytoImageBuffer.fillRect(Xpos, 0, bandwidth+2, height);
@@ -3174,7 +3174,7 @@ public BufferedImage createBands(SplitClass split) {
 			
 					bandwidth = (int)((Integer.parseInt(bandVector.get(second)[2]) - Integer.parseInt(bandVector.get(second)[1]))*((Main.drawCanvas.getDrawWidth())/(double)chromPos.get(Main.refchrom +split.chrom)));
 				
-					Xpos = (int)(Integer.parseInt(bandVector.get(second)[1])*((Main.drawCanvas.getDrawWidth())/(double)chromPos.get(split.chrom)))+1;
+					Xpos = (int)(Integer.parseInt(bandVector.get(second)[1])*((Main.drawCanvas.getDrawWidth())/(double)chromPos.get(Main.refchrom +split.chrom)))+1;
 					cytoImageBuffer.setColor(backTransparent);
 					cytoImageBuffer.fillRect(Xpos, 0, bandwidth, height);
 					cytoImageBuffer.setColor(new Color(Integer.parseInt(color[0]), Integer.parseInt(color[1]), Integer.parseInt(color[2])));

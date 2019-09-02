@@ -162,9 +162,81 @@ static void applyControl() {
 	catch(Exception e) {
 		ErrorLog.addError(e.getStackTrace());
 		e.printStackTrace();
+	}	
+}
+
+
+static void fixControlFile() {
+	try {	
+		
+		GZIPInputStream gzip = new GZIPInputStream(new FileInputStream(controlData.fileArray.get(0).getTabixFile()));
+		BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));
+		BufferedWriter writer = new BufferedWriter(new FileWriter(controlData.fileArray.get(0).getTabixFile().replace(".vcf.gz", "_fixed.vcf")));
+		String line;
+		String[] split;
+		
+	    while((line = reader.readLine()) != null) {
+	    	
+	    	if (!Main.drawCanvas.loading) {
+	    		break;
+	    	}
+	    	if (line.startsWith("#")) {
+	    		// writer.write(line +"\n");
+	    		continue;
+	    	}
+	    	
+	    	split = line.split("\t");
+	    	if (split.length < 2) {
+	    		continue;
+	    	}
+	    	if (Main.chromIndex.get(Main.refchrom +split[0].replace("chr", "")) == null) {
+				continue;
+			}
+	    	
+	    	String base = Main.chromDraw.getSeq(split[0].replace("chr", ""), Integer.parseInt(split[1])-1, Integer.parseInt(split[1])+(split[3].length()-1), Main.referenceFile).toString().toUpperCase();
+	    	String singlebase = base.substring(0,1);
+	    	String[] infosplit = split[7].split(";");
+	    	int ac = Integer.parseInt(infosplit[0].substring(3));
+			int an = Integer.parseInt(infosplit[1].substring(3));
+			float affloat = ac/(float)an;
+			String aftemp = "" +affloat;
+			String af = aftemp.replace("E-", "e-0");
+	    	split[6] = split[6].replace("MismatchedRefAllele", "PASS");
+	    	
+	   		if (!base.equals(split[3])) {
+	   			if (base.equals(split[4])) { 				
+	   				int newAc = an - ac;
+	   				if (newAc == 0) {
+	   					continue;
+	   				}
+	   				affloat = newAc/(float)an;
+	   				aftemp = "" +affloat;
+	   				af = aftemp.replace("E-", "e-0");
+	   				// System.out.println(split[2] +"\t" +base +"\t" +split[3] +"\t" +split[4] +"      ->   " +split[4] +"\t" +split[3] +"     oldAC: " +ac +"  newAC: " +newAc +"   AN: " +an);
+	   				writer.write(split[0] +"\t" +split[1] +"\t" +split[2] +"\t" +split[4] +"\t" +split[3] +"\t" +split[5] +"\t" +split[6] +"\tAF=" +af +";AC=" +newAc +";" +split[7].substring(split[7].indexOf("AN=")) +"\n");
+	   			} else {
+	   				if(split[3].length() > 1) {
+	   					// System.out.println(base +"\t" +split[3] +"\t" +split[4] +"      ->   " +base +"\t" +singlebase);
+	   					writer.write(split[0] +"\t" +split[1] +"\t" +split[2] +"\t" +base +"\t" +singlebase +"\t" +split[5] +"\t" +split[6] +"\tAF=" +af +";" +split[7] +"\n");
+	   				} else if (split[4].length() > 1) {
+	   					// System.out.println(base +"\t" +split[3] +"\t" +split[4] +"      ->   " +singlebase +"\t" +singlebase +split[4].substring(1));
+	   					writer.write(split[0] +"\t" +split[1] +"\t" +split[2] +"\t" +singlebase +"\t" +singlebase +split[4].substring(1) +"\t" +split[5] +"\t" +split[6] +"\tAF=" +af +";" +split[7] +"\n");
+	   				} else {
+	   					// System.out.println(base +"\t" +split[3] +"\t" +split[4] +"      ->   " +singlebase +"\t" +split[4] +"\t" +split[2] +" " +split[7]);
+	   					writer.write(split[0] +"\t" +split[1] +"\t" +split[2] +"\t" +singlebase +"\t" +split[4] +"\t" +split[5] +"\t" +split[6] +"\tAF=" +af +";" +split[7] +"\n");   					
+	   				}				
+	   			}			
+	   		} else {
+	   			writer.write(split[0] +"\t" +split[1] +"\t" +split[2] +"\t" +split[3] +"\t" +split[4] +"\t" +split[5] +"\t" +split[6] +"\tAF=" +af +";" +split[7] +"\n");
+	   			continue;
+	   		}
+		}
+		reader.close();
+		writer.close();
+		//Main.chromDraw.getSeq(chrom,vardraw.getPosition()-1, vardraw.getPosition()+2, Main.referenceFile).toString();
+	} catch(Exception e) {
+		e.printStackTrace();
 	}
-	 
-	
 }
 
 static void useCTRL(TabixReader.Iterator iterator, VarNode current, int c) {
@@ -595,7 +667,6 @@ static void useVCFstrict(TabixReader.Iterator iterator, VarNode current, int c, 
 public static class runner extends SwingWorker<String, Object> {	
 		
 	protected String doInBackground() {
-		
 		Main.drawCanvas.loading("Controlling");
 		applyControl();
 		Main.drawCanvas.ready("Controlling");
@@ -603,7 +674,16 @@ public static class runner extends SwingWorker<String, Object> {
 	}
 	
 }
-
+public static class fixRunner extends SwingWorker<String, Object> {	
+	
+	protected String doInBackground() {
+		Main.drawCanvas.loading("Fixing control file");
+		fixControlFile();
+		Main.drawCanvas.ready("Fixing control file");
+		return "";
+	}
+	
+}
 static void addFiles(File[] filestemp) {
 //  	int calc = 0;
   	try {
