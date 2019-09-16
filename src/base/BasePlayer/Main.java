@@ -5611,40 +5611,45 @@ public static class OpenProject extends SwingWorker<String, Object> {
 				try {
 					readingControls = true;
 					try {
-						Control.controlData = (ControlData)ois.readObject();
+						ControlData controlData = (ControlData)ois.readObject();
 						
-						if(Control.controlData.fileArray.size() > 0) {
+						
+						if(controlData.fileArray.size() > 0) {
 							
-							if(Control.controlData.fileArray.get(0) instanceof ControlFile) {
-								ArrayList<ControlFile> controls = new ArrayList<ControlFile>();
-								for(int i = 0 ; i< Control.controlData.fileArray.size(); i++) {
-									if(!new File(Control.controlData.fileArray.get(i).getTabixFile()).exists()) {
-										ErrorLog.addError("Control file: " +Control.controlData.fileArray.get(i).getTabixFile() +" not found.");										
+							if(controlData.fileArray.get(0) instanceof ControlFile) {
+								// ArrayList<ControlFile> controls = new ArrayList<ControlFile>();
+								for(int i = controlData.fileArray.size() -1 ; i>=0 ; i--) {
+									if(!new File(controlData.fileArray.get(i).getTabixFile()).exists()) {
+										ErrorLog.addError("Control file: " + controlData.fileArray.get(i).getTabixFile() +" not found.");	
+										controlData.fileArray.remove(i);
 										missing = true;
 										continue;
 									}
-									if(!new File(Control.controlData.fileArray.get(i).tabixfile).exists()) {										
-										 ErrorLog.addError("Control file index: " +Control.controlData.fileArray.get(i).tabixfile +" not found.");										
+									if(!new File(controlData.fileArray.get(i).tabixfile).exists()) {										
+										 ErrorLog.addError("Control file index: " + controlData.fileArray.get(i).tabixfile +" not found.");
+										 controlData.fileArray.remove(i);
 										 missing = true;
 										 continue;
 									 }
-									 controls.add(Control.controlData.fileArray.get(i));
+									 //controls.add(Control.controlData.fileArray.get(i));
 								}
-								if (controls.size() > 0) {
-								
+
+								if (controlData.fileArray.size() > 0) {
+									  Control.controlData = controlData;
+									  controlDraw.trackDivider.clear();
 									  Main.trackPane.setVisible(true);							
 									  Main.varpane.setDividerSize(3);	 									
 									  Main.varpane.setDividerLocation(0.1);
 									  Main.controlScroll.setVisible(true);
 									  Main.controlDraw.setVisible(true);	
-									  varpane.revalidate();
-										
+									  varpane.revalidate();										
 									
-									  for(int i = 0 ; i < controls.size(); i++) {								 
-										 controlDraw.trackDivider.add(0.0);
-										 controls.get(i).setMenu();					
+									  for(int i = 0; i < Control.controlData.fileArray.size(); i++) {							
+										 controlDraw.trackDivider.add(0.0);										 
+										 Control.controlData.fileArray.get(i).index = (short)i;
+										 Control.controlData.fileArray.get(i).setMenu();				
 									  }
-								}
+								}								
 							}
 							else {									
 								  Control.controlData.fileArray = Collections.synchronizedList(new ArrayList<ControlFile>());

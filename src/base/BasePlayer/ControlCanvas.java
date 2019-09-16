@@ -126,7 +126,7 @@ void drawScreen(Graphics g) {
 	if(Main.readingControls) {
 		return;
 	}
-	if(this.trackDivider.get(this.trackDivider.size()-1) != 1.0) {	
+	if(this.trackDivider.size() > 0 && this.trackDivider.get(this.trackDivider.size()-1) != 1.0) {	
 		 for(int i = 0 ; i<this.trackDivider.size(); i++) {
 			 this.trackDivider.set(i, ((i+1)*(this.getHeight()/(double)trackDivider.size())/this.getHeight()));
 		 }				
@@ -180,7 +180,7 @@ void drawSidebar() {
 	buf.setColor(Color.black);
 //	buf.setStroke(Draw.basicStroke);
 	
-	if(Control.controlData.fileArray.size() > 0) {
+	if(Control.controlData.fileArray.size() > 0 && this.trackDivider.size() > 0) {
 		
 		overlapping = false;
 		for(int i = 0; i<Control.controlData.fileArray.size(); i++) {
@@ -189,7 +189,6 @@ void drawSidebar() {
 				trackheight = (int)(trackDivider.get(i)*this.getHeight());
 			}
 			else {
-				
 				trackstart = Main.defaultFontSize+(int)(trackDivider.get(i-1)*this.getHeight());
 				trackheight = (int)(trackDivider.get(i)*this.getHeight())-(int)(trackDivider.get(i-1)*this.getHeight());
 			}
