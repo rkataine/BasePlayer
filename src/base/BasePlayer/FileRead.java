@@ -6274,6 +6274,7 @@ void varCalc() {
 		Main.drawCanvas.sampleList.get(i).nonsense = 0;
 		Main.drawCanvas.sampleList.get(i).fshift = 0;
 		Main.drawCanvas.sampleList.get(i).inframe = 0;
+		Main.drawCanvas.sampleList.get(i).coverages = 0;
 		
 	}
 	
@@ -6425,6 +6426,7 @@ void varCalc() {
 					}
 					
 					VariantHandler.stattable.sampleArray.get(i)[14] = MethodLibrary.round(sample.callrates / (double)sample.varcount,2);
+					VariantHandler.stattable.sampleArray.get(i)[15] = MethodLibrary.round(sample.coverages / (double)sample.varcount,2);
 					VariantHandler.stattable.repaint();
 				}
 			}
@@ -8030,7 +8032,8 @@ VarNode annotateVariant(VarNode vardraw) {
 				}
 				sample.callrates += entry.getValue().get(m).getAlleleFraction();				
 				
-			
+				sample.coverages += entry.getValue().get(m).getCoverage();
+				
 				if(entry.getValue().get(m).isHomozygous()) {
 					sample.homozygotes++;
 				}

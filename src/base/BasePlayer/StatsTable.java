@@ -58,7 +58,7 @@ private static final long serialVersionUID = 1L;
 		String base;
 		
 		ArrayList<String> geneheader =  new ArrayList<String>();
-		String[] header =  {"Sample","Variants", "SNVs", "DELs", "INSs", "Coding", "Hetero/homo-rate", "TS/TV-rate", "T>A", "T>C", "T>G", "C>A", "C>G", "C>T", "Avg.call/cov"}; 
+		String[] header =  {"Sample","Variants", "SNVs", "DELs", "INSs", "Coding", "Hetero/homo-rate", "TS/TV-rate", "T>A", "T>C", "T>G", "C>A", "C>G", "C>T", "Avg.call/cov", "Avg.cov"}; 
 		
 		int[][] headerlengths = new int[header.length][2];
 		private int genemutcount;	

@@ -50,6 +50,7 @@ public class Sample implements Serializable{
 	int varcount = 0, homozygotes = 0, heterozygotes = 0, indels = 0, snvs=0, ins=0, coding = 0;
 	int syn= 0,nonsyn=0,missense=0, splice=0,nonsense=0,fshift=0,inframe=0;
 	int basequalsum = 0, basequals = 0;
+	long coverages = 0;
 	File samFile;
 	long vcfEndPos = 0;
 	Integer longestRead = 0;

@@ -2401,7 +2401,7 @@ static void addMenuComponents(String line) {
 	   	}
 	   	else {
 	   	//	if(onlyStats.isSelected()) {
-	   			headerstring.append("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov\tSynonymous\tNonsynonymous\tMissense\tSplice-site\tNonsense\tFrameShift\tInframe"+Main.lineseparator);
+	   			headerstring.append("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov\tAvg.cov\tSynonymous\tNonsynonymous\tMissense\tSplice-site\tNonsense\tFrameShift\tInframe"+Main.lineseparator);
 	   		//}
 	   		//else {
 	   //	 	headerstring.append("#Sample\tVariants\tSNVs\tDELs\tINSs\tCoding\tHetero/homo-rate\tTS/TV-rate\tT>A\tT>C\tT>G\tC>A\tC>G\tC>T\tAvg.call/cov"+Main.lineseparator);
