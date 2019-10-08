@@ -63,7 +63,7 @@ public class ReadNode {
 	/*	public ReadNode(int pos, boolean forward, Cigar cigar, String readname, StringBuffer sequence, int seqStartPos) {
 		}
 		*/
-		public ReadNode(SAMRecord record, boolean cg, String chrom, Sample sample, SplitClass split, Reads readClass,java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> mismatches) {
+		public ReadNode(SAMRecord record, boolean cg, String chrom, Sample sample, SplitClass split, Reads readClass,java.util.ArrayList<java.util.Map.Entry<Integer,Byte>> mismatches, boolean isDiscordant) {
 			
 			this.rect = new java.awt.Rectangle();			
 			this.primary = !record.getSupplementaryAlignmentFlag();			
@@ -80,7 +80,7 @@ public class ReadNode {
 			this.forward = !record.getReadNegativeStrandFlag();
 			SA = record.getStringAttribute("SA");
 		
-			isDiscordant = MethodLibrary.isDiscordant(record, cg);
+			this.isDiscordant = isDiscordant; //MethodLibrary.isDiscordant(record, cg);
 			
 				
 			

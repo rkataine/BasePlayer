@@ -76,6 +76,8 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 	private static JLabel backLabel = new JLabel("Gray: ");
 	static JFrame frame = new JFrame("Settings");
 	private static JCheckBox softclips = new JCheckBox("Show bases in softclips");
+	static JCheckBox hideDiscordant = new JCheckBox("Hide discordant reads.");
+	static JCheckBox showDiscordant = new JCheckBox("Show only discordant reads.");
 	private static JPanel readPanel = new JPanel(new GridBagLayout());
 	private static JPanel varPanel = new JPanel(new GridBagLayout());
 	private static JPanel generalPanel = new JPanel(new GridBagLayout());
@@ -185,6 +187,10 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		depthLimitSlide.setOpaque(false);
 		softclips.addActionListener(this);
 		softclips.setOpaque(false);
+		hideDiscordant.addActionListener(this);
+		hideDiscordant.setOpaque(false);
+		showDiscordant.addActionListener(this);
+		showDiscordant.setOpaque(false);
 		alphaSlider.addChangeListener(this);
 		alphaSlider.addMouseListener(this);
 		depthLimitLabel.setMinimumSize(mindimension);
@@ -257,7 +263,12 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 		c.gridx = 0;
 		c.gridy++;
 		readPanel.add(softclips,c);
-		
+		c.gridx = 0;
+		c.gridy++;
+		readPanel.add(hideDiscordant,c);
+		c.gridx = 0;
+		c.gridy++;
+		readPanel.add(showDiscordant,c);
 		c.weightx = 1;
 		c.weighty = 1;
 		c.gridwidth = GridBagConstraints.REMAINDER;
@@ -564,6 +575,14 @@ public class Settings  extends JPanel implements ActionListener, ChangeListener,
 				softClips = 0;
 				settings.put("softClips", 0);
 			}
+			reloadReads.setVisible(true);
+			return;
+		}
+		else if(event.getSource() == hideDiscordant) {
+			reloadReads.setVisible(true);
+			return;
+		}
+		else if(event.getSource() == showDiscordant) {
 			reloadReads.setVisible(true);
 			return;
 		}
