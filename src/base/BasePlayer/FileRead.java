@@ -781,6 +781,7 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 						
 						break;
 					}
+
 					if(cancelfileread || cancelvarcount || !Main.drawCanvas.loading) {
 						cancelFileRead();
 						
@@ -799,7 +800,9 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 						}
 						else {
 							try {								
-								line = sample.getVCFInput().readLine();								
+								
+								line = sample.getVCFInput().readLine();		
+								
 							}
 							catch(htsjdk.samtools.FileTruncatedException e) {
 								e.printStackTrace();
@@ -823,18 +826,15 @@ void getVariants(String chrom, int start, int end, Sample sample) {
 					if(sample.oddchar != null) {
 						line = line.replaceAll(sample.oddchar, "");
 					}
-					
+
 					split = line.split("\\t+");
 					try {
-					if(split[0].startsWith("#")) {
-						continue;
-					}
-				
-					if(vcf && split.length >2 && (Integer.parseInt(split[1]) > end || !split[0].equals(searchChrom))) {	
-						
-						break;
-					}
-					
+						if(split[0].startsWith("#")) {
+							continue;
+						}
+						if(vcf && split.length >2 && (Integer.parseInt(split[1]) > end || !split[0].equals(searchChrom))) {
+							break;
+						}
 					}
 					catch(Exception e) {
 						String string = "";
@@ -1658,6 +1658,7 @@ public static class SearchBamFiles extends SwingWorker<String, Object> {
 	         }
 	       	 });
 	  		*/
+			
 	  	 if(bamfiles.size() > 0) {
 	  		
 	  		int index = -1, sampleindex;
@@ -2834,12 +2835,12 @@ static void annotate() {
 	}
 	public void readLine(String[] split, Sample sample) {		
 		try {
-			
-		if(split.length < 3) {			
+		
+		if(split.length < 2) {			
 			return;
 		}	
-		
-		if(split[0].startsWith("#") || split[4].equals("*")) {
+
+		if(split[0].startsWith("#") || (split.length > 4 && split[4].equals("*"))) {
 			return;
 		}
 		pos = Integer.parseInt(split[1])-1;	
@@ -2862,7 +2863,7 @@ static void annotate() {
 			 }
 			
 		}
-
+		
 	/*	if(first) {
 			
 			info = split[split.length-1].split(":");
@@ -3016,6 +3017,13 @@ static void annotate() {
 				refcalls = Integer.parseInt(coverages[0])+Integer.parseInt(coverages[1]);
 				altcalls = Integer.parseInt(coverages[2])+Integer.parseInt(coverages[3]);
 			}
+			else if (split[7].contains("DP=")) {
+				coverages = split[7].substring(split[7].indexOf("DP=")+3).split(";");
+				refallele = firstallele;					
+				altallele = secondallele;	
+				refcalls = Integer.parseInt(coverages[0]);
+				altcalls = refcalls;
+			}
 			else {		
 				if(firstallele  == 0) {
 					refallele = firstallele;					
@@ -3033,7 +3041,7 @@ static void annotate() {
 				altcalls = 20;
 			}			
 		}
-		else if(split[7].contains("t_alt_count")) {
+		else if(split.length > 7 && split[7].contains("t_alt_count")) {
 			
 			try {
 				altcalls = Integer.parseInt(split[7].substring(split[7].indexOf("t_alt_count")+12).split(";")[0]);
@@ -3053,8 +3061,10 @@ static void annotate() {
 			refcalls = 20;
 			altcalls = 20;
 		}
-		
-		if(!split[4].contains(",")) {
+		if (split.length < 4) {
+			altbase = "N";
+		}
+		else if(split.length > 4 && !split[4].contains(",")) {
 			altbase = getVariant(split[3], split[4]);			
 		}	
 		else if(!noref){			
@@ -3159,12 +3169,16 @@ static void annotate() {
 			
 			try {			
 				
-				if(!split[2].equals(".")) {
+				if(split.length > 2 && !split[2].equals(".")) {
 					current.putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase,refcalls+altcalls, altcalls, genotype, quality, gq, advancedQualities, split[2], sample, current, null));		
 				}
 				else {
+					byte ref = 0;
 					
-					current.putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase,refcalls+altcalls, altcalls, genotype, quality, gq, advancedQualities, null, sample, current, null));		
+					if (split.length > 3) {
+						ref = (byte)split[3].charAt(0);
+					}
+					current.putNext(new VarNode(pos, ref, altbase,refcalls+altcalls, altcalls, genotype, quality, gq, advancedQualities, null, sample, current, null));		
 					
 				}
 				
@@ -3221,7 +3235,7 @@ static void annotate() {
 				
 				current.addSample(altbase2, refcalls+altcalls, refcalls, genotype, quality, gq, advancedQualities, sample);
 			}
-			if(current.isRscode() == null && !split[2].equals(".")) {							
+			if(split.length > 2 && current.isRscode() == null && !split[2].equals(".")) {							
 				current.setRscode(split[2]);
 			}
 			if(multi) {				
@@ -3247,16 +3261,19 @@ static void annotate() {
 		}
 		else if(current.getPosition() > pos) {
 			
-				if(!split[2].equals(".")) {
+				if(split.length > 2 && !split[2].equals(".")) {
 					current.getPrev().putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase, refcalls+altcalls, altcalls, genotype, quality, gq,advancedQualities, split[2], sample, current.getPrev(), current));
 				}
 				else {
 					if(current.getPrev() == null) {
-						System.out.println(current.getPosition());
 						Main.cancel();
 					}
+					byte ref = 0;
 					
-					current.getPrev().putNext(new VarNode(pos, (byte)split[3].charAt(0), altbase, refcalls+altcalls, altcalls, genotype, quality, gq,advancedQualities,  null, sample, current.getPrev(), current));
+					if (split.length > 3) {
+						ref = (byte)split[3].charAt(0);
+					}
+					current.getPrev().putNext(new VarNode(pos, ref, altbase, refcalls+altcalls, altcalls, genotype, quality, gq,advancedQualities,  null, sample, current.getPrev(), current));
 					
 				}
 				
@@ -3956,6 +3973,9 @@ static void annotate() {
 }
 	double[][] coverageArrayAddStart(int addpos, int endpos, double[][] coverageArray, Reads readClass) {
 		int length = endpos -addpos;
+		if (length < 0) {
+			return null;
+		}
 		double[][] coverages = new double[length][8];
 	
 		int pointer = coverages.length-1;
@@ -8042,62 +8062,43 @@ VarNode annotateVariant(VarNode vardraw) {
 					if(VariantHandler.onlyStats.isSelected()) {
 						if(VariantHandler.outputContexts.isSelected()) {
 							String context = Main.chromDraw.getSeq(Main.drawCanvas.splits.get(0).chrom,vardraw.getPosition()-1, vardraw.getPosition()+2, Main.referenceFile).toString();
-							
-							//boolean set = false;
-							if(contexts == null) {
-								contexts = new HashMap<String, Integer[]>();
-								//contextQuals =  new HashMap<String, Float[]>();
-							}
-							/*
-							if(base.equals("T")) {
-								if(context.endsWith("CG")) {	
-									set = true;
-								}
-							}	
-							if(base.equals("A")) {
-								if(context.startsWith("CG")) {	
-									set = true;
-								}
-							}*/
-						//	if(set) {
-							
-								basecontext = base+context;						
+							if (!context.contains("N")) {							
+								String sigBase = base;
 								
-								if(contexts.containsKey(base+context)) {
-									if(contexts.get(base+context)[sample.getIndex()] == null) {
-										contexts.get(base+context)[sample.getIndex()] = 1; 
-										//contextQuals.get(base+context)[0]++;										
-									//	contextQuals.get(base+context)[1] += entry.getValue().get(m).getQuality();
-									}
-									else {
-										contexts.get(base+context)[sample.getIndex()]++;
-										//contextQuals.get(base+context)[0]++;										
-										//contextQuals.get(base+context)[1] += entry.getValue().get(m).getQuality();
-									}
+								if(contexts == null) {
+									contexts = new HashMap<String, Integer[]>();
 								}
-								else {
-									if(contexts.containsKey(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))) {
+								
+								if(context.charAt(1) == 'A' || context.charAt(1) == 'G') {
+									context = MethodLibrary.reverseComplement(context);
+									sigBase = MethodLibrary.reverseComplement(base);
+								}
+								
+								basecontext = sigBase+context;						
+								
+								if(contexts.containsKey(basecontext)) {
+									if(contexts.get(basecontext)[sample.getIndex()] == null) {
+										contexts.get(basecontext)[sample.getIndex()] = 1; 
+									} else {
+										contexts.get(basecontext)[sample.getIndex()]++;								
+									}
+								} else {
+									contexts.put(basecontext, new Integer[Main.drawCanvas.sampleList.size()]);
+									contexts.get(basecontext)[sample.getIndex()] = 1;		
+									/*if(contexts.containsKey(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))) {
 										if(contexts.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[sample.getIndex()] == null) {
 											contexts.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[sample.getIndex()] = 1; 
-											//contextQuals.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[0] = 1F;										
-											//contextQuals.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[1] = entry.getValue().get(m).getQuality();
+											
+										} else {
+											contexts.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[sample.getIndex()]++;											
 										}
-										else {
-											contexts.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[sample.getIndex()]++;
-											//contextQuals.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[0]++;										
-											//contextQuals.get(MethodLibrary.reverseComplement(base)+MethodLibrary.reverseComplement(context))[1] += entry.getValue().get(m).getQuality();
-										}
-									}
-									else {
+									} else {
 										contexts.put(base+context, new Integer[Main.drawCanvas.sampleList.size()]);
-										contexts.get(base+context)[sample.getIndex()] = 1; 
-										//contextQuals.put(base+context, new Float[2]);
-										//contextQuals.get(base+context)[0] = 1F;										
-										//contextQuals.get(base+context)[1] = entry.getValue().get(m).getQuality();
-									}
-								}		
+										contexts.get(base+context)[sample.getIndex()] = 1;										
+									}*/
+								}	
+							}
 						}
-					//		} 
 					}
 					
 					sample.snvs++;

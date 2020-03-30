@@ -25,9 +25,9 @@ class SampleComboBoxUI extends BasicComboBoxUI {
 	public void show() {
 		
 		String longest = "";
-		for (int i = 0; i< comboBox.getModel().getSize(); i++) {
-			if (comboBox.getModel().getElementAt(i).toString().length() > longest.length()) {
-				longest = comboBox.getModel().getElementAt(i).toString();			
+		for (int i = 0; i< Main.drawCanvas.sampleList.size(); i++) {
+			if (Main.drawCanvas.sampleList.get(i).getName().toString().length() > longest.length()) {
+				longest = Main.drawCanvas.sampleList.get(i).getName().toString();		
 			}
 		}
 		

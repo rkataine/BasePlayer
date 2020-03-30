@@ -11,7 +11,9 @@
  */
 package base.BasePlayer;
 import java.awt.Composite;
+import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -170,15 +172,16 @@ public class SplitClass implements Serializable {
 		
 			exonImage = MethodLibrary.toCompatibleImage(new BufferedImage(width, (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB));	
 			exonImageBuffer = (Graphics2D)exonImage.getGraphics();
+			exonImageBuffer.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
 			
 			readImage = MethodLibrary.toCompatibleImage(new BufferedImage(width, (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB));	
 			readBuffer = (Graphics2D)readImage.getGraphics();
-			
+			readBuffer.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
 			backupr = readBuffer.getComposite();
 			backupe = exonImageBuffer.getComposite();		
 			selectbuffer = MethodLibrary.toCompatibleImage(new BufferedImage(width, (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB));	
 			selectbuf = (Graphics2D)selectbuffer.getGraphics();
-			
+			selectbuf.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
 			backups = selectbuf.getComposite();
 			
 		}

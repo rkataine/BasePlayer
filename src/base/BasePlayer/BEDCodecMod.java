@@ -174,31 +174,34 @@ public class BEDCodecMod extends AsciiFeatureCodec<BEDFeature> {
 
     private void createExons(int start, String[] tokens, FullBEDFeature gene,
                              Strand strand) throws NumberFormatException {
-
-        int cdStart = Integer.parseInt(tokens[6]) + startOffsetValue;
-        int cdEnd = Integer.parseInt(tokens[7]);
-
-        int exonCount = Integer.parseInt(tokens[9]);
-        String[] exonSizes = new String[exonCount];
-        String[] startsBuffer = new String[exonCount];
-        ParsingUtils.split(tokens[10], exonSizes, ',');
-        ParsingUtils.split(tokens[11], startsBuffer, ',');
-
-        int exonNumber = (strand == Strand.NEGATIVE ? exonCount : 1);
-
-        if (startsBuffer.length == exonSizes.length) {
-            for (int i = 0; i < startsBuffer.length; i++) {
-                int exonStart = start + Integer.parseInt(startsBuffer[i]);
-                int exonEnd = exonStart + Integer.parseInt(exonSizes[i]) - 1;
-                gene.addExon(exonStart, exonEnd, cdStart, cdEnd, exonNumber);
-
-                if (strand == Strand.NEGATIVE) {
-                    exonNumber--;
-                } else {
-                    exonNumber++;
-                }
-            }
-        }
+    	try {
+	        int cdStart = Integer.parseInt(tokens[6]) + startOffsetValue;
+	        int cdEnd = Integer.parseInt(tokens[7]);
+	
+	        int exonCount = Integer.parseInt(tokens[9]);
+	        String[] exonSizes = new String[exonCount];
+	        String[] startsBuffer = new String[exonCount];
+	        ParsingUtils.split(tokens[10], exonSizes, ',');
+	        ParsingUtils.split(tokens[11], startsBuffer, ',');
+	
+	        int exonNumber = (strand == Strand.NEGATIVE ? exonCount : 1);
+	
+	        if (startsBuffer.length == exonSizes.length) {
+	            for (int i = 0; i < startsBuffer.length; i++) {
+	                int exonStart = start + Integer.parseInt(startsBuffer[i]);
+	                int exonEnd = exonStart + Integer.parseInt(exonSizes[i]) - 1;
+	                gene.addExon(exonStart, exonEnd, cdStart, cdEnd, exonNumber);
+	
+	                if (strand == Strand.NEGATIVE) {
+	                    exonNumber--;
+	                } else {
+	                    exonNumber++;
+	                }
+	            }
+	        }
+    	} catch(Exception e) {
+    		
+    	}
     }
 
     @Override

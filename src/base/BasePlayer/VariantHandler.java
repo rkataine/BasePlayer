@@ -89,6 +89,8 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static RangeSlider commonSlider = new RangeSlider(1,1);
 	static RangeSlider callSlider = new RangeSlider(0,100);
 	static RangeSlider callSliderIndel = new RangeSlider(0,100);
+	static JSlider readSlider = new JSlider(1,10);
+	static JSlider readSliderIndel = new JSlider(1,10);
 	static JSlider qualitySlider = new JSlider(0,60);
 	static JSlider gqSlider = new JSlider(0,60);
 	static JSlider coverageSlider = new JSlider(1,40);
@@ -98,9 +100,11 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	static JLabel geneLabel = new JLabel("At least 1/1 samples share a mutated gene");	
 	static JLabel aminoCount = new JLabel("");
 	static JLabel callsLabel = new JLabel();
+	static JLabel readsLabel = new JLabel();
+	static JLabel readsLabelIndel = new JLabel();
 	static JLabel coverageLabel = new JLabel();
 	static JLabel maxCoverageLabel = new JLabel();
-	static JLabel qualityLabel = new JLabel(), gqLabel = new JLabel(),comparison = new JLabel("Sample comparison");
+	static JLabel qualityLabel = new JLabel(), gqLabel = new JLabel(), comparison = new JLabel("Sample comparison");
 	static JLabel callsLabelIndel = new JLabel();
 	static JLabel coverageLabelIndel = new JLabel();
 	static JLabel maxCoverageLabelIndel = new JLabel();
@@ -359,6 +363,8 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		 commonSlider = new RangeSlider(1,1);
 	     callSlider = new RangeSlider(0,100);
 		 callSliderIndel = new RangeSlider(0,100);
+		 readSlider = new JSlider(1,10);
+		 readSliderIndel = new JSlider(1,10);
 		 qualitySlider = new JSlider(0,60);
 		 gqSlider = new JSlider(0,60);
 		 coverageSlider = new JSlider(1,40);
@@ -367,6 +373,8 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		 geneLabel = new JLabel("At least 1/1 samples share a mutated gene");	
 		 aminoCount = new JLabel("");
 		 callsLabel = new JLabel();
+		 readsLabel = new JLabel();
+		 readsLabelIndel = new JLabel();
 		 coverageLabel = new JLabel();
 		 maxCoverageLabel = new JLabel();
 		 qualityLabel = new JLabel();
@@ -584,6 +592,16 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		callSliderIndel.setValue(10);
 		callSliderIndel.setUpperValue(100);
 		callSliderIndel.setOpaque(false);
+
+		readSlider.addChangeListener(this);
+		readSlider.addMouseListener(this);
+		readSlider.setValue(1);
+		readSlider.setOpaque(false);
+		readSliderIndel.addChangeListener(this);
+		readSliderIndel.addMouseListener(this);
+		readSliderIndel.setValue(1);
+		readSliderIndel.setOpaque(false);
+		
 		indelFilters.setOpaque(false);
 		indelFilters.addActionListener(this);
 		hideSNVs.setOpaque(false);
@@ -667,13 +685,20 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		filterpanel.add(maxCoverageSlider,c);
 		c.gridy++;
 		c.gridx = 0;		
-		adder = new JLabel("_______________________________________");
-		adder.setForeground(Draw.sidecolor);
-		filterpanel.add(adder,c);
+		
+		filterpanel.add(readsLabel,c);
+		c.gridx = 1;
+		filterpanel.add(readSlider,c);
+		c.gridy++;
+		c.gridx = 0;
 		filterpanel.add(callsLabel,c);
 		c.gridx = 1;
 		filterpanel.add(callSlider,c);	
 		c.gridy++;
+		c.gridx = 0;
+		adder = new JLabel("__________________________________");
+		adder.setForeground(Draw.sidecolor);
+		filterpanel.add(adder,c);
 		c.weightx = 1;
 		c.weighty = 1;
 		c.gridwidth = GridBagConstraints.REMAINDER;
@@ -691,6 +716,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		qualityLabelIndel.addMouseListener(this);
 		c.insets = new Insets(2,4,0,4);
 		c.gridx = 1;
+		
 		adder4 = new JLabel("__________________________________");
 		adder4.setForeground(Draw.sidecolor);
 		filterpanelIndel.add(adder4,c);
@@ -720,15 +746,22 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		filterpanelIndel.add(maxCoverageLabelIndel,c);
 		c.gridx = 1;
 		filterpanelIndel.add(maxCoverageSliderIndel,c);
+		
+		c.gridy++;
+		c.gridx = 0;
+		filterpanelIndel.add(readsLabelIndel,c);
+		c.gridx = 1;
+		filterpanelIndel.add(readSliderIndel,c);
+		c.gridy++;
+		c.gridx = 0;
+		filterpanelIndel.add(callsLabelIndel,c);
+		c.gridx = 1;
+		filterpanelIndel.add(callSliderIndel,c);
 		c.gridy++;
 		c.gridx = 0;
 		adder3 = new JLabel("__________________________________");
 		adder3.setForeground(Draw.sidecolor);
 		filterpanelIndel.add(adder3,c);
-		filterpanelIndel.add(callsLabelIndel,c);
-		c.gridx = 1;
-		filterpanelIndel.add(callSliderIndel,c);	
-		c.gridy++;
 		c.weightx = 1;
 		c.weighty = 1;
 		c.gridwidth = GridBagConstraints.REMAINDER;
@@ -1118,6 +1151,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 	}
 	@Override
 	public void stateChanged(ChangeEvent event) {
+		
 		if(Main.drawCanvas != null && Main.drawCanvas.varCalc < 1000000) {
 			Draw.calculateVars = true;
 			Draw.updatevars = true;
@@ -1214,11 +1248,36 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 			}
 			
 			if(Main.drawCanvas != null) {
-				Main.drawCanvas.repaint();
 				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
 					Main.chromDraw.updateExons = true;
-					Main.chromDraw.repaint();
 				}
+				Main.drawCanvas.repaint();
+			}
+			return;
+		}
+		else if(event.getSource() == readSlider){
+			
+			readsLabel.setText("Min. alt reads: " +readSlider.getValue());
+						
+			if(Main.drawCanvas != null) {				
+				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
+					Main.chromDraw.updateExons = true;
+					
+				}
+				Main.drawCanvas.repaint();
+			}
+			return;
+		}
+		else if(event.getSource() == readSliderIndel){
+			
+			readsLabelIndel.setText("Min. alt reads: " +readSliderIndel.getValue());
+						
+			if(Main.drawCanvas != null) {				
+				if(Main.drawCanvas.splits.get(0).viewLength <=1000000) {
+					Main.chromDraw.updateExons = true;
+					
+				}
+				Main.drawCanvas.repaint();
 			}
 			return;
 		}
@@ -1368,7 +1427,7 @@ public class VariantHandler extends JPanel implements ChangeListener, ActionList
 		else if(event.getSource() == hidenoncoding) {
 			
 			Draw.calculateVars = true;
-			if(commonSlider.getValue() > 1) {			
+			if(commonSlider.getValue() >= Main.varsamples) {			
 			
 				Main.drawCanvas.calcClusters(FileRead.head,1);
 			}
@@ -2222,6 +2281,9 @@ static void addMenuComponents(String line) {
 				+ "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth\">"+Main.lineseparator
 				+ "##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">" +Main.lineseparator
 				+ "##FORMAT=<ID=GQ,Number=1,Type=Float,Description=\"Genotype Quality\">"+Main.lineseparator
+				+ "##INFO=<ID=AN,Number=1,Type=Integer,Description=\"Allele number\">"+Main.lineseparator
+				+ "##INFO=<ID=AC,Number=1,Type=Integer,Description=\"Allele count\">"+Main.lineseparator
+				+ "##INFO=<ID=AF,Number=1,Type=Float,Description=\"Allele frequency\">"+Main.lineseparator
 				+ "##reference=" +Main.ref.getName() +Main.lineseparator);
 				
 				
@@ -3415,7 +3477,6 @@ void writeGeneListToVCF(ArrayList<Gene> genelist, BufferedWriter output, BlockCo
 			}
 			else if(tabs.getSelectedIndex() == tabs.indexOfComponent(statsScroll)) {
 				if(stattable.bufImage.getWidth() == 1) {
-					
 					stattable.bufImage = MethodLibrary.toCompatibleImage(new BufferedImage(Main.screenSize.width,Main.screenSize.height, BufferedImage.TYPE_INT_ARGB));	
 					stattable.buf = (Graphics2D)stattable.bufImage.getGraphics();
 				}
@@ -3492,6 +3553,16 @@ void writeGeneListToVCF(ArrayList<Gene> genelist, BufferedWriter output, BlockCo
 				Main.drawCanvas.calcClusters(FileRead.head,1);
 			}
 		}
+		else if(event.getSource() == readSlider) {
+			if(commonSlider.getValue() > 1) {
+				Main.drawCanvas.calcClusters(FileRead.head,1);
+			}
+		}
+		else if(event.getSource() == readSliderIndel) {
+			if(commonSlider.getValue() > 1) {
+				Main.drawCanvas.calcClusters(FileRead.head,1);
+			}
+		}
 		else if(event.getSource() == coverageSliderIndel) {
 			if(coverageSliderIndel.getValue() == coverageSliderIndel.getMaximum()) {
 				coverageSliderIndel.setMaximum(coverageSliderIndel.getMaximum()*2);
@@ -3521,8 +3592,6 @@ void writeGeneListToVCF(ArrayList<Gene> genelist, BufferedWriter output, BlockCo
 				maxCoverageSliderIndel.setMaximum(maxCoverageSliderIndel.getMaximum()*2);
 			}
 			if(commonSlider.getValue() > 1) {
-			
-				
 				Main.drawCanvas.calcClusters(FileRead.head,1);
 			}
 		}
@@ -3745,7 +3814,7 @@ static void freezeIndels(boolean value) {
 		if(e.getKeyCode() == KeyEvent.VK_ENTER) {
 			
 			if(e.getSource() == clusterBox) {
-				if(commonSlider.getValue() > 1) {
+				if(commonSlider.getValue() >= 1) {
 					clusterSize = Integer.parseInt(clusterBox.getText());
 				
 					Main.drawCanvas.calcClusters(FileRead.head,1);
@@ -3757,7 +3826,10 @@ static void freezeIndels(boolean value) {
 					if(tabs.indexOfComponent(clusterScroll) != -1) {						
 						tabs.remove(clusterScroll);
 					}
+					
 				}
+				//Main.drawCanvas.calcClusters(FileRead.head,1);
+				
 			}
 		}
 		if(e.getKeyCode() == KeyEvent.VK_0) {

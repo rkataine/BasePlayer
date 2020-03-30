@@ -70,8 +70,10 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	private transient JPopupMenu menu;
 	private transient JCheckBox zerobased, logscale, intersectBox, subtractBox, collapseBox, affinityChange, varcalc;
 	private transient JTextField limitField;
+	private transient JTextField scaleField;
 	private transient JButton columnSelector;
 	Double limitValue = (double)Integer.MIN_VALUE;
+	Double scaleValue = (double)Integer.MIN_VALUE;
 	private transient ColumnSelector selector = null;
 	private transient JSlider sizeSlider;
 	private transient base.BBfile.BBFileHeader fileheader;
@@ -130,6 +132,9 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 	}
 	public JTextField getLimitField() {
 		return this.limitField;
+	}
+	public JTextField getScaleField() {
+		return this.scaleField;
 	}
 	public JCheckBox getCollapseBox() {
 		return this.collapseBox;
@@ -208,14 +213,14 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			GridBagConstraints con = new GridBagConstraints();
 			
 			limitField = new JTextField("Value limit");
-			
+			scaleField = new JTextField("Scale");
 			sizeSlider = new JSlider(JSlider.VERTICAL,1,20,nodeHeight);
 			sizeSlider.setInverted(true);
 			nodeHeight = (short)sizeSlider.getValue();
 			sizeSlider.addChangeListener(this);
 			sizeSlider.setValue(nodeHeight);
 			con.anchor = GridBagConstraints.NORTHWEST;
-			con.gridheight = 8;
+			con.gridheight = 9;
 			menu.add(sizeSlider,con);
 			con.gridx = 1;
 			con.gridy++;
@@ -236,6 +241,8 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			con.gridy++;
 			menu.add(limitField,con);
 			con.gridy++;
+			menu.add(scaleField,con);
+			con.gridy++;
 			menu.add(columnSelector,con);
 			
 			limitField.setPreferredSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("__Value limit__"), Main.defaultFontSize+6));
@@ -244,17 +251,28 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 			if(limitValue != (double)Integer.MIN_VALUE) {				
 				limitField.setText(""+limitValue);
 			}
-			
+			scaleField.setPreferredSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("__Value limit__"), Main.defaultFontSize+6));
+			scaleField.setMinimumSize(new Dimension(menu.getFontMetrics(Main.menuFont).stringWidth("__Value limit__"), Main.defaultFontSize+6));
+			scaleField.setToolTipText("Scale");
+			if(scaleValue != null && scaleValue != (double)Integer.MIN_VALUE) {				
+				scaleField.setText(""+scaleValue);
+			}
+			if(scaleValue == null) {
+				scaleValue = (double)Integer.MIN_VALUE;
+			}
 			menu.addPopupMenuListener(this);
 			collapseBox.addActionListener(this);
 			collapseBox.setSelected(true);
 			limitField.addMouseListener(this);
+			scaleField.addMouseListener(this);
 			intersectBox.addActionListener(this);
 			subtractBox.addActionListener(this);
 			zerobased.addActionListener(this);
 			logscale.addActionListener(this);
 			limitField.addKeyListener(this);
 			limitField.getDocument().addDocumentListener(this);
+			scaleField.addKeyListener(this);
+			scaleField.getDocument().addDocumentListener(this);
 			columnSelector.addActionListener(this);
 			for(int c = 0 ; c<getPopup().getComponentCount(); c++) {
 				getPopup().getComponent(c).setFont(Main.menuFont);
@@ -417,6 +435,42 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 					limitValue = (double)Integer.MIN_VALUE;
 				}
 			}
+		} else if(e.getSource() == scaleField) {
+			if(e.getKeyCode() == KeyEvent.VK_ENTER) {
+				try {
+					this.used = false;
+					
+					scaleValue = Double.parseDouble(scaleField.getText());
+					scale = scaleValue;
+					Main.bedCanvas.updateTrack = this;
+					Main.bedCanvas.repaint();
+					Main.bedCanvas.updateTrack = null;
+					if(!small || this.bigWig) {
+						
+						if(Main.drawCanvas.splits.get(0).viewLength <  Settings.windowSize) {
+							int start =  (int)Main.drawCanvas.splits.get(0).start- Settings.windowSize;
+							Main.bedCanvas.getBEDfeatures(this,start, start+ Settings.windowSize*2);
+						}
+						else {
+							if(this.intersect) {
+								
+								Main.bedCanvas.removeBedhits(this);
+								BedCanvas.Annotator annotator = Main.bedCanvas.new Annotator(this);
+								annotator.execute();	
+							}
+						}
+					}
+					else {
+						Main.bedCanvas.removeBedhits(this);
+						Main.bedCanvas.getBEDfeatures(this,1, Main.drawCanvas.splits.get(0).chromEnd);
+						
+					}
+					updated = true;
+				}
+				catch(Exception ex ) {
+					scaleValue = (double)Integer.MIN_VALUE;
+				}
+			}
 		}
 		
 	}
@@ -477,6 +531,15 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 		try {
 		
 			limitValue = Double.parseDouble(limitField.getText());
+			try {
+				scaleValue = Double.parseDouble(scaleField.getText());
+			} catch (Exception ex) {
+
+				scaleValue = (double)Integer.MIN_VALUE;
+				
+				//scaleField.setForeground(Color.red);
+				scaleField.revalidate();
+			}
 			
 			if(!small) {
 				
@@ -504,8 +567,8 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 		catch(Exception ex) {
 			
 			limitValue = (double)Integer.MIN_VALUE;
-		
-			limitField.setForeground(Color.red);
+			
+			//limitField.setForeground(Color.red);
 			limitField.revalidate();
 			if(!small) {
 				
@@ -534,54 +597,43 @@ public class BedTrack implements Serializable, ActionListener, KeyListener, Mous
 		updated = true;
 		
 		if(limitField.getText().length() == 0) {
-			limitValue = (double)Integer.MIN_VALUE;
-			
-			updated = false;
-			/*if(!small) {
-				
-				if(Main.drawCanvas.splits.get(0).viewLength < 1000000) {
-					int start =  (int)Main.drawCanvas.splits.get(0).start+(int)((Main.drawCanvas.splits.get(0).end-Main.drawCanvas.splits.get(0).start)/2)-500000;
-					Main.bedCanvas.getBEDfeatures(this,start, start+1000000);
-				}
-			}
-			else {
-				Main.bedCanvas.removeBedhits(this);
-				Main.bedCanvas.getBEDfeatures(this,1, Main.drawCanvas.splits.get(0).chromEnd);
-				
-			}*/
+			limitValue = (double)Integer.MIN_VALUE;			
+			updated = false;			
 			return;
 		}
 		
+		if(scaleField.getText().length() == 0) {
+			scaleValue = (double)Integer.MIN_VALUE;			
+			updated = false;			
+			return;
+		}
 		
+		try {
+			limitValue = Double.parseDouble(limitField.getText());
+			limitField.setForeground(Color.black);
+			updated = false;
+			limitField.revalidate();					
+		}
+		catch(Exception ex) {
+			limitValue = (double)Integer.MIN_VALUE;
+			updated = false;
+			//limitField.setForeground(Color.red);
+			limitField.revalidate();
+		}
+		try {
+			scaleValue = Double.parseDouble(scaleField.getText());
+			scaleField.setForeground(Color.black);
+			updated = false;
+			scaleField.revalidate();					
+		}
+		catch(Exception ex) {
+			scaleValue = (double)Integer.MIN_VALUE;
+			updated = false;
+			//scaleField.setForeground(Color.red);
+			scaleField.revalidate();
+		}
 		
-			try {
-				limitValue = Double.parseDouble(limitField.getText());
-				limitField.setForeground(Color.black);
-				updated = false;
-				limitField.revalidate();
-			/*	if(!small) {
-					
-					if(Main.drawCanvas.splits.get(0).viewLength < 1000000) {
-						int start =  (int)Main.drawCanvas.splits.get(0).start+(int)((Main.drawCanvas.splits.get(0).end-Main.drawCanvas.splits.get(0).start)/2)-500000;
-						Main.bedCanvas.getBEDfeatures(this,start, start+1000000);
-					}
-				}
-				else {
-					Main.bedCanvas.removeBedhits(this);
-					Main.bedCanvas.getBEDfeatures(this,1, Main.drawCanvas.splits.get(0).chromEnd);
-					
-				}
-				*/
-				
-			}
-			catch(Exception ex) {
-				limitValue = (double)Integer.MIN_VALUE;
-				updated = false;
-				limitField.setForeground(Color.red);
-				limitField.revalidate();
-			}
-			
-		}		
+	}		
 		
 	
 

@@ -213,7 +213,13 @@ public class VarNode {
 		}
 		return null;
 	}
-
+	public List<SampleNode> getAllSamples() {
+		List<SampleNode> samples = new ArrayList<SampleNode>();
+		for(Map.Entry<String, ArrayList<SampleNode>> entry : vars) {
+			samples.addAll(entry.getValue());		
+		}
+		return samples;
+	}
 	public void addSample(String variation, int coverage, int calls, boolean genotype, Float quality, Float gq, HashMap<String, Float> advquals, Sample sample) {	
 		found = false;	
 		if (variation.length() > 1 ) indel = true;

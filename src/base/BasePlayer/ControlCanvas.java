@@ -479,7 +479,7 @@ public void removeControl(int removeControl) {
 	trackDivider.remove(removeControl);
 	
 	if(Control.controlData.fileArray.size() == 0) {
-		Main.fixControlFile.setEnabled(false);
+		//Main.fixControlFile.setEnabled(false);
 		Main.controlScroll.setVisible(false);
 		 Main.trackPane.setDividerLocation(0);		
 		 Main.trackPane.setDividerSize(0);

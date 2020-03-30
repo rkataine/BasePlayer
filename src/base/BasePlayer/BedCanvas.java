@@ -590,14 +590,12 @@ void drawLogo(BedTrack track, BedNode node, int trackstart) {
 void drawNodes() {
 	try {
 		
-	nodebuf.setComposite( Main.drawCanvas.composite);	
-	nodebuf.fillRect(0,0, bufImage.getWidth(),this.getHeight());	
-	nodebuf.setComposite(this.backupComposite);	
+	
 	overlap = false;
-	for(int i = 0; i<bedTrack.size(); i++) {
+	for(int i = bedTrack.size()-1; i>=0; i--) {
 		
 		track = bedTrack.get(i);
-		
+
 		if(updateTrack != null) {
 			if(!updateTrack.equals(track)) {
 				continue;
@@ -609,17 +607,19 @@ void drawNodes() {
 		
 		track.prepixel = -1;
 		if(i ==0) {
-			trackstart = 5;
+			trackstart = 0;
 			trackheight = (int)(trackDivider.get(i)*this.getHeight());
 		}
 		else {
-			trackstart = 5+(int)(trackDivider.get(i-1)*this.getHeight());
+			trackstart = (int)(trackDivider.get(i-1)*this.getHeight());
 			trackheight = (int)(trackDivider.get(i)*this.getHeight())-(int)(trackDivider.get(i-1)*this.getHeight());
 		}
 		if(trackheight < 22) {			
 			continue;
 		}
-		
+		nodebuf.setComposite( Main.drawCanvas.composite);	
+		nodebuf.fillRect(0,trackstart, bufImage.getWidth(),trackheight);	
+		nodebuf.setComposite(this.backupComposite);	
 		if(!annotator) {
 			if(Main.drawCanvas.splits.get(0).viewLength < Settings.windowSize && !track.small) {
 				
@@ -2077,14 +2077,16 @@ void iterateBEDfile(BufferedReader reader, BedTrack track, String chrom) {
 	    	first = false;
 	     }     
 	 		
-   		
-	   if(track.minvalue < 0) {
+   		if(track.minvalue < 0) {
 		   track.negatives = true;
 		   track.scale = Math.max(Math.abs(track.maxvalue), Math.abs(track.minvalue));
 	   }
 	   else {
 		   track.scale = track.maxvalue;
 	   }
+   		if (track.scaleValue != null && track.scaleValue != (double)Integer.MIN_VALUE) {
+   			track.scale = track.scaleValue;
+   		}
 		   if(track.getBBfileReader() == null && ((track.minvalue == 0 && track.maxvalue == 0) || track.minvalue == Double.MAX_VALUE)) {
 			   track.hasvalues = false;
 		   }
@@ -2246,7 +2248,10 @@ void iterateBED(TabixReaderMod.Iterator iterator, BedTrack track) {
 	   else {
 		   track.scale = track.maxvalue;
 	   }
-	   
+	   if (track.scaleValue != null && track.scaleValue != (double)Integer.MIN_VALUE) {
+  			track.scale = track.scaleValue;
+  		}
+	  
 	   if(track.getBBfileReader() == null && ((track.minvalue == 0 && track.maxvalue == 0) || track.minvalue == Double.MAX_VALUE)) {
 		   track.hasvalues = false;
 	   }
@@ -2384,8 +2389,11 @@ void iterateBigBed(BigBedIterator iterator, BedTrack track) {
 	   else {
 		   track.hasvalues = true;
 		   track.scale = Math.max(Math.abs(track.maxvalue), Math.abs(track.minvalue));
+		   
 	   }
-	   
+	   if (track.scaleValue != null && track.scaleValue != (double)Integer.MIN_VALUE) {
+ 			track.scale = track.scaleValue;
+ 		}
 	     addNode = null;
 	     track.cleared = false;
 	}
@@ -2527,7 +2535,9 @@ void iterateGFF(TabixReaderMod.Iterator iterator, BedTrack track) {
 		   track.hasvalues = true;
 		   track.scale = Math.max(Math.abs(track.maxvalue), Math.abs(track.minvalue));
 	   }
-	  
+	   if (track.scaleValue != null && track.scaleValue != (double)Integer.MIN_VALUE) {
+  			track.scale = track.scaleValue;
+  		}
 	     addNode = null;
 	    
 	     track.cleared = false;
@@ -2648,6 +2658,9 @@ void iterateTSV(TabixReaderMod.Iterator iterator, BedTrack track) {
 		   track.hasvalues = true;
 		   track.scale = Math.max(Math.abs(track.maxvalue), Math.abs(track.minvalue));
 	   }	  
+	   if (track.scaleValue != null && track.scaleValue != (double)Integer.MIN_VALUE) {
+  			track.scale = track.scaleValue;
+  		}
 	   addNode = null;	    
 	   track.cleared = false;
 	    
@@ -2715,7 +2728,9 @@ void iterateWig(BigWigIterator iterator, BedTrack track) {
 						track.minvalue = addNode.value;	
 						track.scale = Math.max(Math.abs(track.maxvalue), Math.abs(track.minvalue));
 					}
-					 
+					if (track.scaleValue != null && track.scaleValue != (double)Integer.MIN_VALUE) {
+			   			track.scale = track.scaleValue;
+			   		}
 				}					
 	    	}
 	    	catch(Exception e) {
@@ -2736,7 +2751,9 @@ void iterateWig(BigWigIterator iterator, BedTrack track) {
 		   track.hasvalues = true;
 		   track.scale = Math.max(Math.abs(track.maxvalue), Math.abs(track.minvalue));
 	   }	  
-	  
+	   if (track.scaleValue != null && track.scaleValue != (double)Integer.MIN_VALUE) {
+  			track.scale = track.scaleValue;
+  		}
 	  
 	     addNode = null;
 	     track.cleared = false;
@@ -2799,7 +2816,9 @@ void iterateZoom(ZoomLevelIterator iterator, BedTrack track) {
 						track.minvalue = addNode.value;	
 						track.scale = Math.max(Math.abs(track.maxvalue), Math.abs(track.minvalue));
 					}
-					 
+					if (track.scaleValue != (double)Integer.MIN_VALUE) {
+			   			track.scale = track.scaleValue;
+			   		}
 				}					
 	    	}
 	    	catch(Exception e) {
@@ -2816,6 +2835,9 @@ void iterateZoom(ZoomLevelIterator iterator, BedTrack track) {
 	   else {
 		   track.hasvalues = true;
 		   track.scale = Math.max(Math.abs(track.maxvalue), Math.abs(track.minvalue));
+		   if (track.scaleValue != null && track.scaleValue != (double)Integer.MIN_VALUE) {
+	   			track.scale = track.scaleValue;
+	   		}
 	   }	  
 	  
 	  	
@@ -3619,7 +3641,9 @@ void calcScale(BedTrack track) {
 	    else {
 	    	   track.scale = max;
 	    }
-		
+		if (track.scaleValue != null && track.scaleValue != (double)Integer.MIN_VALUE) {
+   			track.scale = track.scaleValue;
+   		}
 		node = null;
 	}
 	else {
@@ -3630,6 +3654,9 @@ void calcScale(BedTrack track) {
 	    else {
 	    	   track.scale = track.maxvalue;
 	    }
+		if (track.scaleValue != null && track.scaleValue != (double)Integer.MIN_VALUE) {
+   			track.scale = track.scaleValue;
+   		}
 	}
 	
 	repaint();

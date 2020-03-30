@@ -49,10 +49,12 @@ import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.seekablestream.SeekableStreamFactory;
 import htsjdk.tribble.readers.TabixReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.awt.Color;
@@ -231,7 +233,8 @@ import javax.net.ssl.X509TrustManager;
 	static JMenuItem average;
 	static JMenuItem settings;
 	static JMenuItem update;
-	static JMenuItem fixControlFile;
+	// static JMenuItem fixControlFile;
+	static JMenuItem hexaCalc;
 	static JMenuItem errorlog;
 	//static JLabel helpLabel = new JLabel("This is pre-release version of BasePlayer\nContact: help@baseplayer.fi\n\nUniversity of Helsinki");
 	static JMenu genome;
@@ -1500,7 +1503,9 @@ void setMenuBar() {
 	openvcfs = new JMenuItem("Add VCFs", open);
 	openbams = new JMenuItem("Add BAMs", open);
 	average = new JMenuItem("Coverage calculator");
-	fixControlFile = new JMenuItem("Fix control bases");
+	// fixControlFile = new JMenuItem("Fix control bases");
+	hexaCalc = new JMenuItem("Calc hexa hits");
+	hexaCalc.setVisible(true);
 	update = new JMenuItem("Update");
 	update.setVisible(false);
 	errorlog = new JMenuItem("View log");
@@ -1558,9 +1563,8 @@ void setMenuBar() {
 	average.addActionListener(this);
 	average.setEnabled(false);
 	average.setToolTipText("No bam/cram files opened");
-	fixControlFile.addActionListener(this);
-	fixControlFile.setToolTipText("Fix rejected bases in control file (e.g. after liftOver)");
-	fixControlFile.setEnabled(false);
+	hexaCalc.addActionListener(this);
+	hexaCalc.setToolTipText("Caluclate hexanucleotide hits for variants.");
 	tbrowser.addActionListener(this);	
 	bconvert.addActionListener(this);
 	//photo.addActionListener(this);
@@ -1568,7 +1572,7 @@ void setMenuBar() {
 	toolmenu.add(average);
 	toolmenu.add(variantCaller);
 	toolmenu.add(bconvert);
-	toolmenu.add(fixControlFile);
+	toolmenu.add(hexaCalc);
 	//toolmenu.add(photo);
 	fromURL.addMouseListener(this);
 	fromURL.addActionListener(new ActionListener() {
@@ -2627,8 +2631,12 @@ public void actionPerformed(ActionEvent e) {
 		VariantCaller.frame.setState(JFrame.NORMAL);
 		VariantCaller.frame.setVisible(true);
 	}
-	else if(e.getSource() == fixControlFile) {
+	/*else if(e.getSource() == fixControlFile) {
 		Control.fixRunner runner = new Control.fixRunner();
+		runner.execute();
+	}*/
+	else if(e.getSource() == hexaCalc) {
+		motifHitSearch runner = new motifHitSearch();
 		runner.execute();
 	}
 	else if(e.getSource() == average) {
@@ -2992,7 +3000,6 @@ public void actionPerformed(ActionEvent e) {
 		
 	}
 	else if (e.getSource() == addcontrols) {
-		fixControlFile.setEnabled(true);
 		if(!checkGenome()) return;
 		if(VariantHandler.frame != null) {
 		 VariantHandler.frame.setState(Frame.ICONIFIED);
@@ -6222,6 +6229,642 @@ public class ScreenPhotos extends SwingWorker<String, Object> {
 		}
 	}
 	
+}
+
+public class motifHitSearch extends SwingWorker<String, Object> {
+	protected String doInBackground() {
+		Main.drawCanvas.loading("Calculating hits");
+		// compareMotifs();
+		//searchMotifHits();
+		//plotMuts();
+		
+		Main.drawCanvas.ready("Calculating hits");
+		return "";
+	}
+	private String getSample(VarNode node) {
+		return node.vars.get(0).getValue().get(0).getSample().getName();
+	}
+	public int reitinPituus(String reitti) {
+		HashMap<String, Integer> positiot = new HashMap<String, Integer>();
+		positiot.put("00", 1);
+		int currentX = 0, currentY = 0, matka = 0;
+		
+		for(int i = 0; i < reitti.length(); i++) {
+			matka++;
+			if (reitti.charAt(i) == 'Y') { currentY--; } 
+			else if (reitti.charAt(i) == 'A') { currentY++; }
+			else if (reitti.charAt(i) == 'O') { currentX++; } 
+			else if (reitti.charAt(i) == 'V') { currentX--; }
+			
+			if (positiot.containsKey(""+currentX +currentY)) {
+				return matka;
+			} else {
+				positiot.put(""+currentX +currentY, 1);
+			}			
+		}		
+		return 0;			
+	}
+	private boolean isLow(VarNode node) {
+		String[] samples = { "Fam_c45_", "Fam_c58_", "Fam_c373_", "Fam_c638_", "Fam_c1084_", "Fam_s146_", "s113_" };
+		for (String sample : samples) {
+			if (getSample(node).contains(sample)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public class Anagrammit {
+		HashMap<String, Integer> sanat = new HashMap<String, Integer>();
+		
+	    public void lisaaSana(String sana) {
+	    	char[] sanataulu = sana.toCharArray();       
+	        Arrays.sort(sanataulu);
+	        sana = String.valueOf(sanataulu);
+	    	if (sanat.containsKey(sana)) {
+	    		sanat.put(sana, sanat.get(sana)+1);
+	    	} else {
+	    		sanat.put(sana, 1);
+	    	}
+	    }
+
+	    public int laskeAnagrammit(String sana) {
+	    	char[] sanataulu = sana.toCharArray();       
+	        Arrays.sort(sanataulu);
+	        sana = String.valueOf(sanataulu);
+	        if (sanat.containsKey(sana)) {
+	        	return sanat.get(sana);
+	        } else {
+	        	return 0;
+	        }
+	    }
+	}
+	public class HatutJaPallot {
+		HashMap<Integer, Integer> hatut = new HashMap<Integer, Integer>();
+		int eniten = 0;
+
+		public void lisaaPallo(int hattuId) {
+			if (hatut.containsKey(hattuId)) {
+				hatut.put(hattuId, hatut.get(hattuId)+1);
+				if (hatut.get(hattuId) > eniten) {
+					eniten = hatut.get(hattuId);					
+				}
+			} else {
+				if (eniten == 0) {
+					eniten = 1;
+				}
+				hatut.put(hattuId, 1);
+			}
+	    }
+
+	    public int enitenPalloja() {
+	    	return eniten;
+	    }
+	}
+	private void plotMuts() {
+		try {
+			int motifLength = 1;
+			BufferedWriter outfile = new BufferedWriter(new FileWriter("C:/LocalData/rkataine/plots/clonal_coli_prox.tsv"));
+			if (Main.chromosomeDropdown.getSelectedIndex() != 0) {
+				Main.nothread = true;	
+				Main.chromosomeDropdown.setSelectedIndex(0);
+			}
+			int[][] fractions = new int[21][2];
+			for (int i = 0; i<fractions.length; i++) {
+				fractions[i][0] = 0;
+				fractions[i][1] = 0;
+			}
+			for (int c = 1; c < 24; c++) {
+				if (!Main.drawCanvas.loading) {
+					break;
+				}
+				VarNode node = FileRead.head.getNextVisible(FileRead.head);
+			
+				while(node != null) {
+					
+					String seq = Main.chromDraw.getSeq(Main.chromosomeDropdown.getItemAt(Main.selectedChrom),node.getPosition()-motifLength, node.getPosition()+motifLength+1, Main.referenceFile).toString();
+					
+					if (seq.equals("ACG") || seq.equals("CCG") || seq.equals("GCG") || seq.equals("TCG")) {
+						
+						for (int v=0; v<node.vars.size(); v++) {
+							for(int s = 0; s < node.vars.get(v).getValue().size(); s++) {
+								List<SampleNode> nodes = node.vars.get(v).getValue();
+								String var = node.vars.get(v).getKey();
+								if (var.equals("T")) {
+									for (int i = 0; i<nodes.size(); i++) {
+										int fraction = (int)(MethodLibrary.round(nodes.get(i).getAlleleFraction(), 3)*100/5);
+										fractions[fraction][0]++;
+										outfile.write(MethodLibrary.round(nodes.get(i).getAlleleFraction(), 3) +"\n");
+									}
+								}															
+							}		
+						}
+					} else if (seq.equals("CGT") || seq.equals("CGG") || seq.equals("CGC") || seq.equals("CGA")) {
+						
+						for (int v=0; v<node.vars.size(); v++) {
+							for(int s = 0; s < node.vars.get(v).getValue().size(); s++) {
+								List<SampleNode> nodes = node.vars.get(v).getValue();
+								String var = node.vars.get(v).getKey();
+								if (var.equals("A")) {
+									for (int i = 0; i<nodes.size(); i++) {
+										int fraction = (int)(MethodLibrary.round(nodes.get(i).getAlleleFraction(), 3)*100/5);
+										fractions[fraction][0]++;
+										outfile.write(MethodLibrary.round(nodes.get(i).getAlleleFraction(), 3) +"\n");
+									}
+								}															
+							}		
+						}
+					}
+					
+					
+					node = node.getNextVisible(node);
+				}
+				
+
+				Main.nothread = true;	
+				Main.chromosomeDropdown.setSelectedIndex(c);
+			}
+			for (int i = 0; i<fractions.length; i++) {
+				System.out.println(fractions[i][0] +"\t" +fractions[i][1]);
+			}
+			outfile.close();
+		} catch(Exception e) {
+			
+		}
+		
+	}
+	private void searchMotifHits() {
+		// now searching T:A mutations in hexanucleotides of A/T
+		try {
+			System.out.println("---------------------------------------");
+			
+			BufferedWriter outfile = new BufferedWriter(new FileWriter("C:/LocalData/rkataine/plots/subclonal.tsv"));
+			//BufferedWriter outfile2 = new BufferedWriter(new FileWriter("C:/LocalData/rkataine/plots/clonal_others_prox.tsv"));
+			//BufferedWriter mutproportions = new BufferedWriter(new FileWriter("C:/LocalData/rkataine/proportions.tsv"));
+			ArrayList<HashMap<String, int[][]>> motifsPerSample = new ArrayList<HashMap<String, int[][]>>();
+			ArrayList<HashMap<String, Integer>> motifsPerSampleCount = new ArrayList<HashMap<String, Integer>>();
+			ArrayList<int[]> mutCounts = new ArrayList<int[]>();
+			
+			boolean baselevel = true;
+			int motifLength = 6;
+			String cbstatus = "high";
+			//BufferedWriter motifmuts = new BufferedWriter(new FileWriter("C:/LocalData/rkataine/cb_" +cbstatus +"_motifs_SVs_" +motifLength +"bp.fasta"));
+			HashMap<String, Integer> bases = new HashMap<String, Integer>();
+			bases.put("A", 0); bases.put("C", 1); bases.put("G", 2); bases.put("T", 3); bases.put("INS", 4); bases.put("DEL", 5);
+			String[] baseArray = { "A", "C", "G", "T", "INS", "DEL" }; 
+			for (int i = 0; i<Main.varsamples; i++) {
+				motifsPerSample.add(new HashMap<String, int[][]>());
+				motifsPerSampleCount.add(new HashMap<String, Integer>());
+				int[] counts = {0,0};
+				mutCounts.add(counts);
+			}
+			if (Main.chromosomeDropdown.getSelectedIndex() != 0) {
+				Main.nothread = true;	
+				Main.chromosomeDropdown.setSelectedIndex(0);
+			}
+			int[][] fractions = new int[21][2];
+			for (int i = 0; i<fractions.length; i++) {
+				fractions[i][0] = 0;
+				fractions[i][1] = 0;
+			}
+			int count = 0;
+			int varcount = 0;
+			for (int c = 1; c < 24; c++) {
+				if (!Main.drawCanvas.loading) {
+					break;
+				}
+				VarNode node = FileRead.head.getNextVisible(FileRead.head);
+			
+				while(node != null) {
+				
+					if (!Main.drawCanvas.loading) {
+						break;
+					}
+					count++;
+				
+					/*for (int v=0; v<node.vars.size(); v++) {
+						for(int s = 0; s < node.vars.get(v).getValue().size(); s++) {					
+							String var = node.vars.get(v).getKey();
+							Sample sample = node.vars.get(v).getValue().get(s).getSample();
+							if (node.getRefBase() == 65 || node.getRefBase() == 84) {		
+								if (var.equals("C") || var.equals("G")) {
+									mutCounts.get(sample.getIndex())[0]++;			
+								}													
+							}									
+						}		
+					}
+					// if not A or T   // C = 67 & G = 71
+					/*if (node.getRefBase() != 65 && node.getRefBase() != 84) {
+						node = node.getNextVisible(node);
+						continue;
+					}*/
+					
+					String seq = Main.chromDraw.getSeq(Main.chromosomeDropdown.getItemAt(Main.selectedChrom),node.getPosition()-(motifLength-1)-1, node.getPosition()+motifLength+1, Main.referenceFile).toString();
+					
+					
+					//motifmuts.write(">Seq" +count +"\n");
+					//motifmuts.write(seq +"\n\n");
+					//node = node.getNextVisible(node);
+					//if (!baselevel) {
+						//continue;
+					//}
+					HashMap<String, Integer> uniques = new HashMap<String, Integer>();
+					boolean coli = false;
+					for (int i=1; i<motifLength+1; i++ ) {
+						/*if (seq.contains("C") || seq.contains("G") || seq.contains("N")) {
+							continue;
+						}*/
+						//String reverse = MethodLibrary.reverseComplement(seq);
+						
+						String motif = seq.substring(i,i+motifLength);
+						
+						/*if (!seq.substring(i-1,i).contains("C") && !seq.substring(i-1,i).contains("G")) {
+							continue;
+						}
+						if (!seq.substring(i+motifLength,i+motifLength+1).contains("C") && !seq.substring(i+motifLength,i+motifLength+1).contains("G")) {
+							continue;
+						}*/
+						
+						if (motif.contains("N") || motif.contains("C") || motif.contains("G")) {
+							continue;
+						}
+						
+						//if (motif.equals("AAATTT")) {
+						if (motif.equals("AAAATT") || motif.equals("AATTTT") || motif.equals("AAATTT") || motif.equals("AATATT")) {
+							coli = true;
+													
+							for (int v=0; v<node.vars.size(); v++) {
+								for(int s = 0; s < node.vars.get(v).getValue().size(); s++) {
+									
+									String var = node.vars.get(v).getKey();
+									SampleNode sample = node.vars.get(v).getValue().get(s);
+									if (var.equals("C") || var.equals("G")) {
+										if(i == 2 || i == 5) {
+											
+											int fraction = (int)(MethodLibrary.round(sample.getAlleleFraction(), 3)*100/5);		
+											if (sample.getAlleleFraction() < 0.15) {
+												mutCounts.get(sample.getSample().getIndex())[1]++;
+											}
+											//outfile.write(MethodLibrary.round(node.vars.get(v).getValue().get(s).getAlleleFraction(), 3) +"\n");
+											fractions[fraction][0]++;
+										}
+									}									
+								}		
+							}
+						}
+						if (!uniques.containsKey(motif) && !uniques.containsKey(motif.toLowerCase())) {
+							
+							uniques.put(motif, motifLength-i);
+						}
+						
+						String revMotif = MethodLibrary.reverseComplement(motif);
+						/*if (revMotif.contains("N") || revMotif.contains("C") || revMotif.contains("G")) {
+							continue;
+						}*/
+						if (!uniques.containsKey(revMotif) && !uniques.containsKey(revMotif.toLowerCase())) {
+							uniques.put(revMotif.toLowerCase(), i-1);
+						}
+					}
+					if (!coli) {
+						for (int v=0; v<node.vars.size(); v++) {
+							for(int s = 0; s < node.vars.get(v).getValue().size(); s++) {								
+								String var = node.vars.get(v).getKey();
+								String ref = Main.getBase.get(node.getRefBase());
+								SampleNode sample = node.vars.get(v).getValue().get(s);
+								if (ref.equals("T") || ref.equals("A")) {
+									if (var.equals("C") || var.equals("G")) {
+										int fraction = (int)((MethodLibrary.round(sample.getAlleleFraction(), 3)*100/5));									
+										fractions[fraction][1]++;
+										if (sample.getAlleleFraction() < 0.15) {
+											mutCounts.get(sample.getSample().getIndex())[0]++;
+										}
+										//outfile2.write(MethodLibrary.round(node.vars.get(v).getValue().get(s).getAlleleFraction(), 3) +"\n");
+									}	
+								}
+							}		
+						}
+					}
+					if (uniques.size() > 0) {
+						Iterator<Map.Entry<String,Integer>> it = uniques.entrySet().iterator();
+						
+					    while (it.hasNext()) {
+					        Map.Entry<String,Integer> pair = (Map.Entry<String,Integer>)it.next();
+					        //List<SampleNode> samples = node.getAllSamples();
+					     
+					        for (int v=0; v<node.vars.size(); v++) {
+								for(int s = 0; s < node.vars.get(v).getValue().size(); s++) {
+									
+									String var = node.vars.get(v).getKey();
+									//if (var.equals("A") || var.equals("T")) {
+										//continue;
+									//}
+									if (var.equals("N")) {
+										continue;
+									}
+									Sample sample = node.vars.get(v).getValue().get(s).getSample();
+						        	HashMap<String, int[][]> motifHash = motifsPerSample.get(sample.getIndex());
+						        	HashMap<String, Integer> motifHashCount = motifsPerSampleCount.get(sample.getIndex());
+						        	//String var = node.vars.get(0).getKey();
+						        	if (var.length() > 1) {
+						        		if (var.contains("ins")) {
+						        			var = "INS";
+						        		} else {
+						        			var = "DEL";
+						        		}
+						        		
+						        	}
+						        	else if (pair.getKey().contains("a") || pair.getKey().contains("t")) {
+						        		
+						        		var = MethodLibrary.reverseComplement(var.toUpperCase());
+						        		
+						        	}
+						        	
+						        	/*if (pair.getKey().toUpperCase().equals("AAAATT")) {
+						        		motifmuts.write(node.vars.get(0).getValue().get(0).getAlleleFraction() +"\n");
+						
+						        	} else {
+						        		othermuts.write(node.vars.get(0).getValue().get(0).getAlleleFraction() +"\n");
+						        	}*/
+						        	try {
+							        	if (!baselevel) {
+							        		if (motifHashCount.containsKey(pair.getKey().toUpperCase())) {
+							        			motifHashCount.put(pair.getKey().toUpperCase(), motifHashCount.get(pair.getKey().toUpperCase()) +1 );
+									        } else {
+									        	motifHashCount.put(pair.getKey().toUpperCase(), 1 );
+									        }
+							        		continue;
+							        	}
+								        if (motifHash.containsKey(pair.getKey().toUpperCase())) {
+								        	int[][] table = motifHash.get(pair.getKey().toUpperCase());
+								        	//System.out.println(var +"\t" +pair.getValue());
+								        	table[bases.get(var)][pair.getValue()] +=1;
+								        	motifHash.put(pair.getKey().toUpperCase(), table);
+								        } else {
+								        	int[][] table = new int[bases.size()][motifLength];
+								        	for (int t=0; t<table.length; t++) {
+								        		for (int r=0; r<table[t].length; r++) {
+								        			table[t][r] = 0;
+								        		}
+								        	}			        							        	
+								        	table[bases.get(var)][pair.getValue()] = 1;
+								        	motifHash.put(pair.getKey().toUpperCase(), table);
+								        }
+						        	} catch(Exception e) {
+						        		e.printStackTrace();
+						        		//System.out.println(var);
+						        	}
+								}
+					        	
+					    	}
+						    it.remove(); // avoids a ConcurrentModificationException
+					    }
+					} else {
+						//othermuts.write(node.vars.get(0).getValue().get(0).getAlleleFraction() +"\n");
+					}
+					node = node.getNextVisible(node);
+				}
+				//break;
+				Main.nothread = true;	
+				Main.chromosomeDropdown.setSelectedIndex(c);
+			}
+			
+			
+			HashMap<String, Integer> uniques = new HashMap<String, Integer>();
+			ArrayList<String> motifs = new ArrayList<String>();
+			if (!baselevel) {
+				for (int i = 0; i < motifsPerSampleCount.size(); i++) {
+					HashMap<String, Integer> motifHash = motifsPerSampleCount.get(i);
+					Iterator<Map.Entry<String, Integer>> it = motifHash.entrySet().iterator();
+					while (it.hasNext()) {
+				        Map.Entry<String, Integer> pair = (Map.Entry<String, Integer>)it.next();
+				        if (!uniques.containsKey(pair.getKey())) {
+				        	uniques.put(pair.getKey(), 1);
+				        	motifs.add(pair.getKey());
+				        }
+					}			
+				}
+			} else {
+				for (int i = 0; i < motifsPerSample.size(); i++) {
+					HashMap<String, int[][]> motifHash = motifsPerSample.get(i);
+					Iterator<Map.Entry<String, int[][]>> it = motifHash.entrySet().iterator();
+					while (it.hasNext()) {
+				        Map.Entry<String, int[][]> pair = (Map.Entry<String, int[][]>)it.next();
+				        if (!uniques.containsKey(pair.getKey())) {
+				        	if (pair.getKey().equals("AAAATT") || pair.getKey().equals("AAATTT") || pair.getKey().equals("AATATT")) {
+				        		uniques.put(pair.getKey(), 1);
+					        	motifs.add(pair.getKey());
+				        	}
+				        	
+				        }
+					}			
+				}
+			}
+			Collections.sort(motifs);
+			StringBuffer header = new StringBuffer("#motif");
+			if (!baselevel) {
+				for (int s = 0; s < Main.varsamples; s++) {
+					header.append("\t" +Main.drawCanvas.sampleList.get(s).getName());
+					//outfile.write(Main.drawCanvas.sampleList.get(s).getName() +"\t");
+				}
+			} else {
+				for (int i = 0 ; i < motifLength; i++) {
+					header.append("\t" + (i+1));
+				}
+			}
+			//System.out.print(header.toString() +"\n");
+			//outfile.write(header.toString() +"\n");
+			for (int s = 0; s < Main.varsamples; s++) {
+				// System.out.print(Main.drawCanvas.sampleList.get(s).getName() +"\t");
+				outfile.write(Main.drawCanvas.sampleList.get(s).getName() +"\t");
+			}
+			//System.out.println();
+			//outfile.write("\n");
+			for (int i = 0 ;i< motifs.size(); i++) {
+				//System.out.print(motifs.get(i));
+				//outfile.write(motifs.get(i));
+				//outfile.write(motifs.get(i) +"\t");
+				
+				Integer[][] counts = new Integer[bases.size()][motifLength];
+				if(baselevel) {
+					
+					for (int b = 0; b<bases.size(); b++) {
+						for (int m=0;m<motifLength; m++ ) {
+							counts[b][m] = 0;
+						}
+					}
+				}
+				for (int s = 0; s < Main.varsamples; s++) {
+					
+					if (!baselevel) {
+						if (motifsPerSampleCount.get(s).containsKey(motifs.get(i))) {
+							System.out.print("\t" +motifsPerSampleCount.get(s).get(motifs.get(i)));
+							//outfile.write("\t" +motifsPerSampleCount.get(s).get(motifs.get(i)));
+						} else {
+							System.out.print("\t0");
+							//outfile.write("\t0");
+						}
+						continue;
+					}
+					
+					if (motifsPerSample.get(s).containsKey(motifs.get(i))) {
+						for (int b = 0; b<bases.size(); b++) {
+							
+							for (int m=0;m<motifLength; m++ ) {								
+								counts[b][m] += motifsPerSample.get(s).get(motifs.get(i))[b][m];								
+							}
+							
+							//System.out.print(motifsPerSample.get(s).get(motifs.get(i))[m] +"\t");
+							//outfile.write(motifsPerSample.get(s).get(motifs.get(i))[m] +"\t");
+						}
+						// System.out.print(motifsPerSample.get(s).get(motifs.get(i)) +"\t");
+						
+					} else {
+						//for (int b = 0; b<5; b++) {
+							//System.out.print("0\t");
+							//outfile.write("0\t");
+						//}
+						
+					}					
+					
+				}
+				if (!baselevel) {
+					//System.out.println();
+					//outfile.write("\n");
+					continue;
+				}
+				//System.out.print("\t");
+				/*for (int b = 0; b<motifs.get(i).length(); b++) {
+					outfile.write("\t" +motifs.get(i).charAt(b));
+					System.out.print("\t" +motifs.get(i).charAt(b));
+				}
+				outfile.write("\n");
+				System.out.println();
+				for (int b = 0; b<bases.size(); b++) {
+					
+					outfile.write(baseArray[b]);
+					System.out.print(baseArray[b]);
+					for (int c=0;c<counts[b].length; c++) {
+						outfile.write("\t" +counts[b][c]);
+						System.out.print("\t" +counts[b][c]);
+					}
+					outfile.write("\n");
+					System.out.println();
+				}
+				outfile.write("\n\n");
+				System.out.println();
+				System.out.println();
+				*/
+			}
+			
+			
+			//System.out.println(varcount);
+			for (int i = 0; i < mutCounts.size(); i++) {
+				float result = mutCounts.get(i)[1] / (float)mutCounts.get(i)[0];
+				// mutproportions.write(drawCanvas.sampleList.get(i).getName() +"\t" +result +"\n");
+				System.out.println(drawCanvas.sampleList.get(i).getName() +"\t" +result +"\t" +mutCounts.get(i)[0] +"\t" +mutCounts.get(i)[1]);
+				outfile.write(drawCanvas.sampleList.get(i).getName() +"\t" +result +"\t" +mutCounts.get(i)[0] +"\t" +mutCounts.get(i)[1]+"\n");
+			}
+			
+			//mutproportions.close();
+			//motifmuts.close();
+			//othermuts.close();
+			/*for (int i = 0; i<fractions.length; i++) {
+				System.out.println(fractions[i][0] +"\t" +fractions[i][1]);
+			}*/
+			//outfile2.close();
+			outfile.close();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	private void compareMotifs() {
+		// now searching T:A mutations in hexanucleotides of A/T
+		try {
+			System.out.println("---------------------------------------");
+			BufferedWriter motifmuts = new BufferedWriter(new FileWriter("C:/LocalData/rkataine/motifs.fasta"));
+			//BufferedWriter othermuts = new BufferedWriter(new FileWriter("C:/LocalData/rkataine/othermuts.tsv"));
+			ArrayList<HashMap<String, int[][]>> motifsPerSample = new ArrayList<HashMap<String, int[][]>>();
+			int motifLength = 5;
+			
+			HashMap<String, Integer> bases = new HashMap<String, Integer>();
+			bases.put("A", 0); bases.put("C", 1); bases.put("G", 2); bases.put("T", 3); bases.put("N", 4);
+			String[] baseArray = { "A", "C", "G", "T", "N" }; 
+			for (int i = 0; i<Main.varsamples; i++) {
+				motifsPerSample.add(new HashMap<String, int[][]>());
+			}
+			/*if (Main.chromosomeDropdown.getSelectedIndex() != 0) {
+				Main.nothread = true;	
+				Main.chromosomeDropdown.setSelectedIndex(0);
+			}*/
+			int count = 0;
+			int tricount = 0;
+			boolean tri = false;
+			for (int c = 1; c < 23; c++) {
+				if (!Main.drawCanvas.loading) {
+					break;
+				}
+				VarNode node = FileRead.head.getNextVisible(FileRead.head);
+			
+				while(node != null) {
+				
+					if (!Main.drawCanvas.loading) {
+						break;
+					}
+					//count++;
+					// if not A or T   // C = 67 & G = 71
+					/*if (node.getRefBase() != 65 && node.getRefBase() != 84) {
+						node = node.getNextVisible(node);
+						continue;
+					}*/
+					
+					String seq = Main.chromDraw.getSeq(Main.chromosomeDropdown.getItemAt(Main.selectedChrom),node.getPosition()-(motifLength-1), node.getPosition()+motifLength, Main.referenceFile).toString();
+					if (seq.equals("AAAAAAAAA") || seq.equals("TTTTTTTTT")) {
+						node = node.getNextVisible(node);
+						continue;
+					}
+					String triplet = seq.substring(3,6);
+					//String penta = seq.substring(2,7);
+					
+					//String cTriplet = MethodLibrary.reverseComplement(triplet);
+					tri = false;
+					if (node.vars.get(0).getKey().equals("C")) {
+						if (triplet.equals("ATA") || triplet.equals("ATT") || triplet.equals("TTT") || triplet.equals("AAA")) {
+							tri = true;
+							//tricount++;
+						}
+					} else if (node.vars.get(0).getKey().equals("G")) {
+						if (triplet.equals("TAT") || triplet.equals("AAT") || triplet.equals("TTT") || triplet.equals("AAA")) {
+							tri = true;
+							//tricount++;
+						}
+					}
+					
+					// System.out.println(seq +" " +seq.substring(4,7) +" " +Main.getBase.get(node.getRefBase()) +" " +node.vars.get(0).getKey());
+					
+					
+					if (seq.contains("AAATT") || seq.contains("AAAAT") || seq.contains("AATTT") || seq.contains("ATTTT")) {
+						// System.out.println(penta);
+						tri = false;
+						count++;
+					} 
+					
+					
+					if (tri) {
+						tricount++;
+					}
+					node = node.getNextVisible(node);					
+				}
+				Main.nothread = true;	
+				Main.chromosomeDropdown.setSelectedIndex(c);
+			}
+			System.out.println(tricount);
+			
+			motifmuts.close();
+			//othermuts.close();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
 }
 
 public class Seqfetcher extends SwingWorker<String, Object> {

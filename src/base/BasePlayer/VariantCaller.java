@@ -360,9 +360,15 @@ public class VarCaller extends SwingWorker<String, Object> {
 										
 										foundscan = false;
 										scanpointer = i-1;
-										while(scanpointer >= 0 && i-scanpointer < 10) {
-											if(coverages[scanpointer][j] != null) {
-												foundscan = true;
+										while(scanpointer >= 0 && i-scanpointer < 100) {
+											for(int c = 1; c < coverages[i].length-2; c++) {
+												
+												if(coverages[scanpointer][c] != null) {
+													foundscan = true;
+													break;
+												}
+											}
+											if(foundscan) {
 												break;
 											}
 											scanpointer--;
@@ -371,9 +377,14 @@ public class VarCaller extends SwingWorker<String, Object> {
 											continue;
 										}
 										scanpointer = i+1;
-										while(scanpointer < coverages.length && scanpointer-i < 10) {
-											if(coverages[scanpointer][j] != null) {
-												foundscan = true;
+										while(scanpointer < coverages.length && scanpointer-i < 100) {
+											for(int c = 1; c < coverages[i].length-2; c++) {
+												if(coverages[scanpointer][c] != null) {
+													foundscan = true;
+													break;
+												}
+											}
+											if(foundscan) {
 												break;
 											}
 											scanpointer++;

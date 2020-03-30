@@ -153,7 +153,7 @@ public class Draw extends JPanel implements MouseMotionListener, MouseListener {
 	String loadingtext = "";
 	int loadbarAll = 0, loadBarSample= 0, varpos;
 	static RenderingHints rh = new RenderingHints(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-	static RenderingHints rhText = new RenderingHints(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+	static RenderingHints rhText = new RenderingHints(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
 	
 	boolean zoomDrag =false;
 	private Sample sample;	
@@ -390,7 +390,7 @@ public Draw(int width, int height) {
 		
 	varbuffer = MethodLibrary.toCompatibleImage(new BufferedImage((int)Main.screenSize.getWidth(), (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB));	
 	g2v = (Graphics2D)varbuffer.getGraphics();
-	
+	g2v.setRenderingHints(rhText);
 	backupv = g2v.getComposite();
 	
 	readbuffer = MethodLibrary.toCompatibleImage(new BufferedImage((int)Main.screenSize.getWidth(), (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB));	
@@ -399,12 +399,13 @@ public Draw(int width, int height) {
 	rbuf.setRenderingHints(rh);
 	coveragebuffer = MethodLibrary.toCompatibleImage(new BufferedImage((int)Main.screenSize.getWidth(), (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB));	
 	cbuf = (Graphics2D)coveragebuffer.getGraphics();
+	cbuf.setRenderingHints(rhText);
 	backupc = cbuf.getComposite();
 	
 	sidebuffer = MethodLibrary.toCompatibleImage(new BufferedImage((int)Main.screenSize.getWidth(), (int)Main.screenSize.getHeight(), BufferedImage.TYPE_INT_ARGB));
 	sidebuf = (Graphics2D)sidebuffer.getGraphics();
 	backupside = sidebuf.getComposite();
-	//sidebuf.setRenderingHints(rhText);
+	sidebuf.setRenderingHints(rhText);
 	logoImage = MethodLibrary.toCompatibleImage(new BufferedImage(500, 100, BufferedImage.TYPE_INT_ARGB));
 //	logobuf = (Graphics2D)logoImage.getGraphics();
 //	logobuf.setRenderingHints(rh);
@@ -954,12 +955,7 @@ public void drawVars(int offset) {
 					if(currentDraw.getPosition() > this.splits.get(0).end) {
 						break;
 					}		
-					if(FileRead.novars) {	
-						
-						if(splits.get(0) == null || !currentDraw.getChrom().equals(splits.get(0).chrom)) {
-							break;
-						}
-					}
+					
 					if(hideNode(currentDraw)) {						
 						currentDraw = currentDraw.getNext();
 						continue;
@@ -1341,7 +1337,6 @@ boolean hideNode(VarNode node) {
 	if(node == null) {
 		return true;
 	}
-	
 	if(VariantHandler.hidenoncoding.isSelected()) {
 		
 		if(!node.coding) {			
@@ -1355,17 +1350,16 @@ boolean hideNode(VarNode node) {
 		}
 	}
 	
-	if(!FileRead.readFiles && VariantHandler.commonSlider.getValue() > 1) {
+	if(!FileRead.readFiles && VariantHandler.commonSlider.getValue() >= 1) {
 		
 		if(VariantHandler.clusterSize > 0) {
-			if(VariantHandler.commonSlider.getUpperValue()< Main.varsamples) {
+			if(VariantHandler.commonSlider.getUpperValue() < Main.varsamples) {
 				if(node.incluster) {
 					return true;
 				}
 			}
-			else if(VariantHandler.commonSlider.getValue() > 1 && !node.incluster) {	
-			
-				return true;		
+			else if(!node.incluster) {
+				return true;
 			}
 			
 		}		
@@ -1445,12 +1439,13 @@ void calcClusters(VarNode node, int i) {
 	calcClusters(node);
 }
 void calcClusters(VarNode node) {
-	
+
 		try {
-			if(VariantHandler.commonSlider.getValue() < 2 || VariantHandler.clusterSize < 1 || node == null) {
+			
+			if(VariantHandler.commonSlider.getValue() < 1 || VariantHandler.clusterSize < 1 || node == null) {
 				return;
 			}
-		
+			
 			boolean first = true;
 			
 			if(node.getNext()!=null) {
@@ -1497,7 +1492,7 @@ void calcClusters(VarNode node) {
 								}							
 							}
 						}
-						if(clustersum >= VariantHandler.commonSlider.getValue()) {
+						if(clustersum > 1 && clustersum >= VariantHandler.commonSlider.getValue()) {
 							
 							tempnode.incluster = true;								
 							tempnode.clusterId = clusterId;
@@ -1569,7 +1564,7 @@ void calcClusters(VarNode node) {
 					node = node.getNext(node);
 				}				
 				
-				if(clustersum < VariantHandler.commonSlider.getValue() && VariantHandler.commonSlider.getValue() > 1) {
+				if(clustersum < VariantHandler.commonSlider.getValue()) {
 					
 					tempnode.incluster = false;
 					while(tempnode != null && !tempnode.equals(node)) {
@@ -1583,6 +1578,7 @@ void calcClusters(VarNode node) {
 				}	
 			
 				else {
+					
 					node.incluster = true;
 					node.clusterId = clusterId;
 				
@@ -1643,7 +1639,7 @@ boolean hideNodeVar(VarNode node, Entry<String, ArrayList<SampleNode>> entry ) {
 		
 	}
 	
-	if(!FileRead.readFiles && (VariantHandler.commonSlider.getValue() > 1 || VariantHandler.commonSlider.getUpperValue() < Main.varsamples)) {
+	if(!FileRead.readFiles && (VariantHandler.commonSlider.getValue() >= 1 || VariantHandler.commonSlider.getUpperValue() < Main.varsamples)) {
 		
 		if(VariantHandler.clusterSize == 0) {
 			
@@ -1771,7 +1767,7 @@ boolean hideVar(SampleNode sample, boolean indel) {
 			return false;
 		}
 		//if(intersect) {
-			if(!FileRead.readFiles && (VariantHandler.commonSlider.getValue() > 1 || VariantHandler.commonSlider.getUpperValue() < Main.varsamples)) {
+			if(!FileRead.readFiles && (VariantHandler.commonSlider.getValue() >= 1 || VariantHandler.commonSlider.getUpperValue() < Main.varsamples)) {
 			
 				if(!sample.common) {
 					return true;
@@ -1803,6 +1799,9 @@ boolean hideVar(SampleNode sample, boolean indel) {
 					return true;
 				}
 			}
+			if(VariantHandler.readSlider.getValue() > sample.getCalls()) {		
+				return true;
+			}
 		}
 		else {
 			if(indel) {
@@ -1821,6 +1820,9 @@ boolean hideVar(SampleNode sample, boolean indel) {
 				if(VariantHandler.callSliderIndel.getValue()/100.0 > sample.getAlleleFraction() || sample.getAlleleFraction() == 0.0) {			
 					return true;
 				}
+				if(VariantHandler.readSliderIndel.getValue() > sample.getCalls()) {		
+					return true;
+				}
 			}
 			else {
 				if(sample.getQuality() != null && VariantHandler.qualitySlider.getValue() > sample.getQuality()) {		
@@ -1836,6 +1838,9 @@ boolean hideVar(SampleNode sample, boolean indel) {
 					return true;
 				}
 				if(VariantHandler.callSlider.getValue()/100.0 > sample.getAlleleFraction() || sample.getAlleleFraction() == 0.0) {		
+					return true;
+				}
+				if(VariantHandler.readSlider.getValue() > sample.getCalls()) {		
 					return true;
 				}
 			}
@@ -2635,7 +2640,7 @@ public void drawScreen(Graphics g) {
 			mouseWheel = false;
 		}
 		
-		if(bam && zoomNote && splits.get(0).viewLength > Settings.coverageDrawDistance) {
+		if(bam && zoomNote && splits.get(0).viewLength > Settings.coverageDrawDistance  && drawVariables.sampleHeight >= 100) {
 			if(!buf.getColor().equals(Color.lightGray)) {
 				buf.setColor(Color.lightGray);				
 			}			
@@ -5905,7 +5910,7 @@ void moveReadToBottom(ReadNode moveread, SplitClass split, Sample readsample, in
 			
 		}		
 		//if(moved) {
-		//if(read != null) {	
+		if(read != null) {	
 			if(read.getPrev() != null) {
 				read.getPrev().setNext(moveread);
 				moveread.setPrev(read.getPrev());
@@ -5915,7 +5920,7 @@ void moveReadToBottom(ReadNode moveread, SplitClass split, Sample readsample, in
 			}
 			read.setPrev(moveread);
 			moveread.setNext(read);
-		//}
+		}
 			//	read = null;
 		//	break;
 	//	}
@@ -6080,17 +6085,17 @@ void removeSample(Sample removeSample) {
 			}
 		}	
 	}
-	VariantHandler.commonSlider.setMaximum(Main.varsamples);
-	VariantHandler.geneSlider.setMaximum(Main.varsamples);
+	VariantHandler.commonSlider.setMaximum(Math.max(Main.varsamples, 1));
+	VariantHandler.geneSlider.setMaximum(Math.max(Main.varsamples, 1));
 	if(VariantHandler.commonSlider.getUpperValue() > Main.varsamples) {
 		VariantHandler.commonSlider.setUpperValue(Main.varsamples);
 		
 	}
 	if(VariantHandler.commonSlider.getValue() > Main.varsamples) {
-		VariantHandler.commonSlider.setValue(Main.varsamples);
+		VariantHandler.commonSlider.setValue(Math.max(Main.varsamples, 1));
 	}
 	if(VariantHandler.geneSlider.getValue() > Main.varsamples) {
-		VariantHandler.geneSlider.setValue(Main.varsamples);
+		VariantHandler.geneSlider.setValue(Math.max(Main.varsamples, 1));
 	}
 	checkSampleIndices();
 	FileRead.checkSamples();
